@@ -21,13 +21,17 @@
     2. **Auditoría de cartas roguelite:** Revisar todas las cartas y nerfear/rebalancear efectos demasiado rotos (ej. *Espejo Duplicador* clonando pociones en Vitrina se siente demasiado fuerte).
     3. **Revisión de Familiares y NPCs:** Depurar por qué los familiares (como *Michi Alado*) se quedan pegados al caldero y añadir feedback visual/tutorial claro de qué hace cada uno.
     4. **Tutoriales cortos con diálogos** para explicar mecánicas (`¡CALIENTE!`, Mortero, Vitrina, Familiares).
-    5. **Sistema de Reliquias por Niveles y Slots estilo *Vampire Survivors*:**
-       * Cada carta empieza con bonos pequeños incrementales (ej. Nv. 1 = `+5%` velocidad al caminar o cocinado) y sube de nivel al volver a salir (`Nv. 2`, `Nv. 3`..., sumando `+5%` extra cada vez).
-       * **Topes de build por partida:** máximo **1 Familiar**, **3 Reliquias Pasivas** (velocidad, cocinado, carga, etc.) y **3 Habilidades Activas por tecla** (ej. transformar poción, frenar caída de paciencia por unos segundos, acelerar calderos).
-  * **Siguiente Foco Inmediato (Para retomar la próxima sesión):**
-    1. Definir y diseñar las **3 Pasivas + 3 Activas (con niveles escalables)** y la estructura de **1 Familiar máximo**.
-    2. Hacer desbloqueables el **Mortero** y la **Vitrina** tras superar los primeros pedidos.
-    3. Depurar la IA/feedback visual de **Familiares** y armar los **tutoriales cortos** con diálogos.
+    5. **Sistema de Niveles por XP de Entregas y Slots estilo *Vampire Survivors*:**
+       * **Subida de nivel por XP (NO atada al reloj del día):** Cada poción entregada da XP base + bono según qué tan rápido se sirvió. Al llenar la barra de XP en cualquier momento, se pausan los timings y sale el Draft de cartas (permitiendo subir muchos niveles por partida).
+       * Cada carta empieza con bonos pequeños incrementales (ej. Nv. 1 = `+5%` velocidad al caminar o cocinado) y sube de nivel al volver a salir (`Nv. 2`, `Nv. 3`...).
+       * **Topes de build por partida:** máximo **1 Familiar**, **3 Reliquias Pasivas** (velocidad, cocinado, carga, etc.) y **3 Habilidades Activas** (con **botones clicables en UI** fuera de la esquina del retrato + **teclas `1/2/3` como atajo**, para soportar tanto 1 mano como 2 manos).
+    6. **Fricción Manual -> Automatización (Stock/Almacén) y Alcance Inicial de Arte:**
+       * Evaluar cajas de ingredientes con stock (paquetes de 10) recargables desde una zona de suministro/carreta **visible en pantalla** (sin perder de vista calderos ni clientas) que luego se automatiza con familiares.
+       * Arrancar la producción visual con **1 brujita jugable (*Trixie*)** + clientas (primero placeholders IA y luego dibujo final en Krita); el resto de brujas vendrán después.
+  * **Siguiente Foco Inmediato (Para retomar mañana):**
+    1. Implementar la **Barra de XP por entregas/rapidez** que dispara el Draft de cartas (reemplazando el Draft solo por fin de día).
+    2. Implementar el **sistema de Niveles + Límite `1 Familiar / 3 Pasivas / 3 Activas` (botones clicables + teclas `1/2/3`)**.
+    3. Hacer desbloqueables progresivos el **Mortero** y la **Vitrina**, depurar **Familiares** y armar los **tutoriales cortos** con diálogos.
 
 ---
 
@@ -69,17 +73,18 @@
 
 ---
 
-## Fase 2: Motor Roguelite, Familiares y Escalada Incremental
-- [ ] **2.1 Gestión de Días 1–8 + Modo Infinito + Progresión Suave:**
+## Fase 2: Motor Roguelite por XP, Familiares y Escalada Incremental
+- [ ] **2.1 Barra de XP por Entregas y Progresión Suave de Estaciones:**
+  - [ ] Implementar **Barra de XP** que sube al entregar pociones + bono por rapidez de entrega, disparando el modal de Draft cada vez que se llena (en lugar de esperar al fin del día).
   - [ ] Hacer que **Mortero** y **Vitrina** sean desbloqueables progresivamente (no activos desde el minuto 0) para suavizar el arranque.
-  - [ ] Crear `RunManager.gd` y tabla de oleadas (`WaveScheduleData`) con escalado de frecuencia y complejidad de pedidos.
-  - [ ] Implementar Jefes de Turno (Día 3 *Seraphina VIP*, Día 6 *Hora Pico del Sabbat*, Día 8 *Archidemonio*).
+  - [ ] Evaluar mecánica de stock en cajas de ingredientes (paquetes de 10 desde zona de suministro visible en pantalla) para potenciar el contraste entre inicio manual y automatización.
+  - [ ] Implementar Jefes/Eventos de Oleada (ej. *Seraphina VIP*, *Hora Pico del Sabbat*, *Archidemonio*).
 - [ ] **2.2 Sistema de Familiares Autónomos y Depuración de NPCs:**
   - [ ] Revisar y depurar bugs de movimiento/estado donde los familiares se quedan pegados junto al caldero (ej. *Michi Alado*), y darles feedback visual claro de lo que hacen.
   - [ ] Implementar los 4 familiares iniciales (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Sombrío`, `Mandrágora Cantora`) con IA limpia y animaciones flotantes.
 - [ ] **2.3 Sistema de Niveles, Slots Límite (Vampire Survivors) y Catálogo de Reliquias:**
   - [ ] Implementar **niveles acumulables por carta** (ej. Nv. 1 `+5%` velocidad -> Nv. 2 `+10%`, etc. cuando vuelve a aparecer en el Draft).
-  - [ ] Implementar **límite máximo de slots por partida:** **1 Familiar** + **3 Pasivas** + **3 Habilidades Activas** (activables por tecla, ej. transmutar una poción en otra o ralentizar la pérdida de paciencia unos segundos).
+  - [ ] Implementar **límite máximo de slots por partida:** **1 Familiar** + **3 Pasivas** + **3 Habilidades Activas** (con **botones clicables en UI** sin tapar el retrato de clienta + **teclas `1/2/3`** de fallback).
   - [ ] Auditar y rebalancear todas las cartas actuales junto al desarrollador (ajustar *Espejo Duplicador*, que resulta demasiado fuerte al clonar directo a la Vitrina).
   - [ ] Crear los archivos `.tres` definitivos en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
   - [ ] Implementar tienda intermedia entre días (Reroll de cartas y Reparación de corazones).
