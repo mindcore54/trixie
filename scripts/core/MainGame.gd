@@ -125,20 +125,23 @@ func _run_smoke_test() -> void:
 	var ability_ok: bool = witch.trigger_ability(cauldrons, active_customers, active_familiars)
 	await get_tree().process_frame
 
-	# Verify mortar + 2-color mixing (red + green -> tonico_silvestre yellow) and 1-by-1 READY upgrade
+	# Verify mortar color-combining (red + green -> mix_yellow circle -> cauldron tonico_silvestre)
+	var mortar: KitchenStation = _find_station(&"mortar")
 	var c1: KitchenStation = _find_station(&"cauldron_1")
-	c1.add_ingredient(&"crushed_red")
-	c1.add_ingredient(&"crushed_green")
-	var mortar_mix_ok: bool = c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre" and c1.has_mortar_bonus
-	c1.take_ready_potion()
-	c1.held_ingredients.clear()
-	c1.active_recipe = null
-	c1.cauldron_state = KitchenStation.CauldronState.IDLE
-	c1.has_mortar_bonus = false
-
-	c1.add_ingredient(&"red")
-	c1.finish_instant()
-	var upgraded_ready_ok: bool = c1.add_ingredient(&"green") and c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre"
+	witch.held_items.clear()
+	witch.held_items.append("ing:red")
+	witch.held_items.append("ing:green")
+	var mortar_mix_ok: bool = witch._perform_mortar_mix(mortar) and witch.held_items.size() == 1 and witch.held_items[0] == "ing:mix_yellow"
+	var raw_blocked_ok: bool = false
+	if mortar_mix_ok:
+		var yellow_ing: StringName = StringName(witch.held_items[0].substr(4))
+		witch.held_items.clear()
+		raw_blocked_ok = c1.add_ingredient(yellow_ing) and c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre"
+		# Second ingredient directly into non-idle cauldron must be rejected
+		raw_blocked_ok = raw_blocked_ok and not c1.can_accept_ingredient(&"green")
+		c1.finish_instant()
+		c1.take_ready_potion()
+	var upgrade_ready_ok: bool = raw_blocked_ok
 
 	# Verify timers pause while draft cards are open (animations keep ticking, timers do not)
 	cauldron.add_ingredient(&"red")
@@ -165,10 +168,10 @@ func _run_smoke_test() -> void:
 	await get_tree().process_frame
 
 	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s mortar_mix_ok=%s upgrade_ready_ok=%s" % [
-		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused), str(mortar_mix_ok), str(upgraded_ready_ok)
+	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s mortar_mix_ok=%s mortar_cauldron_ok=%s" % [
+		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused), str(mortar_mix_ok), str(upgrade_ready_ok)
 	])
-	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused and mortar_mix_ok and upgraded_ready_ok
+	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused and mortar_mix_ok and upgrade_ready_ok
 	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
 	get_tree().quit(0 if ok else 1)
 

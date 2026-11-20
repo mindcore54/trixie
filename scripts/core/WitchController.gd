@@ -259,11 +259,15 @@ func _arrive_at_task(task: Dictionary) -> void:
 			_current_task.clear()
 
 		KitchenStation.StationType.MORTAR:
-			if _has_raw_ingredient():
-				_work_timer = 0.55
+			if _can_mix_at_mortar(st):
+				_work_timer = 0.45
 				_do_squash(Vector2(0.85, 1.18))
+			elif _try_place_one_in_mortar(st):
+				_do_squash(Vector2(1.12, 0.90))
+				_emit_step(st.station_id)
+				_current_task.clear()
 			else:
-				popup_requested.emit(global_position + Vector2(0, -54), "Trae un ingrediente", Color(0.85, 0.85, 0.95))
+				popup_requested.emit(global_position + Vector2(0, -54), "Trae 2 colores distintos", Color(0.95, 0.82, 0.45))
 				_current_task.clear()
 
 		KitchenStation.StationType.CAULDRON:
@@ -283,7 +287,7 @@ func _arrive_at_task(task: Dictionary) -> void:
 				_work_timer = 0.35
 			else:
 				if _has_any_ingredient():
-					popup_requested.emit(st.global_position + Vector2(0, -54), "¡Mezcla inválida!", Color(0.85, 0.4, 1.0))
+					popup_requested.emit(st.global_position + Vector2(0, -54), "¡Combina 2 colores en el Mortero!", Color(0.95, 0.72, 0.35))
 				_current_task.clear()
 
 		KitchenStation.StationType.BOTTLING:
@@ -308,14 +312,8 @@ func _finish_work_task() -> void:
 		return
 
 	if st.station_type == KitchenStation.StationType.MORTAR:
-		var crushed_any: bool = false
-		for i: int in range(held_items.size()):
-			if held_items[i].begins_with("ing:") and not held_items[i].begins_with("ing:crushed_"):
-				var raw_id: String = held_items[i].substr(4)
-				held_items[i] = "ing:crushed_" + raw_id
-				crushed_any = true
-		if crushed_any:
-			popup_requested.emit(st.global_position + Vector2(0, -48), "¡Machacado (+50% Oro)!", Color(1.0, 0.88, 0.35))
+		if _perform_mortar_mix(st):
+			popup_requested.emit(st.global_position + Vector2(0, -48), "¡Mezcla lista!", Color(1.0, 0.90, 0.30))
 			if seismic_mortar_enabled and seismic_mortar_callback.is_valid():
 				seismic_mortar_callback.call()
 			_emit_step(st.station_id)
@@ -407,11 +405,74 @@ func _next_queued_wants_potion() -> bool:
 	return false
 
 
-func _has_raw_ingredient() -> bool:
-	for item: String in held_items:
-		if item.begins_with("ing:") and not item.begins_with("ing:crushed_"):
-			return true
+func _can_mix_at_mortar(st: KitchenStation) -> bool:
+	var raw_indices: Array[int] = _get_raw_hand_indices()
+	if not st.held_ingredients.is_empty() and not raw_indices.is_empty():
+		var in_bowl: StringName = st.held_ingredients[0]
+		for idx: int in raw_indices:
+			var cand: StringName = StringName(held_items[idx].substr(4))
+			if GameCatalog.combine_two_colors(in_bowl, cand) != &"":
+				return true
+	if raw_indices.size() >= 2:
+		for a: int in range(raw_indices.size()):
+			for b: int in range(a + 1, raw_indices.size()):
+				var ca: StringName = StringName(held_items[raw_indices[a]].substr(4))
+				var cb: StringName = StringName(held_items[raw_indices[b]].substr(4))
+				if GameCatalog.combine_two_colors(ca, cb) != &"":
+					return true
 	return false
+
+
+func _try_place_one_in_mortar(st: KitchenStation) -> bool:
+	if not st.held_ingredients.is_empty():
+		return false
+	var raw_indices: Array[int] = _get_raw_hand_indices()
+	if raw_indices.is_empty():
+		return false
+	var idx: int = raw_indices[0]
+	var raw_id: StringName = StringName(held_items[idx].substr(4))
+	held_items.remove_at(idx)
+	st.held_ingredients.append(raw_id)
+	st.queue_redraw()
+	popup_requested.emit(st.global_position + Vector2(0, -48), "Falta 1 color", Color(0.95, 0.90, 0.70))
+	return true
+
+
+func _perform_mortar_mix(st: KitchenStation) -> bool:
+	var raw_indices: Array[int] = _get_raw_hand_indices()
+	if not st.held_ingredients.is_empty() and not raw_indices.is_empty():
+		var in_bowl: StringName = st.held_ingredients[0]
+		for idx: int in raw_indices:
+			var cand: StringName = StringName(held_items[idx].substr(4))
+			var combined: StringName = GameCatalog.combine_two_colors(in_bowl, cand)
+			if combined != &"":
+				st.held_ingredients.clear()
+				st.queue_redraw()
+				held_items.remove_at(idx)
+				held_items.append("ing:" + String(combined))
+				return true
+	if raw_indices.size() >= 2:
+		for a: int in range(raw_indices.size()):
+			for b: int in range(a + 1, raw_indices.size()):
+				var ia: int = raw_indices[a]
+				var ib: int = raw_indices[b]
+				var ca: StringName = StringName(held_items[ia].substr(4))
+				var cb: StringName = StringName(held_items[ib].substr(4))
+				var combined: StringName = GameCatalog.combine_two_colors(ca, cb)
+				if combined != &"":
+					held_items.remove_at(ib)
+					held_items.remove_at(ia)
+					held_items.append("ing:" + String(combined))
+					return true
+	return false
+
+
+func _get_raw_hand_indices() -> Array[int]:
+	var out: Array[int] = []
+	for i: int in range(held_items.size()):
+		if held_items[i] == "ing:red" or held_items[i] == "ing:blue" or held_items[i] == "ing:green":
+			out.append(i)
+	return out
 
 
 func _has_any_ingredient() -> bool:

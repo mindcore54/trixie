@@ -6,9 +6,10 @@
 script = ExtResource("1_epi10")
 recipe_id = &"tonico_silvestre"
 display_name = "Tónico Silvestre"
-required_ingredients = Array[StringName]([&"green", &"red"])
+required_ingredients = Array[StringName]([&"mix_yellow"])
+requires_mortar = true
 base_brew_time_sec = 3.0
 overheat_grace_sec = 15.0
-base_gold_value = 75
+base_gold_value = 80
 unlock_day = 2
 potion_color = Color(0.98, 0.84, 0.16, 1)

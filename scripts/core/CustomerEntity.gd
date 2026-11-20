@@ -163,15 +163,18 @@ func _draw() -> void:
 		var bub_pos: Vector2 = Vector2(-42, -92 + bob * 0.5)
 		draw_rect(Rect2(bub_pos, Vector2(84, 42)), Color(0.98, 0.96, 0.90))
 		draw_rect(Rect2(bub_pos, Vector2(84, 42)), Color(0.12, 0.09, 0.14), false, 2.5)
-		# Flask color + ingredients dots
+		# Flask color + raw ingredient dots needed (1 or 2 via mortar)
 		draw_circle(bub_pos + Vector2(22, 21), 11.0, requested_recipe.potion_color)
 		draw_circle(bub_pos + Vector2(22, 21), 11.0, Color(0.1, 0.08, 0.12), false, 2.0)
-		for i: int in range(requested_recipe.required_ingredients.size()):
-			var ing_col: Color = KitchenStation._ingredient_color(requested_recipe.required_ingredients[i])
+		var raw_dots: Array[StringName] = []
+		for req: StringName in requested_recipe.required_ingredients:
+			for c: StringName in GameCatalog.get_raw_components(req):
+				raw_dots.append(c)
+		for i: int in range(raw_dots.size()):
+			var ing_col: Color = KitchenStation._ingredient_color(raw_dots[i])
 			var dot_p: Vector2 = bub_pos + Vector2(48 + i * 16, 21)
 			draw_circle(dot_p, 6.5, ing_col)
-			if String(requested_recipe.required_ingredients[i]).begins_with("crushed_"):
-				draw_circle(dot_p, 8.5, Color(1.0, 0.85, 0.2), false, 1.8)
+			draw_circle(dot_p, 6.5, Color(0.1, 0.08, 0.12), false, 1.4)
 
 		# Patience bar
 		var p_ratio: float = get_patience_ratio()

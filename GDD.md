@@ -69,7 +69,7 @@ Para que el juego sea táctil al principio sin volverse tedioso en el *late-game
      * **Azul — Cristal Cryo** (Gemas prismáticas azules)
      * **Verde — Savia Silvestre** (Brotes esmeralda luminosos)
    * *Inventario en mano:* La bruja tiene **2 manos/ranuras de carga base** (ampliable con reliquias). Puede llevar ingredientes o pociones terminadas mezclando libremente, o soltar ingredientes directo en un caldero.
-   * *Mortero (Recetas Nivel 2+):* Algunas recetas avanzadas (desde el Día 3) muestran un icono de **Machacado** sobre uno de los ingredientes; pasar por el Mortero (0.8s o 3 clics rápidos si quieres acelerarlo) lo convierte en *Polvo Concentrado* (duplica el valor base de la poción).
+   * *Mortero (Recetas de 2 Colores — Obligatorio):* Las pociones simples (`Rojo`, `Azul`, `Verde`) van directo al caldero. Las pociones combinadas (**Amarillo** = `Rojo + Verde`, **Morado** = `Rojo + Azul`, **Turquesa** = `Azul + Verde`) **requieren** llevar los 2 colores al **Mortero** (juntos en mano o de 1 en 1), donde se fusionan en un único círculo del color combinado listo para echarlo al caldero.
 2. **Los Calderos Alquímicos (2 iniciales, hasta 3–4 mediante mejoras):**
    * Al hacer clic en un caldero llevando ingredientes, los deposita dentro. Cuando coinciden con una receta válida (1 a 3 ingredientes), **el caldero comienza a hervir automáticamente** (`3.5s` base).
    * **Mecánica de Riesgo y "¡CALIENTE!":**

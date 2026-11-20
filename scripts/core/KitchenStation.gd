@@ -124,28 +124,24 @@ func _process(delta: float) -> void:
 func can_accept_ingredient(ing: StringName) -> bool:
 	if station_type != StationType.CAULDRON:
 		return false
-	if cauldron_state == CauldronState.EXPLODED_COOLDOWN:
+	if cauldron_state != CauldronState.IDLE or not held_ingredients.is_empty():
 		return false
-	return GameCatalog.can_extend_ingredients(held_ingredients, ing, _recipes_ref)
+	return GameCatalog.match_exact_recipe([ing], _recipes_ref) != null
 
 
 func add_ingredient(ing: StringName) -> bool:
 	if not can_accept_ingredient(ing):
 		return false
-	if String(ing).begins_with("crushed_"):
-		has_mortar_bonus = true
-	held_ingredients.append(GameCatalog.normalize_ingredient(ing))
+	held_ingredients.append(ing)
 	var matched: PotionRecipeData = GameCatalog.match_exact_recipe(held_ingredients, _recipes_ref)
 	if matched != null:
-		var was_ready: bool = (cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING)
 		active_recipe = matched
 		brew_duration = matched.base_brew_time_sec
 		overheat_duration = matched.overheat_grace_sec
 		overheat_elapsed = 0.0
-		if cauldron_state != CauldronState.BREWING:
-			brew_elapsed = brew_duration * 0.35 if was_ready else 0.0
-			cauldron_state = CauldronState.BREWING
-			EventBus.cauldron_brew_started.emit(cauldron_index, matched.recipe_id)
+		brew_elapsed = 0.0
+		cauldron_state = CauldronState.BREWING
+		EventBus.cauldron_brew_started.emit(cauldron_index, matched.recipe_id)
 	queue_redraw()
 	return true
 
@@ -239,6 +235,9 @@ func _draw_mortar(outline_col: Color, outline_w: float) -> void:
 	draw_circle(Vector2.ZERO, 28.0, Color(0.55, 0.56, 0.62))
 	draw_circle(Vector2.ZERO, 28.0, Color(0.12, 0.1, 0.16), false, 3.0)
 	draw_circle(Vector2.ZERO, 17.0, Color(0.28, 0.24, 0.32))
+	if not held_ingredients.is_empty():
+		draw_circle(Vector2.ZERO, 11.0, _ingredient_color(held_ingredients[0]))
+		draw_circle(Vector2.ZERO, 11.0, Color(0.1, 0.08, 0.14), false, 2.0)
 	draw_line(Vector2(4, -2), Vector2(20, -24), Color(0.84, 0.78, 0.70), 7.0)
 	_draw_station_caption(display_label, Vector2(0, 56))
 
@@ -327,6 +326,12 @@ func _draw_station_caption(txt: String, pos: Vector2, col: Color = Color(0.98, 0
 
 static func _ingredient_color(ing: StringName) -> Color:
 	var s: String = String(ing)
+	if s == "mix_yellow":
+		return Color(0.98, 0.84, 0.16)
+	if s == "mix_purple":
+		return Color(0.76, 0.30, 0.98)
+	if s == "mix_cyan":
+		return Color(0.18, 0.90, 0.86)
 	if s.contains("red"):
 		return Color(0.96, 0.26, 0.30)
 	if s.contains("blue"):
