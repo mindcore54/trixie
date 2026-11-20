@@ -56,10 +56,9 @@ Partidas intensas de **10 a 15 minutos** donde empiezas preparando cada poción 
 ### 3.1 Controles
 | Input | Acción | Detalle de UX |
 | :--- | :--- | :--- |
-| **Clic Izquierdo en Estación / Clienta** | Encolar acción | Añade hasta **6 pasos** en cola. Dibuja un camino luminoso en el suelo con marcadores numerados (`1`, `2`, `3`...) y reproduce una nota musical ascendente en escala pentatónica. |
-| **Clic Izquierdo en el Suelo** | Reubicar / Cancelar cola | Mueve a la bruja al punto indicado y limpia acciones pendientes si se hace doble clic rápido. |
+| **Clic Izquierdo en Estación / Clienta** | Mover / Pre-encolar siguiente clic | Solo acepta estaciones interactivas o clientas (nunca suelo vacío). Mientras la bruja va hacia un destino (`1`), puedes hacer clic en el **siguiente punto** (`2`) para encadenarlo al instante sin acumular colas largas ni confusas. |
 | **Clic Derecho (o Barra Espaciadora)** | **Habilidad Especial (*Cut-in*)** | Detona la activa única de la bruja en cualquier momento sin interrumpir su posicionamiento, disparando un banner *cut-in* anime de 0.6s con *hitstop*. |
-| **Clic Central / `Q` / `Esc`** | Limpiar cola / Pausa | `Clic central` o `Q` vacía la cola de acciones si el jugador cambió de prioridad. |
+| **Clic Central / `Q` / `Esc`** | Cancelar siguiente clic / Pausa | `Clic central` o `Q` cancela la acción actual y el clic en espera. |
 
 ### 3.2 Flujo de Creación de una Poción (4 Estaciones)
 Para que el juego sea táctil al principio sin volverse tedioso en el *late-game*, el flujo sigue una cadena de **4 estaciones físicas**:

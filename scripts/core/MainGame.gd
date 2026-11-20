@@ -95,15 +95,26 @@ func _run_smoke_test() -> void:
 	var cauldron: KitchenStation = _find_station(&"cauldron_0")
 	var bottling: KitchenStation = _find_station(&"bottling")
 
+	var steps: Array[Variant] = []
 	for ing: StringName in reqs:
-		var bin_st: KitchenStation = _find_station(StringName("bin_" + String(ing)))
-		witch.enqueue_station(bin_st)
-	witch.enqueue_station(cauldron)
-	witch.enqueue_station(cauldron)
-	witch.enqueue_station(bottling)
-	witch.enqueue_customer(cust)
+		steps.append(_find_station(StringName("bin_" + String(ing))))
+	steps.append(cauldron)
+	steps.append(cauldron)
+	steps.append(bottling)
+	steps.append(cust)
 
 	Engine.time_scale = 5.0
+	var max_queue_seen: int = 0
+	for step_target: Variant in steps:
+		while witch.action_queue.size() >= WitchController.MAX_NEXT_BUFFER:
+			await get_tree().process_frame
+		if step_target is KitchenStation:
+			witch.enqueue_station(step_target as KitchenStation)
+		elif step_target is CustomerEntity:
+			witch.enqueue_customer(step_target as CustomerEntity)
+		max_queue_seen = maxi(max_queue_seen, witch.action_queue.size())
+		await get_tree().process_frame
+
 	for _f: int in range(300):
 		await get_tree().process_frame
 		if gold > 0:
@@ -124,10 +135,10 @@ func _run_smoke_test() -> void:
 	await get_tree().process_frame
 
 	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s" % [
-		gold, combo, day_number, active_familiars.size(), str(ability_ok)
+	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d" % [
+		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen
 	])
-	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok
+	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER
 	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
 	get_tree().quit(0 if ok else 1)
 
@@ -203,14 +214,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		witch.trigger_ability(cauldrons, active_customers, active_familiars)
 	elif event.is_action_pressed("cancel_queue"):
 		witch.clear_queue()
-	elif event is InputEventMouseButton:
-		var mb: InputEventMouseButton = event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			var clamped_pos: Vector2 = Vector2(
-				clampf(mb.position.x, 180.0, 1250.0),
-				clampf(mb.position.y, 260.0, 920.0)
-			)
-			witch.move_direct(clamped_pos)
 
 
 func _process(delta: float) -> void:

@@ -10,6 +10,7 @@
   * Documentada en `AGENTS.md` la filosofía de trabajo **"First Make It Happen"**: priorizar prototipos jugables rápidos y visibles para que el desarrollador los pruebe y corrija sobre la marcha.
   * Implementados y verificados los sistemas núcleo en Godot 4.7.2: `AudioJuiceManager.gd` (SFX pentatónicos procedurales, hitstop, screen shake), `GameCatalog.gd` + 21 archivos `.tres` en `res://data/` (4 brujas, 5 clientas, 6 recetas, 6 mejoras/familiares), `KitchenStation.gd`, `CustomerEntity.gd`, `FamiliarEntity.gd`, `WitchController.gd` (cola de hasta 6 clics), `KitchenHUD.gd` (busto reactivo 6 emociones, retrato grande abajo-derecha, pergamino *chipped*, *cut-in* y modal de draft) y `MainGame.gd`.
   * **Validación:** `--smoke-test` headless superado (`gold=66, combo=1, day=2, familiars=1, ability_ok=true`) y arranque de `Main.tscn` limpio sin errores.
+  * **Control refinado (Post-Playtest):** Bloqueado clic en suelo vacío (solo estaciones y clientas válidas) y simplificada la cola a **1 clic en curso + 1 clic siguiente en buffer** (`MAX_NEXT_BUFFER = 1`) para eliminar sobrecarga visual manteniendo el encadenado fluido.
   * **Siguiente Foco Inmediato:** Que el desarrollador abra el proyecto en Godot (`F5`), juegue 1–2 turnos del Vertical Slice y marque qué siente lento, incómodo o mejorable para iterar al vuelo (Hito 1.6).
 
 ---
@@ -33,9 +34,9 @@
 
 - [x] **1.1 Escenario de Cocina 2.5D y Navegación:**
   - [x] Construir cocina en `Main.tscn` / `MainGame.gd` con distribución calcada a `imagen3.jpeg` (Estación de Ingredientes abajo-izquierda, Mortero, 2 Calderos centro-izquierda, Mesa Embotellado arriba-derecha, Mostrador + 5 slots de fila a la derecha).
-  - [x] Movimiento limpio entre estaciones con cola visual en suelo y waypoints `1..6`.
-- [x] **1.2 Bruja Controlable por Cola de Clics:**
-  - [x] Implementar cola de acciones en `WitchController.gd` (hasta 6 clics encadenados, waypoints `1..6`, clic central/`Q` para limpiar cola).
+  - [x] Movimiento limpio solo entre estaciones/clientas válidas con indicador de destino actual (`1`) y siguiente clic (`2`).
+- [x] **1.2 Bruja Controlable por Clic + Siguiente Clic:**
+  - [x] Implementar buffer de **1 siguiente clic** en `WitchController.gd` (destino activo + 1 próximo clic anticipado, sin colas largas confusas; clic central/`Q` para limpiar).
   - [x] Implementar `WitchController.gd` con 2 ranuras visuales de mano y rebote procedural al caminar (estilo *Helltaker* por código).
 - [x] **1.3 Ciclo Completo de Poción y Calderos:**
   - [x] Crear los 6 recursos de recetas iniciales (Rojo, Azul, Verde, Rojo+Azul, Verde+Rojo, Concentrado Carmesí con Mortero) en `res://data/recipes/`.

@@ -6,7 +6,7 @@ extends Node2D
 signal potion_delivered_to_customer(customer: CustomerEntity, recipe_id: StringName, is_hot: bool)
 signal popup_requested(world_pos: Vector2, text: String, color: Color)
 
-const MAX_QUEUE: int = 6
+const MAX_NEXT_BUFFER: int = 1
 
 var witch_data: WitchCharacterData
 var move_speed_mult: float = 1.0
@@ -23,6 +23,7 @@ var action_queue: Array[Dictionary] = []
 var _current_task: Dictionary = {}
 var _work_timer: float = 0.0
 var _waiting_cauldron: KitchenStation = null
+var _stirring_cauldron: KitchenStation = null
 var _walk_time: float = 0.0
 var _completed_steps: int = 0
 var _ability_cooldown_left: float = 0.0
@@ -37,6 +38,7 @@ func setup_witch(data: WitchCharacterData) -> void:
 	action_queue.clear()
 	_current_task.clear()
 	_waiting_cauldron = null
+	_stirring_cauldron = null
 	_work_timer = 0.0
 	_ability_cooldown_left = 0.0
 	_ability_buff_left = 0.0
@@ -98,42 +100,57 @@ func trigger_ability(cauldrons: Array[KitchenStation], customers: Array[Customer
 
 
 func enqueue_station(station: KitchenStation) -> void:
-	if action_queue.size() >= MAX_QUEUE:
-		return
 	var offset: Vector2 = Vector2(0, 62) if station.station_type == KitchenStation.StationType.CAULDRON else Vector2(0, 54)
 	var dest: Vector2 = station.global_position + offset
-	action_queue.append({
+	_buffer_or_start_task({
 		"kind": "station",
 		"target": station,
 		"pos": dest,
 		"id": station.station_id,
 	})
-	EventBus.action_queued.emit(station.station_id, action_queue.size() - 1, dest)
-	queue_redraw()
 
 
 func enqueue_customer(customer: CustomerEntity) -> void:
-	if action_queue.size() >= MAX_QUEUE:
-		return
 	var dest: Vector2 = customer.global_position + Vector2(-84, 0)
-	action_queue.append({
+	_buffer_or_start_task({
 		"kind": "customer",
 		"target": customer,
 		"pos": dest,
 		"id": customer.archetype.customer_id if customer.archetype else &"customer",
 	})
-	EventBus.action_queued.emit(&"customer", action_queue.size() - 1, dest)
-	queue_redraw()
 
 
-func move_direct(world_pos: Vector2) -> void:
-	clear_queue()
-	action_queue.append({
-		"kind": "point",
-		"target": null,
-		"pos": world_pos,
-		"id": &"floor",
-	})
+func _buffer_or_start_task(task: Dictionary) -> void:
+	var st_id: StringName = task.get("id", &"") as StringName
+	var dest: Vector2 = task.get("pos", global_position) as Vector2
+
+	if _waiting_cauldron != null:
+		var st: KitchenStation = task.get("target") as KitchenStation
+		var wants_bottle: bool = task.get("kind", "") == "station" and st != null and st.station_type == KitchenStation.StationType.BOTTLING
+		if wants_bottle:
+			if action_queue.is_empty():
+				action_queue.append(task)
+			else:
+				action_queue[0] = task
+			EventBus.action_queued.emit(st_id, 1, dest)
+			queue_redraw()
+			return
+		_waiting_cauldron = null
+		_current_task = task
+		action_queue.clear()
+		EventBus.action_queued.emit(st_id, 0, dest)
+		queue_redraw()
+		return
+
+	if _current_task.is_empty() and _work_timer <= 0.0:
+		_current_task = task
+		EventBus.action_queued.emit(st_id, 0, dest)
+	else:
+		if action_queue.size() < MAX_NEXT_BUFFER:
+			action_queue.append(task)
+		else:
+			action_queue[0] = task
+		EventBus.action_queued.emit(st_id, 1, dest)
 	queue_redraw()
 
 
@@ -141,6 +158,7 @@ func clear_queue() -> void:
 	action_queue.clear()
 	_current_task.clear()
 	_waiting_cauldron = null
+	_stirring_cauldron = null
 	_work_timer = 0.0
 	EventBus.action_queue_cleared.emit()
 	queue_redraw()
@@ -214,10 +232,6 @@ func _get_live_task_pos(task: Dictionary) -> Vector2:
 
 func _arrive_at_task(task: Dictionary) -> void:
 	var kind: String = task.get("kind", "")
-	if kind == "point":
-		_current_task.clear()
-		return
-
 	if kind == "customer":
 		var cust: CustomerEntity = task.get("target") as CustomerEntity
 		if cust != null and is_instance_valid(cust) and not cust.is_served:
@@ -261,10 +275,8 @@ func _arrive_at_task(task: Dictionary) -> void:
 				st.stir_cauldron()
 				popup_requested.emit(st.global_position + Vector2(0, -76), "¡CALIENTE!", Color(1.0, 0.65, 0.2))
 				_do_squash(Vector2(1.15, 0.88))
-				if _next_queued_wants_potion():
-					_waiting_cauldron = st
-				else:
-					_current_task.clear()
+				_stirring_cauldron = st
+				_work_timer = 0.35
 			else:
 				if _has_any_ingredient():
 					popup_requested.emit(st.global_position + Vector2(0, -54), "¡Mezcla inválida!", Color(0.85, 0.4, 1.0))
@@ -305,6 +317,13 @@ func _finish_work_task() -> void:
 		_auto_bottle_held()
 		popup_requested.emit(st.global_position + Vector2(0, -48), "¡Embotellado!", Color(0.55, 0.95, 1.0))
 		_emit_step(st.station_id)
+	elif st.station_type == KitchenStation.StationType.CAULDRON and _stirring_cauldron == st:
+		_stirring_cauldron = null
+		if st.cauldron_state == KitchenStation.CauldronState.READY or st.cauldron_state == KitchenStation.CauldronState.OVERBOIL_WARNING:
+			_collect_from_cauldron(st)
+		elif st.cauldron_state == KitchenStation.CauldronState.BREWING and _next_queued_wants_potion():
+			_waiting_cauldron = st
+			return
 
 	_current_task.clear()
 
