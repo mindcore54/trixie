@@ -453,10 +453,21 @@ func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: b
 
 	_remove_customer_and_advance_queue(cust, true)
 
-	if is_hot and mirror_clone_enabled and not active_customers.is_empty():
-		var bonus_cust: CustomerEntity = active_customers[0]
-		_spawn_popup(bonus_cust.global_position + Vector2(-40, -110), "¡CLON ESPEJO!", Color(0.7, 0.45, 1.0))
-		_on_potion_delivered(bonus_cust, bonus_cust.requested_recipe.recipe_id, false)
+	if is_hot and mirror_clone_enabled:
+		var disp_st: KitchenStation = _find_station(&"display_stand")
+		var cloned_to_vitrina: bool = false
+		if disp_st != null:
+			for s_idx: int in range(KitchenStation.MAX_DISPLAY_SLOTS):
+				if not disp_st.is_slot_occupied(s_idx):
+					disp_st.store_potion_in_slot(s_idx, "bot:%s:0:0" % String(recipe_id))
+					_spawn_popup(disp_st.global_position + Vector2(0, -64), "¡Clon en Vitrina!", Color(0.7, 0.45, 1.0))
+					cloned_to_vitrina = true
+					break
+		if not cloned_to_vitrina:
+			var mirror_gold: int = int(round(float(earned) * 0.5))
+			gold += mirror_gold
+			EventBus.gold_changed.emit(gold, mirror_gold)
+			_spawn_popup(cust.global_position + Vector2(-40, -110), "¡Espejo +%dg!" % mirror_gold, Color(0.7, 0.45, 1.0))
 
 
 func _handle_customer_timeout(cust: CustomerEntity) -> void:

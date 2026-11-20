@@ -68,6 +68,9 @@
   - [ ] Crear los 12 archivos `.tres` en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
   - [ ] Implementar tienda intermedia entre días (Reroll de cartas y Reparación de corazones).
 
+- [ ] **2.4 Tutoriales Cortos con Diálogos (Onboarding Orgánico):**
+  - [ ] Secuencia de diálogos cortos explicando paso a paso: 1 color al caldero, 2 colores al Mortero, revolver el caldero para el bono `¡CALIENTE!`, uso de la Vitrina y habilidad especial con clic derecho.
+
 ---
 
 ## Fase 3: Elenco Completo, Afinidad Picante e Integración de Arte Final
@@ -90,6 +93,7 @@
   - [ ] Shader de contorno brillante / *flash* blanco de impacto al recoger pociones y explotar calderos.
   - [ ] Partículas mágicas de vapor arcoíris en calderos, estelas en pies al correr y lluvia de monedas/corazones.
   - [ ] Animación completa de *cut-in* estilo anime al activar clic derecho + pantalla de derrota cómica con hollín.
+  - [ ] Diferenciar visualmente cuando una clienta se marcha enojada por paciencia agotada (parpadeo rojo/icono de enfado) frente a cuando se va satisfecha.
 
 ---
 

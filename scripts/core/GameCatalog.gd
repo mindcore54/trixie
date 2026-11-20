@@ -471,7 +471,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u6.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u6.rarity = RogueliteUpgradeData.Rarity.BROKEN_SYNERGY
 	u6.synergy_tags = PackedStringArray(["Cadena", "Encanto"])
-	u6.description = "• Entrega ¡CALIENTE! duplica pedido"
+	u6.description = "• Entrega ¡CALIENTE! clona en Vitrina"
 	u6.max_stacks = 1
 	u6.effect_params = {"clone_on_hot": true}
 
