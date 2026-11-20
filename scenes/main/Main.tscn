@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://scripts/core/MainGame.gd" id="1_u1xfj"]
 
-[node name="Main" type="Node2D" unique_id=214221527]
+[node name="Main" type="Node2D" unique_id=2006655250]
 script = ExtResource("1_u1xfj")

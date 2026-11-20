@@ -55,26 +55,38 @@ static func find_recipe_by_id(recipe_id: StringName, recipes: Array[PotionRecipe
 	return null
 
 
-static func match_exact_recipe(ingredients: Array[StringName], recipes: Array[PotionRecipeData], max_day: int = 99) -> PotionRecipeData:
-	var sorted_in: Array[StringName] = ingredients.duplicate()
+static func normalize_ingredient(ing: StringName) -> StringName:
+	var s: String = String(ing)
+	if s.begins_with("crushed_"):
+		return StringName(s.substr(8))
+	return ing
+
+
+static func match_exact_recipe(ingredients: Array[StringName], recipes: Array[PotionRecipeData], _max_day: int = 99) -> PotionRecipeData:
+	var sorted_in: Array[StringName] = []
+	for ing: StringName in ingredients:
+		sorted_in.append(normalize_ingredient(ing))
 	sorted_in.sort()
 	for r: PotionRecipeData in recipes:
-		if r.unlock_day > max_day:
-			continue
-		var sorted_req: Array[StringName] = r.required_ingredients.duplicate()
+		var sorted_req: Array[StringName] = []
+		for req: StringName in r.required_ingredients:
+			sorted_req.append(normalize_ingredient(req))
 		sorted_req.sort()
 		if sorted_in == sorted_req:
 			return r
 	return null
 
 
-static func can_extend_ingredients(current: Array[StringName], candidate_ing: StringName, recipes: Array[PotionRecipeData], max_day: int = 99) -> bool:
-	var test_list: Array[StringName] = current.duplicate()
-	test_list.append(candidate_ing)
+static func can_extend_ingredients(current: Array[StringName], candidate_ing: StringName, recipes: Array[PotionRecipeData], _max_day: int = 99) -> bool:
+	var test_list: Array[StringName] = []
+	for ing: StringName in current:
+		test_list.append(normalize_ingredient(ing))
+	test_list.append(normalize_ingredient(candidate_ing))
 	for r: PotionRecipeData in recipes:
-		if r.unlock_day > max_day:
-			continue
-		if _is_multiset_subset(test_list, r.required_ingredients):
+		var norm_req: Array[StringName] = []
+		for req: StringName in r.required_ingredients:
+			norm_req.append(normalize_ingredient(req))
+		if _is_multiset_subset(test_list, norm_req):
 			return true
 	return false
 
@@ -358,18 +370,17 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r5.overheat_grace_sec = 15.0
 	r5.base_gold_value = 75
 	r5.unlock_day = 2
-	r5.potion_color = Color(0.98, 0.65, 0.16)
+	r5.potion_color = Color(0.98, 0.84, 0.16)
 
 	var r6: PotionRecipeData = PotionRecipeData.new()
-	r6.recipe_id = &"concentrado_carmesi"
-	r6.display_name = "Concentrado Carmesí"
-	r6.required_ingredients = [&"crushed_red", &"blue"]
-	r6.requires_mortar = true
-	r6.base_brew_time_sec = 3.4
+	r6.recipe_id = &"nectar_acuatico"
+	r6.display_name = "Néctar Acuático"
+	r6.required_ingredients = [&"blue", &"green"]
+	r6.base_brew_time_sec = 3.0
 	r6.overheat_grace_sec = 15.0
-	r6.base_gold_value = 120
+	r6.base_gold_value = 80
 	r6.unlock_day = 3
-	r6.potion_color = Color(1.0, 0.18, 0.56)
+	r6.potion_color = Color(0.18, 0.90, 0.86)
 
 	return [r1, r2, r3, r4, r5, r6]
 

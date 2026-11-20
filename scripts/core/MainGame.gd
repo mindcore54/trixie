@@ -125,6 +125,21 @@ func _run_smoke_test() -> void:
 	var ability_ok: bool = witch.trigger_ability(cauldrons, active_customers, active_familiars)
 	await get_tree().process_frame
 
+	# Verify mortar + 2-color mixing (red + green -> tonico_silvestre yellow) and 1-by-1 READY upgrade
+	var c1: KitchenStation = _find_station(&"cauldron_1")
+	c1.add_ingredient(&"crushed_red")
+	c1.add_ingredient(&"crushed_green")
+	var mortar_mix_ok: bool = c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre" and c1.has_mortar_bonus
+	c1.take_ready_potion()
+	c1.held_ingredients.clear()
+	c1.active_recipe = null
+	c1.cauldron_state = KitchenStation.CauldronState.IDLE
+	c1.has_mortar_bonus = false
+
+	c1.add_ingredient(&"red")
+	c1.finish_instant()
+	var upgraded_ready_ok: bool = c1.add_ingredient(&"green") and c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre"
+
 	# Verify timers pause while draft cards are open (animations keep ticking, timers do not)
 	cauldron.add_ingredient(&"red")
 	var paused_day_before: float = day_time_left
@@ -150,10 +165,10 @@ func _run_smoke_test() -> void:
 	await get_tree().process_frame
 
 	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s" % [
-		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused)
+	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s mortar_mix_ok=%s upgrade_ready_ok=%s" % [
+		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused), str(mortar_mix_ok), str(upgraded_ready_ok)
 	])
-	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused
+	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused and mortar_mix_ok and upgraded_ready_ok
 	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
 	get_tree().quit(0 if ok else 1)
 
@@ -189,6 +204,7 @@ func _start_new_run() -> void:
 
 	for st: KitchenStation in stations:
 		st.familiar_protected = false
+		st.has_mortar_bonus = false
 		st.held_ingredients.clear()
 		st.active_recipe = null
 		st.cauldron_state = KitchenStation.CauldronState.IDLE
@@ -320,7 +336,7 @@ func _on_station_clicked(st: KitchenStation) -> void:
 		witch.enqueue_station(st)
 
 
-func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: bool) -> void:
+func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: bool, is_mortar: bool = false) -> void:
 	if not is_instance_valid(cust) or cust.is_served:
 		return
 	var recipe: PotionRecipeData = GameCatalog.find_recipe_by_id(recipe_id, recipes_catalog)
@@ -331,8 +347,9 @@ func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: b
 	combo_timer = COMBO_WINDOW_SEC
 	var combo_mult: float = minf(3.0, 1.0 + float(combo - 1) * 0.15)
 	var hot_mult: float = recipe.hot_bonus_multiplier if is_hot else 1.0
+	var mortar_mult: float = 1.5 if is_mortar else 1.0
 	var cust_mult: float = cust.archetype.tip_generosity_mult if cust.archetype else 1.0
-	var earned: int = int(round(float(recipe.base_gold_value) * hot_mult * combo_mult * cust_mult))
+	var earned: int = int(round(float(recipe.base_gold_value) * hot_mult * mortar_mult * combo_mult * cust_mult))
 	if witches[_selected_witch_idx].witch_id == &"morrigan":
 		earned = int(round(float(earned) * 1.4))
 
@@ -356,7 +373,7 @@ func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: b
 	EventBus.customer_dialogue_requested.emit(cid, portrait, line, is_spicy)
 	EventBus.customer_served.emit(cid, earned, hot_mult * combo_mult, aff)
 
-	var pop_txt: String = "+%dg%s" % [earned, " ¡CALIENTE!" if is_hot else ""]
+	var pop_txt: String = "+%dg%s%s" % [earned, " ¡CALIENTE!" if is_hot else "", " ¡MORTERO!" if is_mortar else ""]
 	_spawn_popup(cust.global_position + Vector2(-30, -80), pop_txt, Color(1.0, 0.86, 0.25))
 
 	_remove_customer_and_advance_queue(cust, true)

@@ -36,6 +36,7 @@ var brew_duration: float = 3.0
 var overheat_elapsed: float = 0.0
 var overheat_duration: float = 16.0
 var is_stirred_hot: bool = false
+var has_mortar_bonus: bool = false
 var familiar_protected: bool = false
 var _cooldown_timer: float = 0.0
 var _pulse_time: float = 0.0
@@ -123,24 +124,26 @@ func _process(delta: float) -> void:
 func can_accept_ingredient(ing: StringName) -> bool:
 	if station_type != StationType.CAULDRON:
 		return false
-	if cauldron_state == CauldronState.EXPLODED_COOLDOWN or cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING:
+	if cauldron_state == CauldronState.EXPLODED_COOLDOWN:
 		return false
-	if cauldron_state == CauldronState.BREWING and brew_elapsed / maxf(0.1, brew_duration) > 0.72:
-		return false
-	return GameCatalog.can_extend_ingredients(held_ingredients, ing, _recipes_ref, _unlocked_day)
+	return GameCatalog.can_extend_ingredients(held_ingredients, ing, _recipes_ref)
 
 
 func add_ingredient(ing: StringName) -> bool:
 	if not can_accept_ingredient(ing):
 		return false
-	held_ingredients.append(ing)
-	var matched: PotionRecipeData = GameCatalog.match_exact_recipe(held_ingredients, _recipes_ref, _unlocked_day)
+	if String(ing).begins_with("crushed_"):
+		has_mortar_bonus = true
+	held_ingredients.append(GameCatalog.normalize_ingredient(ing))
+	var matched: PotionRecipeData = GameCatalog.match_exact_recipe(held_ingredients, _recipes_ref)
 	if matched != null:
+		var was_ready: bool = (cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING)
 		active_recipe = matched
 		brew_duration = matched.base_brew_time_sec
 		overheat_duration = matched.overheat_grace_sec
+		overheat_elapsed = 0.0
 		if cauldron_state != CauldronState.BREWING:
-			brew_elapsed = 0.0
+			brew_elapsed = brew_duration * 0.35 if was_ready else 0.0
 			cauldron_state = CauldronState.BREWING
 			EventBus.cauldron_brew_started.emit(cauldron_index, matched.recipe_id)
 	queue_redraw()
@@ -173,12 +176,14 @@ func take_ready_potion() -> Dictionary:
 	var res: Dictionary = {
 		"recipe": active_recipe,
 		"is_hot": is_stirred_hot,
+		"is_mortar": has_mortar_bonus,
 	}
 	held_ingredients.clear()
 	active_recipe = null
 	brew_elapsed = 0.0
 	overheat_elapsed = 0.0
 	is_stirred_hot = false
+	has_mortar_bonus = false
 	cauldron_state = CauldronState.IDLE
 	queue_redraw()
 	return res
@@ -190,6 +195,7 @@ func _trigger_explosion() -> void:
 	held_ingredients.clear()
 	active_recipe = null
 	is_stirred_hot = false
+	has_mortar_bonus = false
 	EventBus.cauldron_exploded.emit(cauldron_index, -1)
 	queue_redraw()
 

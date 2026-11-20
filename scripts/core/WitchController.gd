@@ -3,7 +3,7 @@ extends Node2D
 ## Click-queued playable witch with 2.5D semi-chibi procedural juice, Helltaker bounce,
 ## hand inventory slots, and smart station chaining.
 
-signal potion_delivered_to_customer(customer: CustomerEntity, recipe_id: StringName, is_hot: bool)
+signal potion_delivered_to_customer(customer: CustomerEntity, recipe_id: StringName, is_hot: bool, is_mortar: bool)
 signal popup_requested(world_pos: Vector2, text: String, color: Color)
 
 const MAX_NEXT_BUFFER: int = 1
@@ -308,15 +308,17 @@ func _finish_work_task() -> void:
 		return
 
 	if st.station_type == KitchenStation.StationType.MORTAR:
+		var crushed_any: bool = false
 		for i: int in range(held_items.size()):
 			if held_items[i].begins_with("ing:") and not held_items[i].begins_with("ing:crushed_"):
 				var raw_id: String = held_items[i].substr(4)
 				held_items[i] = "ing:crushed_" + raw_id
-				popup_requested.emit(st.global_position + Vector2(0, -48), "¡Machacado!", Color(1.0, 0.88, 0.35))
-				if seismic_mortar_enabled and seismic_mortar_callback.is_valid():
-					seismic_mortar_callback.call()
-				_emit_step(st.station_id)
-				break
+				crushed_any = true
+		if crushed_any:
+			popup_requested.emit(st.global_position + Vector2(0, -48), "¡Machacado (+50% Oro)!", Color(1.0, 0.88, 0.35))
+			if seismic_mortar_enabled and seismic_mortar_callback.is_valid():
+				seismic_mortar_callback.call()
+			_emit_step(st.station_id)
 	elif st.station_type == KitchenStation.StationType.BOTTLING:
 		_auto_bottle_held()
 		popup_requested.emit(st.global_position + Vector2(0, -48), "¡Embotellado!", Color(0.55, 0.95, 1.0))
@@ -347,8 +349,9 @@ func _collect_from_cauldron(st: KitchenStation) -> void:
 		return
 	var recipe: PotionRecipeData = res["recipe"] as PotionRecipeData
 	var is_hot: bool = res["is_hot"] as bool
+	var is_mortar: bool = res.get("is_mortar", false) as bool
 	var prefix: String = "bot" if instant_bottle_enabled else "raw"
-	held_items.append("%s:%s:%s" % [prefix, String(recipe.recipe_id), "1" if is_hot else "0"])
+	held_items.append("%s:%s:%s:%s" % [prefix, String(recipe.recipe_id), "1" if is_hot else "0", "1" if is_mortar else "0"])
 	_do_squash(Vector2(1.22, 0.80))
 	_emit_step(st.station_id)
 
@@ -376,10 +379,11 @@ func _try_deliver_to(cust: CustomerEntity) -> void:
 		if held_items[i].begins_with("bot:" + wanted_id + ":"):
 			var parts: PackedStringArray = held_items[i].split(":")
 			var is_hot: bool = parts.size() >= 3 and parts[2] == "1"
+			var is_mortar: bool = parts.size() >= 4 and parts[3] == "1"
 			held_items.remove_at(i)
 			_do_squash(Vector2(1.25, 0.78))
 			_emit_step(&"counter")
-			potion_delivered_to_customer.emit(cust, cust.requested_recipe.recipe_id, is_hot)
+			potion_delivered_to_customer.emit(cust, cust.requested_recipe.recipe_id, is_hot, is_mortar)
 			return
 
 	for i: int in range(held_items.size()):
@@ -523,6 +527,6 @@ static func _recipe_color_hint(recipe_id: String) -> Color:
 		"bruma_lunar": return Color(0.24, 0.65, 1.0)
 		"savia_pura": return Color(0.22, 0.88, 0.45)
 		"filtro_estelar": return Color(0.76, 0.30, 0.98)
-		"tonico_silvestre": return Color(0.98, 0.65, 0.16)
-		"concentrado_carmesi": return Color(1.0, 0.18, 0.56)
+		"tonico_silvestre": return Color(0.98, 0.84, 0.16)
+		"nectar_acuatico": return Color(0.18, 0.90, 0.86)
 	return Color.MAGENTA
