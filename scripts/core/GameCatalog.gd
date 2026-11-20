@@ -235,6 +235,9 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	sylvi.impatient_lines = PackedStringArray([
 		"¡Vamos linda, se me enfría la noche!"
 	])
+	sylvi.display_tempted_lines = PackedStringArray([
+		"¡Ooh, esa de la vitrina brilla riquísimo! ¡Pásamela, brujita!"
+	])
 
 	var velvet: CustomerArchetypeData = CustomerArchetypeData.new()
 	velvet.customer_id = &"velvet"
@@ -257,6 +260,9 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	])
 	velvet.impatient_lines = PackedStringArray([
 		"Tic-tac, brujita. Mi paciencia vale caro."
+	])
+	velvet.display_tempted_lines = PackedStringArray([
+		"Veo que ya tienes una lista en vitrina... dámela, linda."
 	])
 
 	var seraphina: CustomerArchetypeData = CustomerArchetypeData.new()
@@ -282,6 +288,9 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	seraphina.impatient_lines = PackedStringArray([
 		"¡La Orden no tolera demoras injustificadas!"
 	])
+	seraphina.display_tempted_lines = PackedStringArray([
+		"¡E-esa botella expuesta se ve muy tentadora! ¡Dámela para inspeccionarla!"
+	])
 
 	var mona: CustomerArchetypeData = CustomerArchetypeData.new()
 	mona.customer_id = &"mona"
@@ -305,6 +314,9 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	mona.impatient_lines = PackedStringArray([
 		"¡Ja! Sabía que no podías con tantos pedidos!"
 	])
+	mona.display_tempted_lines = PackedStringArray([
+		"¿Pusiste esa en vitrina para presumir? ¡A ver, pásamela!"
+	])
 
 	var roxy: CustomerArchetypeData = CustomerArchetypeData.new()
 	roxy.customer_id = &"roxy"
@@ -327,6 +339,9 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	])
 	roxy.impatient_lines = PackedStringArray([
 		"¡Grrr! ¡Me muero de sed esperando!"
+	])
+	roxy.display_tempted_lines = PackedStringArray([
+		"¡Eso de la vitrina huele brutal! ¡Dámelo ya!"
 	])
 
 	return [sylvi, velvet, seraphina, mona, roxy]
@@ -406,7 +421,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u1.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u1.rarity = RogueliteUpgradeData.Rarity.RARE
 	u1.synergy_tags = PackedStringArray(["Familiar", "Caldero"])
-	u1.description = "Invoca un gatito alado que remueve tus calderos (+50% velocidad) y evita que exploten."
+	u1.description = "• Cocina +50% rápido\n• Calderos no explotan"
 	u1.max_stacks = 2
 	u1.effect_params = {"familiar_type": "michi_alado"}
 
@@ -416,7 +431,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u2.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u2.rarity = RogueliteUpgradeData.Rarity.COMMON
 	u2.synergy_tags = PackedStringArray(["Velocidad"])
-	u2.description = "+35% velocidad de movimiento y estela de chispas doradas por la cocina."
+	u2.description = "• +35% Velocidad al caminar"
 	u2.max_stacks = 3
 	u2.effect_params = {"speed_bonus": 0.35}
 
@@ -426,7 +441,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u3.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u3.rarity = RogueliteUpgradeData.Rarity.RARE
 	u3.synergy_tags = PackedStringArray(["Velocidad", "Carga"])
-	u3.description = "+1 ranura en mano y embotellado instantáneo al recoger o pasar cerca de la mesa."
+	u3.description = "• +1 Ranura de mano\n• Embotella al instante"
 	u3.max_stacks = 1
 	u3.effect_params = {"carry_bonus": 1, "instant_bottle": true}
 
@@ -436,7 +451,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u4.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u4.rarity = RogueliteUpgradeData.Rarity.RARE
 	u4.synergy_tags = PackedStringArray(["Familiar", "Ingredientes"])
-	u4.description = "Invoca un diablillo que llena calderos vacíos con los ingredientes que pide la primera clienta."
+	u4.description = "• Carga ingredientes al caldero"
 	u4.max_stacks = 2
 	u4.effect_params = {"familiar_type": "diablillo_carmesi"}
 
@@ -446,7 +461,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u5.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u5.rarity = RogueliteUpgradeData.Rarity.EPIC
 	u5.synergy_tags = PackedStringArray(["Familiar", "Entrega"])
-	u5.description = "Recoge pociones listas del caldero, las embotella al vuelo y las entrega a las clientas."
+	u5.description = "• Embotella y entrega solo"
 	u5.max_stacks = 2
 	u5.effect_params = {"familiar_type": "murcielago_sombrio"}
 
@@ -456,7 +471,7 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u6.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u6.rarity = RogueliteUpgradeData.Rarity.BROKEN_SYNERGY
 	u6.synergy_tags = PackedStringArray(["Cadena", "Encanto"])
-	u6.description = "Cada entrega con bono ¡CALIENTE! genera una poción espejo gratis para otra clienta en fila."
+	u6.description = "• Entrega ¡CALIENTE! duplica pedido"
 	u6.max_stacks = 1
 	u6.effect_params = {"clone_on_hot": true}
 

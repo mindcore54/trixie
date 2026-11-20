@@ -16,6 +16,7 @@ var instant_bottle_enabled: bool = false
 var seismic_mortar_enabled: bool = false
 var bottling_station_pos: Vector2 = Vector2.ZERO
 var seismic_mortar_callback: Callable
+var wanted_recipes_getter: Callable
 
 var held_items: Array[String] = []
 var action_queue: Array[Dictionary] = []
@@ -297,6 +298,10 @@ func _arrive_at_task(task: Dictionary) -> void:
 			else:
 				_current_task.clear()
 
+		KitchenStation.StationType.DISPLAY_STAND:
+			_interact_with_display_stand(st)
+			_current_task.clear()
+
 		KitchenStation.StationType.TRASH:
 			if not held_items.is_empty():
 				held_items.pop_back()
@@ -473,6 +478,40 @@ func _get_raw_hand_indices() -> Array[int]:
 		if held_items[i] == "ing:red" or held_items[i] == "ing:blue" or held_items[i] == "ing:green":
 			out.append(i)
 	return out
+
+
+func _interact_with_display_stand(st: KitchenStation) -> void:
+	var bot_idx: int = -1
+	for i: int in range(held_items.size()):
+		if held_items[i].begins_with("bot:"):
+			bot_idx = i
+			break
+
+	if bot_idx != -1 and st.can_store_potion():
+		var item_str: String = held_items[bot_idx]
+		if st.store_potion(item_str):
+			held_items.remove_at(bot_idx)
+			_do_squash(Vector2(1.15, 0.86))
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡En vitrina!", Color(0.55, 0.95, 1.0))
+			_emit_step(st.station_id)
+			return
+
+	if not st.stored_potions.is_empty() and held_items.size() < get_max_carry():
+		var wanted: Array[StringName] = []
+		if wanted_recipes_getter.is_valid():
+			wanted = wanted_recipes_getter.call() as Array[StringName]
+		var picked: String = st.take_displayed_potion_for(wanted)
+		if picked != "":
+			held_items.append(picked)
+			_do_squash(Vector2(1.18, 0.84))
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Tomado de vitrina!", Color(1.0, 0.88, 0.35))
+			_emit_step(st.station_id)
+			return
+
+	if _has_unsealed_potion():
+		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Embotella antes de exponer!", Color(0.55, 0.92, 1.0))
+	elif st.stored_potions.size() >= KitchenStation.MAX_DISPLAY_SLOTS:
+		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Vitrina llena (2/2)!", Color(1.0, 0.72, 0.25))
 
 
 func _has_any_ingredient() -> bool:

@@ -7,8 +7,11 @@ enum StationType {
 	MORTAR,
 	CAULDRON,
 	BOTTLING,
+	DISPLAY_STAND,
 	TRASH,
 }
+
+const MAX_DISPLAY_SLOTS: int = 2
 
 enum CauldronState {
 	IDLE,
@@ -29,6 +32,7 @@ signal station_clicked(station: KitchenStation)
 
 var hovered: bool = false
 var held_ingredients: Array[StringName] = []
+var stored_potions: Array[String] = []
 var cauldron_state: CauldronState = CauldronState.IDLE
 var active_recipe: PotionRecipeData = null
 var brew_elapsed: float = 0.0
@@ -209,6 +213,8 @@ func _draw() -> void:
 			_draw_cauldron(outline_col, outline_w)
 		StationType.BOTTLING:
 			_draw_bottling(outline_col, outline_w)
+		StationType.DISPLAY_STAND:
+			_draw_display_stand(outline_col, outline_w)
 		StationType.TRASH:
 			_draw_trash(outline_col, outline_w)
 
@@ -307,6 +313,64 @@ func _draw_bottling(outline_col: Color, outline_w: float) -> void:
 		draw_rect(Rect2(fx - 4, -15, 8, 10), Color(0.75, 0.92, 1.0, 0.85))
 		draw_rect(Rect2(fx - 4, -19, 8, 5), Color(0.76, 0.52, 0.30))
 	_draw_station_caption(display_label, Vector2(0, 56))
+
+
+func can_store_potion() -> bool:
+	return station_type == StationType.DISPLAY_STAND and stored_potions.size() < MAX_DISPLAY_SLOTS
+
+
+func store_potion(bot_item: String) -> bool:
+	if not can_store_potion() or not bot_item.begins_with("bot:"):
+		return false
+	stored_potions.append(bot_item)
+	queue_redraw()
+	return true
+
+
+func get_displayed_recipe_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for item: String in stored_potions:
+		var parts: PackedStringArray = item.split(":")
+		if parts.size() >= 2:
+			ids.append(StringName(parts[1]))
+	return ids
+
+
+func take_displayed_potion_for(wanted_recipes: Array[StringName]) -> String:
+	if stored_potions.is_empty():
+		return ""
+	for w: StringName in wanted_recipes:
+		for i: int in range(stored_potions.size()):
+			var parts: PackedStringArray = stored_potions[i].split(":")
+			if parts.size() >= 2 and StringName(parts[1]) == w:
+				var picked: String = stored_potions[i]
+				stored_potions.remove_at(i)
+				queue_redraw()
+				return picked
+	var fallback: String = stored_potions.pop_back()
+	queue_redraw()
+	return fallback
+
+
+func _draw_display_stand(outline_col: Color, outline_w: float) -> void:
+	draw_rect(Rect2(-56, -36, 120, 82), Color(0, 0, 0, 0.25))
+	draw_rect(Rect2(-58, -40, 116, 78), Color(0.42, 0.28, 0.20))
+	draw_rect(Rect2(-58, -40, 116, 78), outline_col, false, outline_w)
+	# Glass showcase top
+	draw_rect(Rect2(-50, -32, 100, 58), Color(0.68, 0.88, 0.96, 0.25))
+	draw_rect(Rect2(-50, -32, 100, 58), Color(0.75, 0.92, 1.0, 0.6), false, 1.5)
+	for i: int in range(MAX_DISPLAY_SLOTS):
+		var sx: float = -24.0 + float(i) * 48.0
+		draw_circle(Vector2(sx, 0), 17.0, Color(0.24, 0.16, 0.26, 0.85))
+		draw_circle(Vector2(sx, 0), 17.0, Color(0.86, 0.72, 0.36, 0.7), false, 2.0)
+		if i < stored_potions.size():
+			var parts: PackedStringArray = stored_potions[i].split(":")
+			var rec_id: String = parts[1] if parts.size() > 1 else ""
+			var flask_col: Color = WitchController._recipe_color_hint(rec_id)
+			draw_circle(Vector2(sx, 2), 12.0, flask_col)
+			draw_circle(Vector2(sx, 2), 12.0, Color(0.95, 0.98, 1.0), false, 2.5)
+			draw_rect(Rect2(sx - 4, -15, 8, 6), Color(0.76, 0.52, 0.30))
+	_draw_station_caption("%s (%d/2)" % [display_label, stored_potions.size()], Vector2(0, 56))
 
 
 func _draw_trash(outline_col: Color, outline_w: float) -> void:

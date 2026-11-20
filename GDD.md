@@ -77,9 +77,9 @@ Para que el juego sea táctil al principio sin volverse tedioso en el *late-game
      * **Peligro de Desbordamiento (*Overboil*):** Una vez lista la poción, el caldero entra en ventana de gracia (`4.0s` base, visible como anillo ámbar -> rojo parpadeante). Si nadie la recoge a tiempo, **¡EXPLOTA!**
      * **Consecuencia de Explosión:** Se pierde la mezcla, el caldero queda aturdido `2.5s`, pierdes **1 Corazón de Estabilidad**, y el busto de la bruja cambia instantáneamente a `hollin_derrota` durante `2.0s` con nubes de humo cómicas.
    * **Errores de Mezcla:** Si echas un ingrediente incompatible con una receta posible, el caldero chisporrotea humo morado y devuelve el ingrediente al vacío (en modo normal no quita corazón, solo tiempo, para no castigar clics frenéticos por error; en *Pactos Malditos* sí puede dañar).
-3. **Mesa de Embotellado:**
-   * Recoger del caldero entrega un *Frasco Caliente Sin Sellar* (o requiere un clic rápido en la Mesa de Embotellado de `0.45s` para ponerle el corcho mágico y activar el aura de lista).
-   * *Nota de Balance Crítico:* El embotellado es rapidísimo (`0.45s` base) para dar ritmo de "paso final obligatorio" en *early-game* y convertirse en un punto de automatización glorioso cuando consigues al **Murciélago Embotellador** o la reliquia de **Tapón Telequinético**.
+3. **Mesa de Embotellado y Vitrina (Expositor de 2 Huecos):**
+   * Recoger del caldero entrega un *Frasco Caliente Sin Sellar* que requiere sellar en la Mesa de Embotellado (`0.42s`).
+   * **Vitrina (2 espacios):** Permite guardar hasta **2 pociones embotelladas** (hechas por error o preparadas por adelantado porque pagan más). Las clientas que ven una poción expuesta en vitrina pueden **tentarse y cambiar su pedido** para pedirte esa poción con un diálogo especial (tú sigues siendo quien la recoge de la vitrina y se la entrega en mano).
 4. **Mostrador de Entrega y Fila de Clientas:**
    * Espacio máximo en fila: **5 clientas visibles** esperando ante el mostrador (el punto 6 provoca colapso).
    * Al hacer clic sobre una clienta llevando su poción pedida, la bruja entrega el frasco, salta el combo (`+1`), suenan monedas, aparece la clienta en grande abajo a la derecha con una línea reactiva en el pergamino, y la barra de paciencia de las demás recibe un micro-respiro (`+0.5s`) si la entrega tuvo bono `¡CALIENTE!`.

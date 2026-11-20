@@ -8,7 +8,7 @@ upgrade_id = &"espejo_duplicador"
 display_name = "Espejo Duplicador"
 rarity = 3
 synergy_tags = PackedStringArray("Cadena", "Encanto")
-description = "Cada entrega con bono ¡CALIENTE! genera una poción espejo gratis para otra clienta en fila."
+description = "• Entrega ¡CALIENTE! duplica pedido"
 max_stacks = 1
 effect_params = {
 "clone_on_hot": true

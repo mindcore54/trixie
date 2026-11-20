@@ -61,6 +61,7 @@ func _ready() -> void:
 	witch.position = Vector2(880, 580)
 	witch.bottling_station_pos = _find_station(&"bottling").global_position
 	witch.seismic_mortar_callback = _on_seismic_mortar
+	witch.wanted_recipes_getter = _get_wanted_recipes
 	witch.potion_delivered_to_customer.connect(_on_potion_delivered)
 	witch.popup_requested.connect(_spawn_popup)
 	add_child(witch)
@@ -143,6 +144,30 @@ func _run_smoke_test() -> void:
 		c1.take_ready_potion()
 	var upgrade_ready_ok: bool = raw_blocked_ok
 
+	# Verify Display Stand (2 slots) + customer temptation switch + manual delivery
+	if active_customers.is_empty():
+		_spawn_customer()
+	var display_st: KitchenStation = _find_station(&"display_stand")
+	var cust_before_tempt: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
+	var display_ok: bool = false
+	if display_st != null and cust_before_tempt != null:
+		var other_recipe: PotionRecipeData = null
+		for r: PotionRecipeData in recipes_catalog:
+			if r.recipe_id != cust_before_tempt.requested_recipe.recipe_id:
+				other_recipe = r
+				break
+		if other_recipe != null:
+			display_st.store_potion("bot:%s:0:0" % String(other_recipe.recipe_id))
+			cust_before_tempt._display_check_timer = 0.0
+			_check_display_temptations()
+			var switched: bool = cust_before_tempt.tempted_by_display and cust_before_tempt.requested_recipe.recipe_id == other_recipe.recipe_id
+			witch.held_items.clear()
+			witch._interact_with_display_stand(display_st)
+			var picked_back: bool = witch.held_items.size() == 1 and display_st.stored_potions.is_empty()
+			var gold_before_disp: int = gold
+			witch._try_deliver_to(cust_before_tempt)
+			display_ok = switched and picked_back and gold > gold_before_disp
+
 	# Verify timers pause while draft cards are open (animations keep ticking, timers do not)
 	cauldron.add_ingredient(&"red")
 	var paused_day_before: float = day_time_left
@@ -168,10 +193,10 @@ func _run_smoke_test() -> void:
 	await get_tree().process_frame
 
 	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s mortar_mix_ok=%s mortar_cauldron_ok=%s" % [
-		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused), str(mortar_mix_ok), str(upgrade_ready_ok)
+	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s mortar_mix_ok=%s mortar_cauldron_ok=%s display_ok=%s" % [
+		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused), str(mortar_mix_ok), str(upgrade_ready_ok), str(display_ok)
 	])
-	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused and mortar_mix_ok and upgrade_ready_ok
+	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused and mortar_mix_ok and upgrade_ready_ok and display_ok
 	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
 	get_tree().quit(0 if ok else 1)
 
@@ -209,6 +234,7 @@ func _start_new_run() -> void:
 		st.familiar_protected = false
 		st.has_mortar_bonus = false
 		st.held_ingredients.clear()
+		st.stored_potions.clear()
 		st.active_recipe = null
 		st.cauldron_state = KitchenStation.CauldronState.IDLE
 		st.queue_redraw()
@@ -272,7 +298,8 @@ func _process(delta: float) -> void:
 		_spawn_customer()
 		spawn_timer = maxf(7.5, 16.5 - float(day_number - 1) * 1.3)
 
-	# Check customer patience expirations
+	# Check customer patience expirations & display stand temptations
+	_check_display_temptations()
 	var i: int = 0
 	while i < active_customers.size():
 		var cust: CustomerEntity = active_customers[i]
@@ -528,7 +555,44 @@ func _build_kitchen_stations() -> void:
 	_add_station(&"cauldron_0", KitchenStation.StationType.CAULDRON, &"", "Caldero 1", Vector2(380, 390), 0, Color(0.6, 0.3, 0.9))
 	_add_station(&"cauldron_1", KitchenStation.StationType.CAULDRON, &"", "Caldero 2", Vector2(550, 320), 1, Color(0.6, 0.3, 0.9))
 	_add_station(&"bottling", KitchenStation.StationType.BOTTLING, &"", "Embotellado", Vector2(1070, 290), -1, Color(0.55, 0.9, 1.0))
+	_add_station(&"display_stand", KitchenStation.StationType.DISPLAY_STAND, &"", "Vitrina", Vector2(1070, 540), -1, Color(0.95, 0.80, 0.35))
 	_add_station(&"trash", KitchenStation.StationType.TRASH, &"", "Basura", Vector2(720, 820), -1, Color(0.45, 0.4, 0.5))
+
+
+func _get_wanted_recipes() -> Array[StringName]:
+	var list: Array[StringName] = []
+	for cust: CustomerEntity in active_customers:
+		if is_instance_valid(cust) and not cust.is_served and cust.requested_recipe != null:
+			list.append(cust.requested_recipe.recipe_id)
+	return list
+
+
+func _check_display_temptations() -> void:
+	var display_st: KitchenStation = _find_station(&"display_stand")
+	if display_st == null or display_st.stored_potions.is_empty():
+		return
+
+	var available: Dictionary = {}
+	for rec_id: StringName in display_st.get_displayed_recipe_ids():
+		available[rec_id] = int(available.get(rec_id, 0)) + 1
+
+	for cust: CustomerEntity in active_customers:
+		if is_instance_valid(cust) and not cust.is_served and cust.requested_recipe != null:
+			var r_id: StringName = cust.requested_recipe.recipe_id
+			if int(available.get(r_id, 0)) > 0:
+				available[r_id] = int(available[r_id]) - 1
+
+	for cust: CustomerEntity in active_customers:
+		if not is_instance_valid(cust) or cust.is_served or cust.tempted_by_display or cust._display_check_timer > 0.0:
+			continue
+		for rec_id: StringName in available.keys():
+			if int(available[rec_id]) > 0:
+				var rec: PotionRecipeData = GameCatalog.find_recipe_by_id(rec_id, recipes_catalog)
+				if rec != null:
+					available[rec_id] = int(available[rec_id]) - 1
+					cust.tempt_with_recipe(rec)
+					_spawn_popup(cust.global_position + Vector2(-35, -108), "¡Antojo de vitrina!", Color(1.0, 0.86, 0.30))
+					break
 
 
 func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: StringName, label_txt: String, pos: Vector2, c_idx: int, col: Color) -> void:

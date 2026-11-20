@@ -14,3 +14,4 @@ greeting_lines = PackedStringArray("¡Necesito algo bien fuerte para esta noche!
 satisfied_lines = PackedStringArray("¡Mmm! ¡Esto pega directo al corazón!", "¡Así me gusta, rápida y ardiente!")
 spicy_affinity_lines = PackedStringArray("¿Siempre sudas así detrás del mostrador, o es por verme?", "Si funciona la mitad de bien que tu sonrisa, mañana vuelvo por el doble...")
 impatient_lines = PackedStringArray("¡Vamos linda, se me enfría la noche!")
+display_tempted_lines = PackedStringArray("¡Ooh, esa de la vitrina brilla riquísimo! ¡Pásamela, brujita!")

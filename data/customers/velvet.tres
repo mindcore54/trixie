@@ -14,3 +14,4 @@ greeting_lines = PackedStringArray("Tengo una cita importante en diez minutos. S
 satisfied_lines = PackedStringArray("Servicio impecable. Quédate el cambio.", "Exactamente el sabor que adoro.")
 spicy_affinity_lines = PackedStringArray("Me encanta verte correr por toda la cocina solo para complacerme.", "La próxima poción quiero probarla directo de tu cucharón...")
 impatient_lines = PackedStringArray("Tic-tac, brujita. Mi paciencia vale caro.")
+display_tempted_lines = PackedStringArray("Veo que ya tienes una lista en vitrina... dámela, linda.")

@@ -9,7 +9,8 @@ display_name = "Michi Alado (Familiar)"
 kind = 1
 rarity = 1
 synergy_tags = PackedStringArray("Familiar", "Caldero")
-description = "Invoca un gatito alado que remueve tus calderos (+50% velocidad) y evita que exploten."
+description = "• Cocina +50% rápido
+• Calderos no explotan"
 max_stacks = 2
 effect_params = {
 "familiar_type": "michi_alado"

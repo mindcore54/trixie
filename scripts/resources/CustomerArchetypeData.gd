@@ -24,3 +24,4 @@ extends Resource
 @export var satisfied_lines: PackedStringArray = []
 @export var spicy_affinity_lines: PackedStringArray = []
 @export var impatient_lines: PackedStringArray = []
+@export var display_tempted_lines: PackedStringArray = []

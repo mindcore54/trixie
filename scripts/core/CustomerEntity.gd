@@ -13,10 +13,12 @@ var patience_frozen_timer: float = 0.0
 var patience_slow_mult: float = 1.0
 var hovered: bool = false
 var is_served: bool = false
+var tempted_by_display: bool = false
 
 var _bob_time: float = 0.0
 var _target_pos: Vector2 = Vector2.ZERO
 var _warned_impatient: bool = false
+var _display_check_timer: float = 1.6
 
 
 func _ready() -> void:
@@ -68,6 +70,23 @@ func boost_patience(sec: float) -> void:
 	queue_redraw()
 
 
+func tempt_with_recipe(new_recipe: PotionRecipeData) -> void:
+	if new_recipe == null or is_served:
+		return
+	requested_recipe = new_recipe
+	tempted_by_display = true
+	boost_patience(5.0)
+	if archetype != null and not archetype.display_tempted_lines.is_empty():
+		var line: String = archetype.display_tempted_lines[randi() % archetype.display_tempted_lines.size()]
+		EventBus.customer_dialogue_requested.emit(
+			archetype.customer_id,
+			archetype.portrait_happy if archetype.portrait_happy else archetype.portrait_normal,
+			line,
+			false
+		)
+	queue_redraw()
+
+
 func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
 	if is_served:
 		return
@@ -85,6 +104,8 @@ func _process(delta: float) -> void:
 	if EventBus.timers_paused:
 		queue_redraw()
 		return
+	if _display_check_timer > 0.0:
+		_display_check_timer -= delta
 	if patience_frozen_timer > 0.0:
 		patience_frozen_timer -= delta
 	else:

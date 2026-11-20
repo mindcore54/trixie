@@ -14,3 +14,4 @@ greeting_lines = PackedStringArray("Solo vine a comprobar lo lenta que eres. Haz
 satisfied_lines = PackedStringArray("¡Hmph! Pasable. Supongo que tienes algo de técnica.", "N-no está mal... ¡pero la mía sale mejor!")
 spicy_affinity_lines = PackedStringArray("¡Hmph! No te pongas tan coqueta solo porque atendiste rápido, tonta!", "Oye... si cierras temprano un día, ven a comparar calderos... ¡s-solo por negocio!")
 impatient_lines = PackedStringArray("¡Ja! Sabía que no podías con tantos pedidos!")
+display_tempted_lines = PackedStringArray("¿Pusiste esa en vitrina para presumir? ¡A ver, pásamela!")

@@ -9,7 +9,7 @@ display_name = "Diablillo Carmesí (Familiar)"
 kind = 1
 rarity = 1
 synergy_tags = PackedStringArray("Familiar", "Ingredientes")
-description = "Invoca un diablillo que llena calderos vacíos con los ingredientes que pide la primera clienta."
+description = "• Carga ingredientes al caldero"
 max_stacks = 2
 effect_params = {
 "familiar_type": "diablillo_carmesi"
