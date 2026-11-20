@@ -81,6 +81,9 @@ func _process(delta: float) -> void:
 	_pulse_time += delta
 	if station_type != StationType.CAULDRON:
 		return
+	if EventBus.timers_paused:
+		queue_redraw()
+		return
 
 	match cauldron_state:
 		CauldronState.BREWING:

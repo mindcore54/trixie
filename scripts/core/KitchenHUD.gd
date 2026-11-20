@@ -8,6 +8,7 @@ extends CanvasLayer
 
 signal witch_switch_requested(witch_id: StringName)
 signal force_draft_requested()
+signal toggle_fullscreen_requested()
 signal upgrade_chosen(upgrade: RogueliteUpgradeData)
 signal reroll_requested()
 signal restart_run_requested()
@@ -304,6 +305,11 @@ func _build_ui() -> void:
 	draft_test_btn.text = "Abrir Draft Roguelite (Test)"
 	draft_test_btn.pressed.connect(func() -> void: force_draft_requested.emit())
 	controls_col.add_child(draft_test_btn)
+
+	var fs_btn: Button = Button.new()
+	fs_btn.text = "Pantalla Completa (F11)"
+	fs_btn.pressed.connect(func() -> void: toggle_fullscreen_requested.emit())
+	controls_col.add_child(fs_btn)
 
 	_combo_label = _make_label("¡COMBO x2!", 22, Color(1.0, 0.68, 0.22))
 	_combo_label.visible = false

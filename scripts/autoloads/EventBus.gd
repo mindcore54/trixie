@@ -10,6 +10,8 @@ enum WitchEmotion {
 	CUTIN_HABILIDAD,
 }
 
+var timers_paused: bool = false
+
 # Action queue & movement
 signal action_queued(station_id: StringName, queue_index: int, world_pos: Vector2)
 signal action_queue_cleared()

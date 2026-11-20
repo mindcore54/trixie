@@ -36,6 +36,9 @@ func configure(
 
 func _process(delta: float) -> void:
 	_hover_time += delta
+	if EventBus.timers_paused:
+		queue_redraw()
+		return
 	if work_cooldown > 0.0:
 		work_cooldown -= delta
 

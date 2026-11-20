@@ -165,14 +165,18 @@ func clear_queue() -> void:
 
 
 func _process(delta: float) -> void:
+	_squash = _squash.lerp(Vector2.ONE, minf(1.0, delta * 12.0))
+	if EventBus.timers_paused:
+		_walk_time += delta * 1.6
+		queue_redraw()
+		return
+
 	if _ability_cooldown_left > 0.0:
 		_ability_cooldown_left = maxf(0.0, _ability_cooldown_left - delta)
 	if _ability_buff_left > 0.0:
 		_ability_buff_left -= delta
 		if _ability_buff_left <= 0.0:
 			ability_speed_bonus = 0.0
-
-	_squash = _squash.lerp(Vector2.ONE, minf(1.0, delta * 12.0))
 
 	if _waiting_cauldron != null:
 		if not is_instance_valid(_waiting_cauldron) or _waiting_cauldron.cauldron_state == KitchenStation.CauldronState.IDLE or _waiting_cauldron.cauldron_state == KitchenStation.CauldronState.EXPLODED_COOLDOWN:

@@ -70,6 +70,7 @@ func _ready() -> void:
 	hud.configure_witches(witches, _selected_witch_idx)
 	hud.witch_switch_requested.connect(_on_witch_switch_requested)
 	hud.force_draft_requested.connect(_open_upgrade_draft)
+	hud.toggle_fullscreen_requested.connect(_toggle_fullscreen)
 	hud.upgrade_chosen.connect(_on_upgrade_chosen)
 	hud.reroll_requested.connect(_on_reroll_requested)
 	hud.restart_run_requested.connect(_restart_run)
@@ -124,7 +125,21 @@ func _run_smoke_test() -> void:
 	var ability_ok: bool = witch.trigger_ability(cauldrons, active_customers, active_familiars)
 	await get_tree().process_frame
 
+	# Verify timers pause while draft cards are open (animations keep ticking, timers do not)
+	cauldron.add_ingredient(&"red")
+	var paused_day_before: float = day_time_left
+	var paused_brew_before: float = cauldron.brew_elapsed
+	var cust_patience_before: float = active_customers[0].patience_remaining if not active_customers.is_empty() else 0.0
 	_open_upgrade_draft()
+	for _p: int in range(12):
+		await get_tree().process_frame
+	var timers_stayed_paused: bool = (
+		EventBus.timers_paused
+		and is_equal_approx(day_time_left, paused_day_before)
+		and is_equal_approx(cauldron.brew_elapsed, paused_brew_before)
+		and (active_customers.is_empty() or is_equal_approx(active_customers[0].patience_remaining, cust_patience_before))
+	)
+
 	var michi_upg: RogueliteUpgradeData = null
 	for u: RogueliteUpgradeData in upgrades_catalog:
 		if u.upgrade_id == &"michi_alado":
@@ -135,10 +150,10 @@ func _run_smoke_test() -> void:
 	await get_tree().process_frame
 
 	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d" % [
-		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen
+	print("SMOKE STATS => gold=%d combo=%d day=%d familiars=%d ability_ok=%s max_buf=%d timers_paused_ok=%s" % [
+		gold, combo, day_number, active_familiars.size(), str(ability_ok), max_queue_seen, str(timers_stayed_paused)
 	])
-	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER
+	var ok: bool = gold > 0 and combo >= 1 and day_number == 2 and active_familiars.size() >= 1 and ability_ok and max_queue_seen <= WitchController.MAX_NEXT_BUFFER and timers_stayed_paused
 	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
 	get_tree().quit(0 if ok else 1)
 
@@ -169,7 +184,7 @@ func _start_new_run() -> void:
 	combo_timer = 0.0
 	day_number = 1
 	reroll_cost = 35
-	run_active = true
+	_set_run_active(true)
 	hud.hide_overlays()
 
 	for st: KitchenStation in stations:
@@ -201,6 +216,11 @@ func _start_day(day: int) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_ev: InputEventKey = event as InputEventKey
+		if key_ev.pressed and not key_ev.echo and key_ev.keycode == KEY_F11:
+			_toggle_fullscreen()
+			return
 	if not run_active:
 		return
 	if event.is_action_pressed("ability_cutin_click"):
@@ -381,7 +401,7 @@ func _on_cauldron_exploded(cauldron_id: int, _unused: int) -> void:
 
 
 func _finish_day() -> void:
-	run_active = false
+	_set_run_active(false)
 	EventBus.day_ended.emit(day_number)
 	if day_number >= 8:
 		_end_run(true, "¡Completaste los 8 días del Sabbat con éxito!")
@@ -390,7 +410,7 @@ func _finish_day() -> void:
 
 
 func _open_upgrade_draft() -> void:
-	run_active = false
+	_set_run_active(false)
 	var pool: Array[RogueliteUpgradeData] = upgrades_catalog.duplicate()
 	pool.shuffle()
 	var picks: Array[RogueliteUpgradeData] = []
@@ -424,7 +444,7 @@ func _on_upgrade_chosen(upg: RogueliteUpgradeData) -> void:
 	if params.has("clone_on_hot"):
 		mirror_clone_enabled = true
 
-	run_active = true
+	_set_run_active(true)
 	_start_day(day_number + 1)
 
 
@@ -454,10 +474,23 @@ func _on_witch_switch_requested(witch_id: StringName) -> void:
 
 
 func _end_run(victory: bool, reason_text: String) -> void:
-	run_active = false
+	_set_run_active(false)
 	var essence: int = day_number * 25 + int(gold / 10)
 	EventBus.run_ended.emit(victory, StringName(reason_text), essence)
 	hud.show_end_screen(victory, reason_text, essence)
+
+
+func _set_run_active(active: bool) -> void:
+	run_active = active
+	EventBus.timers_paused = not active
+
+
+func _toggle_fullscreen() -> void:
+	var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
+	if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 func _on_seismic_mortar() -> void:

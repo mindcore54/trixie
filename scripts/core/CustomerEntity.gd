@@ -82,6 +82,9 @@ func _process(delta: float) -> void:
 	if is_served or archetype == null:
 		return
 	_bob_time += delta
+	if EventBus.timers_paused:
+		queue_redraw()
+		return
 	if patience_frozen_timer > 0.0:
 		patience_frozen_timer -= delta
 	else:
