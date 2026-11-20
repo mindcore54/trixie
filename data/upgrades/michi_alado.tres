@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_p6xq2"]
+
+[resource]
+script = ExtResource("1_p6xq2")
+upgrade_id = &"michi_alado"
+display_name = "Michi Alado (Familiar)"
+kind = 1
+rarity = 1
+synergy_tags = PackedStringArray("Familiar", "Caldero")
+description = "Invoca un gatito alado que remueve tus calderos (+50% velocidad) y evita que exploten."
+max_stacks = 2
+effect_params = {
+"familiar_type": "michi_alado"
+}

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_qbsc2"]
+
+[resource]
+script = ExtResource("1_qbsc2")
+upgrade_id = &"murcielago_sombrio"
+display_name = "Murciélago Mensajero (Familiar)"
+kind = 1
+rarity = 2
+synergy_tags = PackedStringArray("Familiar", "Entrega")
+description = "Recoge pociones listas del caldero, las embotella al vuelo y las entrega a las clientas."
+max_stacks = 2
+effect_params = {
+"familiar_type": "murcielago_sombrio"
+}

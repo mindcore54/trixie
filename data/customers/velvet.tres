@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CustomerArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/CustomerArchetypeData.gd" id="1_ettgh"]
+
+[resource]
+script = ExtResource("1_ettgh")
+customer_id = &"velvet"
+display_name = "Velvet"
+species_archetype = "Súcubo Ejecutiva"
+base_patience_sec = 23.0
+tip_generosity_mult = 1.6
+preferred_recipes = Array[StringName]([&"filtro_estelar", &"concentrado_carmesi"])
+greeting_lines = PackedStringArray("Tengo una cita importante en diez minutos. Sorpréndeme.", "No me hagas esperar y te cubriré de oro, preciosa.")
+satisfied_lines = PackedStringArray("Servicio impecable. Quédate el cambio.", "Exactamente el sabor que adoro.")
+spicy_affinity_lines = PackedStringArray("Me encanta verte correr por toda la cocina solo para complacerme.", "La próxima poción quiero probarla directo de tu cucharón...")
+impatient_lines = PackedStringArray("Tic-tac, brujita. Mi paciencia vale caro.")

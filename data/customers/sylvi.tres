@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CustomerArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/CustomerArchetypeData.gd" id="1_cbbuw"]
+
+[resource]
+script = ExtResource("1_cbbuw")
+customer_id = &"sylvi"
+display_name = "Sylvi"
+species_archetype = "Fauno Fiestera"
+base_patience_sec = 29.0
+tip_generosity_mult = 1.25
+preferred_recipes = Array[StringName]([&"elixir_ignis", &"filtro_estelar"])
+greeting_lines = PackedStringArray("¡Necesito algo bien fuerte para esta noche!", "¿Qué tienes hoy para encender la fiesta del bosque, brujita?")
+satisfied_lines = PackedStringArray("¡Mmm! ¡Esto pega directo al corazón!", "¡Así me gusta, rápida y ardiente!")
+spicy_affinity_lines = PackedStringArray("¿Siempre sudas así detrás del mostrador, o es por verme?", "Si funciona la mitad de bien que tu sonrisa, mañana vuelvo por el doble...")
+impatient_lines = PackedStringArray("¡Vamos linda, se me enfría la noche!")

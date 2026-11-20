@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WitchCharacterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/WitchCharacterData.gd" id="1_tol41"]
+
+[resource]
+script = ExtResource("1_tol41")
+witch_id = &"trixie"
+display_name = "Trixie"
+archetype_title = "Bruja de Fuego y Caos"
+short_bio = "Apasionada, coqueta y adicta a llevar sus calderos al límite."
+move_speed = 360.0
+brew_speed_mult = 1.05
+passive_name = "Chispa Ardiente"
+passive_description = "Mantiene el bono ¡CALIENTE! x1.5 durante más tiempo al entregar."
+active_name = "Fiebre Escarlata"
+active_description = "Termina al instante todos los calderos hirviendo y otorga +60% velocidad por 5s."
+active_cooldown_sec = 16.0

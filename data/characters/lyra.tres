@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WitchCharacterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/WitchCharacterData.gd" id="1_pecha"]
+
+[resource]
+script = ExtResource("1_pecha")
+witch_id = &"lyra"
+display_name = "Lyra"
+archetype_title = "Druida de Floración Salvaje"
+short_bio = "Dulce y traviesa, rodeada de esporas seductoras del bosque."
+brew_speed_mult = 1.1
+carry_capacity = 3
+passive_name = "Cosecha Abundante"
+passive_description = "Empieza con 3 ranuras de carga en mano."
+active_name = "Enredaderas Calmantes"
+active_description = "Congela la paciencia de toda la fila durante 8 segundos."
+active_cooldown_sec = 20.0
+unlock_essence_cost = 150

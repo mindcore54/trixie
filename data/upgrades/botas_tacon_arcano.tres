@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_tyeby"]
+
+[resource]
+script = ExtResource("1_tyeby")
+upgrade_id = &"botas_tacon_arcano"
+display_name = "Botas de Tacón Arcano"
+synergy_tags = PackedStringArray("Velocidad")
+description = "+35% velocidad de movimiento y estela de chispas doradas por la cocina."
+effect_params = {
+"speed_bonus": 0.35
+}

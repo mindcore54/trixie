@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CustomerArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/CustomerArchetypeData.gd" id="1_70cdo"]
+
+[resource]
+script = ExtResource("1_70cdo")
+customer_id = &"mona"
+display_name = "Mona"
+species_archetype = "Bruja Rival Tsundere"
+base_patience_sec = 32.0
+tip_generosity_mult = 1.15
+preferred_recipes = Array[StringName]([&"bruma_lunar", &"tonico_silvestre"])
+greeting_lines = PackedStringArray("Solo vine a comprobar lo lenta que eres. Hazme un filtro decente.", "¡No creas que vengo porque me gusten tus mezclas!")
+satisfied_lines = PackedStringArray("¡Hmph! Pasable. Supongo que tienes algo de técnica.", "N-no está mal... ¡pero la mía sale mejor!")
+spicy_affinity_lines = PackedStringArray("¡Hmph! No te pongas tan coqueta solo porque atendiste rápido, tonta!", "Oye... si cierras temprano un día, ven a comparar calderos... ¡s-solo por negocio!")
+impatient_lines = PackedStringArray("¡Ja! Sabía que no podías con tantos pedidos!")

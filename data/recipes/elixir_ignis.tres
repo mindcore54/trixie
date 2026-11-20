@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PotionRecipeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/PotionRecipeData.gd" id="1_73egq"]
+
+[resource]
+script = ExtResource("1_73egq")
+recipe_id = &"elixir_ignis"
+display_name = "Elixir Ignis"
+required_ingredients = Array[StringName]([&"red"])
+base_brew_time_sec = 2.6
+overheat_grace_sec = 5.0
+potion_color = Color(0.96, 0.25, 0.3, 1)

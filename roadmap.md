@@ -6,12 +6,11 @@
 ---
 
 ## Bitácora de Decisiones y Estado Actual
-* **2026-11-19 — Inicio de Proyecto:**
-  * Leído respaldo completo `stash/chat01.txt` y revisadas las 3 maquetas visuales (`stash/imagen1..3.jpeg`).
-  * **Layout aprobado (`imagen3.jpeg`):** Cocina 2.5D transitable ocupando la mayor parte de la pantalla; arriba-izquierda estadísticas + busto enmarcado reactivo de la bruja; abajo-derecha limpio (sin botones Q/W/E) para retrato grande 2D anime de clientas + pergamino viejo con bordes *chipped*.
-  * **Control principal fijado:** Movimiento por clic izquierdo con **cola de acciones** + clic derecho para **Habilidad Especial con *cut-in***.
-  * **Entorno verificado:** Godot `4.7.2.stable` conectado por MCP, 22 skills de Godot 4.x + `trixie-art-pipeline` instaladas en `.agents/skills/`, y script `tools/process_white_bg.py` validado contra perforación de blancos internos.
-  * **Siguiente Foco Inmediato:** Construir el **Vertical Slice Jugable (Fase 1)** con placeholders geométricos/colores en Godot 4.7 para validar que encadenar clics, controlar calderos al borde de explotar y ver las reacciones del HUD realmente envicia antes de producir arte masivo.
+* **2026-11-19 — Vertical Slice Jugable (Fase 1) Implementado y Verificado:**
+  * Documentada en `AGENTS.md` la filosofía de trabajo **"First Make It Happen"**: priorizar prototipos jugables rápidos y visibles para que el desarrollador los pruebe y corrija sobre la marcha.
+  * Implementados y verificados los sistemas núcleo en Godot 4.7.2: `AudioJuiceManager.gd` (SFX pentatónicos procedurales, hitstop, screen shake), `GameCatalog.gd` + 21 archivos `.tres` en `res://data/` (4 brujas, 5 clientas, 6 recetas, 6 mejoras/familiares), `KitchenStation.gd`, `CustomerEntity.gd`, `FamiliarEntity.gd`, `WitchController.gd` (cola de hasta 6 clics), `KitchenHUD.gd` (busto reactivo 6 emociones, retrato grande abajo-derecha, pergamino *chipped*, *cut-in* y modal de draft) y `MainGame.gd`.
+  * **Validación:** `--smoke-test` headless superado (`gold=66, combo=1, day=2, familiars=1, ability_ok=true`) y arranque de `Main.tscn` limpio sin errores.
+  * **Siguiente Foco Inmediato:** Que el desarrollador abra el proyecto en Godot (`F5`), juegue 1–2 turnos del Vertical Slice y marque qué siente lento, incómodo o mejorable para iterar al vuelo (Hito 1.6).
 
 ---
 
@@ -32,24 +31,24 @@
 ## Fase 1: Vertical Slice Jugable (Validar Diversión Pura con Placeholders)
 > **Meta:** Prototipo jugable de 1–2 días (3 minutos de juego real) usando siluetas temporales limpias para validar ritmo, cola de clics, tensión del caldero y legibilidad del HUD sin esperar arte definitivo.
 
-- [ ] **1.1 Escenario de Cocina 2.5D y Navegación:**
-  - [ ] Construir `KitchenArena.tscn` con distribución calcada a `imagen3.jpeg` (Estación de Ingredientes + Mortero abajo-izquierda, 2 Calderos centro-izquierda, Mesa Embotellado arriba-derecha, Mostrador + 5 slots de fila a la derecha).
-  - [ ] Configurar `NavigationRegion2D` o rejilla de evasión limpia alrededor de muebles.
-- [ ] **1.2 Bruja Controlable por Cola de Clics:**
-  - [ ] Implementar `ActionQueueController.gd` (hasta 6 clics encadenados, dibujo de waypoints numerados `1..6` en el suelo, clic central/`Q` para limpiar cola).
-  - [ ] Implementar `WitchController.gd` con 2 ranuras visuales de mano y rebote procedural al caminar (estilo *Helltaker* por código).
-- [ ] **1.3 Ciclo Completo de Poción y Calderos:**
-  - [ ] Crear 3 recursos de recetas iniciales (Rojo, Azul, Rojo+Azul) en `res://data/recipes/`.
-  - [ ] Implementar `IngredientBin.gd`, `MortarStation.gd` (machacado rápido), `CauldronStation.gd` (cocción, clic para revolver `¡CALIENTE!`, ventana de *overboil* y explosión con pérdida de corazón) y `BottlingStation.gd`.
-- [ ] **1.4 Fila de Clientas, HUD Reactivo y Pergamino:**
-  - [ ] Implementar `CustomerQueueManager.gd` (barras de paciencia, colapso al 6º cliente, pago con multiplicador de combo).
-  - [ ] Implementar `ReactiveBustHUD.tscn` arriba-izquierda (reloj, oro, corazones y marco del busto que cambia de color/estado al sudar o explotar).
-  - [ ] Implementar `CustomerDialoguePanel.tscn` abajo-derecha (retrato temporal + pergamino *chipped* con frase corta al entregar).
-- [ ] **1.5 Primer Draft Roguelite y Habilidad de Trixie:**
-  - [ ] Implementar clic derecho (`Fiebre Escarlata`: termina calderos + `+60%` velocidad) con banner *cut-in* provisional.
-  - [ ] Implementar modal al acabar el Día 1 eligiendo 1 de 3 mejoras: *Michi Alado (Familiar Caldero)*, *Botas Arcanas (+35% vel)* o *Corsé Magnético (Embotellado automático)*.
+- [x] **1.1 Escenario de Cocina 2.5D y Navegación:**
+  - [x] Construir cocina en `Main.tscn` / `MainGame.gd` con distribución calcada a `imagen3.jpeg` (Estación de Ingredientes abajo-izquierda, Mortero, 2 Calderos centro-izquierda, Mesa Embotellado arriba-derecha, Mostrador + 5 slots de fila a la derecha).
+  - [x] Movimiento limpio entre estaciones con cola visual en suelo y waypoints `1..6`.
+- [x] **1.2 Bruja Controlable por Cola de Clics:**
+  - [x] Implementar cola de acciones en `WitchController.gd` (hasta 6 clics encadenados, waypoints `1..6`, clic central/`Q` para limpiar cola).
+  - [x] Implementar `WitchController.gd` con 2 ranuras visuales de mano y rebote procedural al caminar (estilo *Helltaker* por código).
+- [x] **1.3 Ciclo Completo de Poción y Calderos:**
+  - [x] Crear los 6 recursos de recetas iniciales (Rojo, Azul, Verde, Rojo+Azul, Verde+Rojo, Concentrado Carmesí con Mortero) en `res://data/recipes/`.
+  - [x] Implementar `KitchenStation.gd` (Cajas, Mortero, Calderos con cocción, revolver `¡CALIENTE!`, ventana de *overboil* y explosión con pérdida de corazón, Embotellado y Basura).
+- [x] **1.4 Fila de Clientas, HUD Reactivo y Pergamino:**
+  - [x] Implementar fila de hasta 5 clientas (`CustomerEntity.gd` + `MainGame.gd`) con barras de paciencia, colapso al 6º cliente, pago con multiplicador de combo y afinidad.
+  - [x] Implementar busto reactivo arriba-izquierda (reloj, oro, corazones, 6 emociones en `KitchenHUD.gd` + selector rápido de las 4 brujas).
+  - [x] Implementar panel abajo-derecha (retrato grande + pergamino *chipped* con diálogos y afinidad picante).
+- [x] **1.5 Primer Draft Roguelite y Habilidad de Trixie:**
+  - [x] Implementar clic derecho (`Fiebre Escarlata` / habilidades de las 4 brujas) con banner *cut-in* anime y audio procedural (`AudioJuiceManager.gd`).
+  - [x] Implementar modal de Draft entre días eligiendo 1 de 3 mejoras (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Mensajero`, `Botas Arcanas`, `Corsé Magnético`, `Espejo Duplicador`) + botón Reroll y atajo de prueba.
 - [ ] **1.6 Validación de Playtest (Hito Crítico):**
-  - [ ] Probar manualmente con el desarrollador y ajustar tiempos de cocción/paciencia hasta que el bucle de clics se sienta adictivo.
+  - [ ] Probar manualmente con el desarrollador (F5 en Godot) y ajustar tiempos de cocción/paciencia/sensación de clics hasta que el bucle envicie antes de ilustrar el arte definitivo.
 
 ---
 

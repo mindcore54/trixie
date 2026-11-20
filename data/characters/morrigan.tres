@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WitchCharacterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/WitchCharacterData.gd" id="1_f6fsx"]
+
+[resource]
+script = ExtResource("1_f6fsx")
+witch_id = &"morrigan"
+display_name = "Morrigan"
+archetype_title = "Alquimista Oscura"
+short_bio = "Peligrosa, veloz y obsesionada con el oro de alto riesgo."
+move_speed = 420.0
+brew_speed_mult = 1.35
+max_stability_hearts = 2
+passive_name = "Sangre Volátil"
+passive_description = "+40% de oro y velocidad, pero solo 2 corazones de estabilidad."
+active_name = "Transmutación Carmesí"
+active_description = "Sella todos los pedidos de caldero al instante y duplica la paciencia ganada."
+active_cooldown_sec = 17.0
+unlock_essence_cost = 500

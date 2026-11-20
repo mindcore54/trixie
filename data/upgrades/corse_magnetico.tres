@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_vyaod"]
+
+[resource]
+script = ExtResource("1_vyaod")
+upgrade_id = &"corse_magnetico"
+display_name = "Corsé Magnético"
+rarity = 1
+synergy_tags = PackedStringArray("Velocidad", "Carga")
+description = "+1 ranura en mano y embotellado instantáneo al recoger o pasar cerca de la mesa."
+max_stacks = 1
+effect_params = {
+"carry_bonus": 1,
+"instant_bottle": true
+}

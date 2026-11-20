@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CustomerArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/CustomerArchetypeData.gd" id="1_htb8m"]
+
+[resource]
+script = ExtResource("1_htb8m")
+customer_id = &"roxy"
+display_name = "Roxy"
+species_archetype = "Cazadora Lupina"
+base_patience_sec = 30.0
+tip_generosity_mult = 1.3
+preferred_recipes = Array[StringName]([&"elixir_ignis", &"tonico_silvestre", &"concentrado_carmesi"])
+greeting_lines = PackedStringArray("¡Dame algo que me haga rugir antes de que salga la luna!", "¡Huele delicioso aquí dentro, brujita!")
+satisfied_lines = PackedStringArray("¡Auuu! ¡Esto sí tiene chispa!", "¡Rápida como una flecha! ¡Me encanta!")
+spicy_affinity_lines = PackedStringArray("¡Guau! ¡Agitas ese caldero con una energía que me vuelve loca!", "Tienes mejor aroma que cualquier presa del bosque... ¿me guardas un frasco especial?")
+impatient_lines = PackedStringArray("¡Grrr! ¡Me muero de sed esperando!")

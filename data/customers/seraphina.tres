@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CustomerArchetypeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/CustomerArchetypeData.gd" id="1_sd6g6"]
+
+[resource]
+script = ExtResource("1_sd6g6")
+customer_id = &"seraphina"
+display_name = "Seraphina"
+species_archetype = "Paladín Reprimida"
+is_vip_boss = true
+base_patience_sec = 25.0
+tip_generosity_mult = 1.45
+preferred_recipes = Array[StringName]([&"savia_pura", &"bruma_lunar"])
+greeting_lines = PackedStringArray("E-es para un ritual de purificación... ¡no pienses cosas raras!", "¡Vengo a inspeccionar tu licencia... y a llevarme un frasco!")
+satisfied_lines = PackedStringArray("¡Q-qué pureza tan cálida! Casi indecente...", "Aprobado por la Orden. (Gracias...)")
+spicy_affinity_lines = PackedStringArray("¿Por qué esta poción huele a fresas y calor?! ¡Cielos, qué bochorno!", "N-no le digas a la Orden que vengo aquí... ni cuánto me gusta mirarte.")
+impatient_lines = PackedStringArray("¡La Orden no tolera demoras injustificadas!")

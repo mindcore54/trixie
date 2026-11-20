@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_po2bj"]
+
+[resource]
+script = ExtResource("1_po2bj")
+upgrade_id = &"diablillo_carmesi"
+display_name = "Diablillo Carmesí (Familiar)"
+kind = 1
+rarity = 1
+synergy_tags = PackedStringArray("Familiar", "Ingredientes")
+description = "Invoca un diablillo que llena calderos vacíos con los ingredientes que pide la primera clienta."
+max_stacks = 2
+effect_params = {
+"familiar_type": "diablillo_carmesi"
+}

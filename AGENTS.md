@@ -24,6 +24,10 @@ Tienes **agencia completa** para:
 3. Procesar automáticamente cualquier imagen que el desarrollador deje en `raw_assets/` (quitar fondo blanco sin perforar blancos internos usando `tools/process_white_bg.py`), renombrarla según convención y copiarla a `res://assets/` e integrarla en los recursos `.tres` del juego.
 4. Generar prompts consistentes para nuevos personajes, emociones, sprites semi-chibi 2.5D y props mediante `tools/generate_prompts.py`.
 
+### 2.3 Filosofía de Iteración ("First Make It Happen")
+* **Prototipo tangible primero, perfección después:** El desarrollador trabaja mejor viendo, jugando y corrigiendo elementos reales en pantalla que leyendo especificaciones estáticas.
+* **Regla de ejecución:** Implementa sistemas funcionales y visibles rápidamente (usando audio procedural, geometría/colores estilizados y datos `.tres` reales) para validar el ritmo de juego de inmediato, iterando velozmente sobre las correcciones directas del desarrollador.
+
 ---
 
 ## 3. Estándares Técnicos en Godot 4.7

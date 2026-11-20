@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PotionRecipeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/PotionRecipeData.gd" id="1_epi10"]
+
+[resource]
+script = ExtResource("1_epi10")
+recipe_id = &"tonico_silvestre"
+display_name = "Tónico Silvestre"
+required_ingredients = Array[StringName]([&"green", &"red"])
+base_brew_time_sec = 3.4
+overheat_grace_sec = 4.6
+base_gold_value = 75
+unlock_day = 2
+potion_color = Color(0.98, 0.65, 0.16, 1)

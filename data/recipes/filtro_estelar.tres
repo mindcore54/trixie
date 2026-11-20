@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PotionRecipeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/PotionRecipeData.gd" id="1_l6xxe"]
+
+[resource]
+script = ExtResource("1_l6xxe")
+recipe_id = &"filtro_estelar"
+display_name = "Filtro Estelar"
+required_ingredients = Array[StringName]([&"red", &"blue"])
+base_brew_time_sec = 3.4
+overheat_grace_sec = 4.6
+base_gold_value = 70
+potion_color = Color(0.76, 0.3, 0.98, 1)

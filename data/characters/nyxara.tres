@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WitchCharacterData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/WitchCharacterData.gd" id="1_hn8yx"]
+
+[resource]
+script = ExtResource("1_hn8yx")
+witch_id = &"nyxara"
+display_name = "Nyxara"
+archetype_title = "Chamán Domadora"
+short_bio = "Misteriosa y elegante, deja que sus familiares hagan el trabajo sucio."
+move_speed = 325.0
+brew_speed_mult = 0.95
+max_stability_hearts = 4
+passive_name = "Vínculo Totémico"
+passive_description = "Arranca la run con 1 Michi Alado invocado desde el Día 1 y 4 corazones."
+active_name = "Posesión del Sabbat"
+active_description = "Potencia velocidad de familiares y cocina todos los calderos x2 por 7s."
+active_cooldown_sec = 20.0
+unlock_essence_cost = 300
