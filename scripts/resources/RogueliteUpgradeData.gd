@@ -5,6 +5,7 @@ extends Resource
 enum UpgradeKind {
 	RELIC_PASSIVE,
 	FAMILIAR_SUMMON,
+	ACTIVE_SKILL,
 	STATION_UPGRADE,
 	CURSED_PACT,
 }

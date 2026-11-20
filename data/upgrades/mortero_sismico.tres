@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_mort"]
+
+[resource]
+script = ExtResource("1_mort")
+upgrade_id = &"mortero_sismico"
+display_name = "Mortero Sísmico"
+kind = 0
+rarity = 1
+synergy_tags = PackedStringArray("Mortero", "Caldero")
+description = "• Mezclar en Mortero acelera calderos (+25% / +40% / +55%)"
+max_stacks = 3
+effect_params = {
+"seismic_boost_per_level": 0.15,
+"seismic_mortar": true
+}

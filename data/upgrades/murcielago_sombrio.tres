@@ -9,8 +9,8 @@ display_name = "Murciélago Mensajero (Familiar)"
 kind = 1
 rarity = 2
 synergy_tags = PackedStringArray("Familiar", "Entrega")
-description = "• Embotella y entrega solo"
-max_stacks = 2
+description = "• Nv.1: Invoca Murciélago (embotella y entrega)\n• Nv.2+: +35% velocidad del Murciélago"
+max_stacks = 3
 effect_params = {
 "familiar_type": "murcielago_sombrio"
 }

@@ -9,8 +9,8 @@ display_name = "Diablillo Carmesí (Familiar)"
 kind = 1
 rarity = 1
 synergy_tags = PackedStringArray("Familiar", "Ingredientes")
-description = "• Carga ingredientes al caldero"
-max_stacks = 2
+description = "• Nv.1: Invoca Diablillo (carga ingredientes)\n• Nv.2+: +35% velocidad del Diablillo"
+max_stacks = 3
 effect_params = {
 "familiar_type": "diablillo_carmesi"
 }

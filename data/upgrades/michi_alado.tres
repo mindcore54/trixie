@@ -9,9 +9,8 @@ display_name = "Michi Alado (Familiar)"
 kind = 1
 rarity = 1
 synergy_tags = PackedStringArray("Familiar", "Caldero")
-description = "• Cocina +50% rápido
-• Calderos no explotan"
-max_stacks = 2
+description = "• Nv.1: Invoca Michi (+35% cocción y protege caldero)\n• Nv.2+: +35% velocidad del Michi"
+max_stacks = 3
 effect_params = {
 "familiar_type": "michi_alado"
 }

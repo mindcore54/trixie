@@ -7,7 +7,8 @@ script = ExtResource("1_tyeby")
 upgrade_id = &"botas_tacon_arcano"
 display_name = "Botas de Tacón Arcano"
 synergy_tags = PackedStringArray("Velocidad")
-description = "• +35% Velocidad al caminar"
+description = "• +12% Velocidad al caminar por nivel"
+max_stacks = 5
 effect_params = {
-"speed_bonus": 0.35
+"speed_bonus": 0.12
 }

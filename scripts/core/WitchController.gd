@@ -5,12 +5,14 @@ extends Node2D
 
 signal potion_delivered_to_customer(customer: CustomerEntity, recipe_id: StringName, is_hot: bool, is_mortar: bool)
 signal popup_requested(world_pos: Vector2, text: String, color: Color)
+signal room_transition_requested(door_id: StringName)
 
 const MAX_NEXT_BUFFER: int = 1
 
 var witch_data: WitchCharacterData
 var move_speed_mult: float = 1.0
 var ability_speed_bonus: float = 0.0
+var cooldown_reduction_mult: float = 1.0
 var carry_bonus: int = 0
 var instant_bottle_enabled: bool = false
 var seismic_mortar_enabled: bool = false
@@ -30,6 +32,7 @@ var _completed_steps: int = 0
 var _ability_cooldown_left: float = 0.0
 var _ability_buff_left: float = 0.0
 var _facing: float = 1.0
+var _move_dir: Vector2 = Vector2(0.0, 1.0)
 var _squash: Vector2 = Vector2.ONE
 
 
@@ -51,10 +54,26 @@ func get_max_carry() -> int:
 	return base_cap + carry_bonus
 
 
+func is_carrying_crate() -> bool:
+	return not held_items.is_empty() and held_items[0].begins_with("crate:")
+
+
 func get_ability_cooldown_ratio() -> float:
 	if witch_data == null or witch_data.active_cooldown_sec <= 0.0:
 		return 0.0
-	return clampf(_ability_cooldown_left / witch_data.active_cooldown_sec, 0.0, 1.0)
+	var effective_cd: float = maxf(0.4, witch_data.active_cooldown_sec * maxf(0.4, cooldown_reduction_mult))
+	return clampf(_ability_cooldown_left / effective_cd, 0.0, 1.0)
+
+
+func get_ability_cooldown_seconds_left() -> float:
+	return maxf(0.0, _ability_cooldown_left)
+
+
+func apply_astral_step_buff(duration_sec: float, speed_bonus: float) -> void:
+	_auto_bottle_held()
+	_ability_buff_left = maxf(_ability_buff_left, duration_sec)
+	ability_speed_bonus = maxf(ability_speed_bonus, speed_bonus)
+	_do_squash(Vector2(1.22, 0.80))
 
 
 func can_trigger_ability() -> bool:
@@ -66,7 +85,7 @@ func trigger_ability(cauldrons: Array[KitchenStation], customers: Array[Customer
 		popup_requested.emit(global_position + Vector2(0, -56), "¡En recarga!", Color(0.95, 0.65, 0.35))
 		return false
 
-	_ability_cooldown_left = witch_data.active_cooldown_sec
+	_ability_cooldown_left = maxf(0.4, witch_data.active_cooldown_sec * maxf(0.4, cooldown_reduction_mult))
 	EventBus.witch_ability_triggered.emit(witch_data.witch_id, witch_data.cutin_illustration)
 	EventBus.witch_emotion_changed.emit(EventBus.WitchEmotion.CUTIN_HABILIDAD, 1.3)
 
@@ -101,7 +120,11 @@ func trigger_ability(cauldrons: Array[KitchenStation], customers: Array[Customer
 
 
 func enqueue_station(station: KitchenStation) -> void:
-	var offset: Vector2 = Vector2(0, 62) if station.station_type == KitchenStation.StationType.CAULDRON else Vector2(0, 54)
+	var offset: Vector2 = Vector2(0, 54)
+	if station.station_type == KitchenStation.StationType.CAULDRON:
+		offset = Vector2(0, 62)
+	elif station.station_type == KitchenStation.StationType.ROOM_DOOR:
+		offset = Vector2(54, 0) if station.station_id == &"door_to_storage" else Vector2(-54, 0)
 	var dest: Vector2 = station.global_position + offset
 	_buffer_or_start_task({
 		"kind": "station",
@@ -127,7 +150,8 @@ func _buffer_or_start_task(task: Dictionary) -> void:
 	var dest: Vector2 = task.get("pos", global_position) as Vector2
 
 	if _waiting_cauldron != null:
-		var st: KitchenStation = task.get("target") as KitchenStation
+		var raw_st: Variant = task.get("target")
+		var st: KitchenStation = raw_st as KitchenStation if (is_instance_valid(raw_st) and raw_st is KitchenStation) else null
 		var wants_bottle: bool = task.get("kind", "") == "station" and st != null and st.station_type == KitchenStation.StationType.BOTTLING
 		if wants_bottle:
 			if action_queue.is_empty():
@@ -208,13 +232,22 @@ func _process(delta: float) -> void:
 			return
 		_current_task = action_queue.pop_front()
 
+	if _current_task.get("kind", "") == "customer":
+		var raw_c: Variant = _current_task.get("target")
+		if not is_instance_valid(raw_c) or not (raw_c is CustomerEntity) or (raw_c as CustomerEntity).is_served:
+			_current_task.clear()
+			queue_redraw()
+			return
+
 	var target_pos: Vector2 = _get_live_task_pos(_current_task)
 	var dist: float = global_position.distance_to(target_pos)
 	var base_spd: float = witch_data.move_speed if witch_data else 350.0
-	var spd: float = base_spd * (move_speed_mult + ability_speed_bonus)
+	var crate_slow: float = 0.75 if is_carrying_crate() else 1.0
+	var spd: float = base_spd * (move_speed_mult + ability_speed_bonus) * crate_slow
 
 	if dist > 12.0:
 		var dir: Vector2 = (target_pos - global_position).normalized()
+		_move_dir = dir
 		if absf(dir.x) > 0.08:
 			_facing = 1.0 if dir.x > 0.0 else -1.0
 		global_position = global_position.move_toward(target_pos, spd * delta)
@@ -230,8 +263,9 @@ func _process(delta: float) -> void:
 func _get_live_task_pos(task: Dictionary) -> Vector2:
 	var kind: String = task.get("kind", "")
 	if kind == "customer":
-		var c: CustomerEntity = task.get("target") as CustomerEntity
-		if c != null and is_instance_valid(c):
+		var raw_target: Variant = task.get("target")
+		if is_instance_valid(raw_target) and raw_target is CustomerEntity:
+			var c: CustomerEntity = raw_target as CustomerEntity
 			return c.global_position + Vector2(-84, 0)
 	return task.get("pos", global_position) as Vector2
 
@@ -239,26 +273,53 @@ func _get_live_task_pos(task: Dictionary) -> Vector2:
 func _arrive_at_task(task: Dictionary) -> void:
 	var kind: String = task.get("kind", "")
 	if kind == "customer":
-		var cust: CustomerEntity = task.get("target") as CustomerEntity
-		if cust != null and is_instance_valid(cust) and not cust.is_served:
-			_try_deliver_to(cust)
+		var raw_cust: Variant = task.get("target")
+		if is_instance_valid(raw_cust) and raw_cust is CustomerEntity:
+			var cust: CustomerEntity = raw_cust as CustomerEntity
+			if not cust.is_served:
+				_try_deliver_to(cust)
 		_current_task.clear()
 		return
 
-	var st: KitchenStation = task.get("target") as KitchenStation
-	if st == null or not is_instance_valid(st):
+	var raw_st: Variant = task.get("target")
+	if not is_instance_valid(raw_st) or not (raw_st is KitchenStation):
 		_current_task.clear()
 		return
+	var st: KitchenStation = raw_st as KitchenStation
 
 	match st.station_type:
 		KitchenStation.StationType.INGREDIENT_BIN:
-			if held_items.size() < get_max_carry():
-				held_items.append("ing:" + String(st.ingredient_id))
-				_do_squash(Vector2(1.2, 0.82))
-				_emit_step(st.station_id)
+			if is_carrying_crate():
+				_try_refill_bin_with_crate(st)
+			elif not st.has_ingredient_stock():
+				popup_requested.emit(st.global_position + Vector2(0, -54), "¡Sin stock! Trae caja de Bodega", Color(1.0, 0.35, 0.35))
+			elif held_items.size() < get_max_carry():
+				if st.consume_ingredient_stock():
+					held_items.append("ing:" + String(st.ingredient_id))
+					_do_squash(Vector2(1.2, 0.82))
+					_emit_step(st.station_id)
 			else:
 				popup_requested.emit(global_position + Vector2(0, -54), "¡Manos llenas!", Color(1.0, 0.7, 0.25))
 			_current_task.clear()
+
+		KitchenStation.StationType.SUPPLY_SOURCE:
+			if held_items.is_empty():
+				_work_timer = 0.32
+				_do_squash(Vector2(0.88, 1.15))
+			else:
+				popup_requested.emit(global_position + Vector2(0, -54), "¡Vacía tus manos para cargar caja!", Color(1.0, 0.7, 0.25))
+				_current_task.clear()
+
+		KitchenStation.StationType.CRATE_RACK:
+			var c_slot: int = clampi(int(task.get("slot", 0)), 0, KitchenStation.MAX_CRATE_RACK_SLOTS - 1)
+			_interact_with_crate_rack(st, c_slot)
+			_current_task.clear()
+
+		KitchenStation.StationType.ROOM_DOOR:
+			_current_task.clear()
+			action_queue.clear()
+			_emit_step(st.station_id)
+			room_transition_requested.emit(st.station_id)
 
 		KitchenStation.StationType.MORTAR:
 			if _can_mix_at_mortar(st):
@@ -297,6 +358,8 @@ func _arrive_at_task(task: Dictionary) -> void:
 				_work_timer = 0.05 if instant_bottle_enabled else 0.42
 				_do_squash(Vector2(1.15, 0.86))
 			else:
+				var b_slot: int = clampi(int(task.get("slot", 0)), 0, KitchenStation.MAX_BOTTLING_SLOTS - 1)
+				_interact_with_bottling_storage(st, b_slot)
 				_current_task.clear()
 
 		KitchenStation.StationType.DISPLAY_STAND:
@@ -328,6 +391,12 @@ func _finish_work_task() -> void:
 		_auto_bottle_held()
 		popup_requested.emit(st.global_position + Vector2(0, -48), "¡Embotellado!", Color(0.55, 0.95, 1.0))
 		_emit_step(st.station_id)
+	elif st.station_type == KitchenStation.StationType.SUPPLY_SOURCE:
+		if held_items.is_empty():
+			held_items.append("crate:%s:%d" % [String(st.ingredient_id), KitchenStation.SUPPLY_CRATE_AMOUNT])
+			_do_squash(Vector2(1.22, 0.82))
+			popup_requested.emit(st.global_position + Vector2(0, -50), "¡Caja x20 cargada!", Color(1.0, 0.88, 0.35))
+			_emit_step(st.station_id)
 	elif st.station_type == KitchenStation.StationType.CAULDRON and _stirring_cauldron == st:
 		_stirring_cauldron = null
 		if st.cauldron_state == KitchenStation.CauldronState.READY or st.cauldron_state == KitchenStation.CauldronState.OVERBOIL_WARNING:
@@ -517,6 +586,88 @@ func _interact_with_display_stand(st: KitchenStation, slot_idx: int = 0) -> void
 		popup_requested.emit(st.global_position + Vector2(0, -52), "Espacio vacío", Color(0.85, 0.85, 0.95))
 
 
+func _interact_with_bottling_storage(st: KitchenStation, slot_idx: int = 0) -> void:
+	var target_slot: int = clampi(slot_idx, 0, KitchenStation.MAX_BOTTLING_SLOTS - 1)
+	if st.is_bottling_slot_occupied(target_slot):
+		if held_items.size() >= get_max_carry():
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Manos llenas!", Color(1.0, 0.7, 0.25))
+			return
+		var picked: String = st.take_bottled_from_slot(target_slot)
+		if picked != "":
+			held_items.append(picked)
+			_do_squash(Vector2(1.18, 0.84))
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Tomado de embotellado!", Color(0.55, 0.95, 1.0))
+			_emit_step(st.station_id)
+		return
+
+	var bot_idx: int = -1
+	for i: int in range(held_items.size() - 1, -1, -1):
+		if held_items[i].begins_with("bot:"):
+			bot_idx = i
+			break
+
+	if bot_idx != -1:
+		var item_str: String = held_items[bot_idx]
+		if st.store_bottled_in_slot(target_slot, item_str):
+			held_items.remove_at(bot_idx)
+			_do_squash(Vector2(1.15, 0.86))
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Guardado en mesa!", Color(0.55, 0.95, 1.0))
+			_emit_step(st.station_id)
+			return
+
+
+func _try_refill_bin_with_crate(st: KitchenStation) -> void:
+	if not is_carrying_crate():
+		return
+	var parts: PackedStringArray = held_items[0].split(":")
+	if parts.size() < 3:
+		return
+	var crate_ing: StringName = StringName(parts[1])
+	var crate_amt: int = int(parts[2])
+	if crate_ing != st.ingredient_id:
+		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Caja de otro ingrediente!", Color(1.0, 0.45, 0.35))
+		return
+	var added: int = st.refill_ingredient_stock(crate_amt)
+	if added <= 0:
+		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Ya está llena (10/10)!", Color(0.95, 0.88, 0.50))
+		return
+	var left: int = crate_amt - added
+	_do_squash(Vector2(1.22, 0.82))
+	_emit_step(st.station_id)
+	if left <= 0:
+		held_items.clear()
+		popup_requested.emit(st.global_position + Vector2(0, -54), "+%d stock (Caja vacía)" % added, Color(0.45, 1.0, 0.65))
+	else:
+		held_items[0] = "crate:%s:%d" % [String(crate_ing), left]
+		popup_requested.emit(st.global_position + Vector2(0, -54), "+%d stock (Quedan %d)" % [added, left], Color(1.0, 0.90, 0.35))
+
+
+func _interact_with_crate_rack(st: KitchenStation, slot_idx: int = 0) -> void:
+	var target_slot: int = clampi(slot_idx, 0, KitchenStation.MAX_CRATE_RACK_SLOTS - 1)
+	if is_carrying_crate():
+		if not st.is_crate_slot_occupied(target_slot):
+			if st.store_crate_in_slot(target_slot, held_items[0]):
+				held_items.clear()
+				_do_squash(Vector2(1.16, 0.85))
+				popup_requested.emit(st.global_position + Vector2(0, -48), "¡Caja guardada!", Color(1.0, 0.88, 0.38))
+				_emit_step(st.station_id)
+		else:
+			popup_requested.emit(st.global_position + Vector2(0, -48), "Hueco ocupado", Color(1.0, 0.65, 0.35))
+		return
+	if held_items.is_empty():
+		if st.is_crate_slot_occupied(target_slot):
+			var picked: String = st.take_crate_from_slot(target_slot)
+			if picked != "":
+				held_items.append(picked)
+				_do_squash(Vector2(1.18, 0.84))
+				popup_requested.emit(st.global_position + Vector2(0, -48), "¡Caja tomada!", Color(1.0, 0.88, 0.38))
+				_emit_step(st.station_id)
+		else:
+			popup_requested.emit(st.global_position + Vector2(0, -48), "Sin caja aquí", Color(0.85, 0.85, 0.95))
+	else:
+		popup_requested.emit(st.global_position + Vector2(0, -48), "Solo cajas (vacía manos)", Color(1.0, 0.72, 0.35))
+
+
 func _has_any_ingredient() -> bool:
 	for item: String in held_items:
 		if item.begins_with("ing:"):
@@ -561,53 +712,85 @@ func _draw() -> void:
 	var bounce_y: float = -absf(sin(_walk_time)) * (9.0 if is_moving else 2.2)
 	var tilt: float = sin(_walk_time) * (0.07 if is_moving else 0.015)
 
-	draw_circle(Vector2(0, 32), 23.0, Color(0, 0, 0, 0.32))
+	draw_circle(Vector2(0, 32), 34.0, Color(0, 0, 0, 0.32))
 
-	var theme_col: Color = Color(0.48, 0.22, 0.68)
-	var hair_col: Color = Color(0.28, 0.15, 0.14)
-	if witch_data:
-		match witch_data.witch_id:
-			&"lyra":
-				theme_col = Color(0.22, 0.65, 0.38)
-				hair_col = Color(0.92, 0.68, 0.34)
-			&"nyxara":
-				theme_col = Color(0.20, 0.32, 0.58)
-				hair_col = Color(0.86, 0.86, 0.95)
-			&"morrigan":
-				theme_col = Color(0.72, 0.14, 0.28)
-				hair_col = Color(0.12, 0.10, 0.16)
+	var has_chibi_art: bool = witch_data != null and witch_data.chibi_down != null
+	if has_chibi_art:
+		var sprite_tex: Texture2D = witch_data.chibi_down
+		var flip_x: float = 1.0
+		if absf(_move_dir.x) < 0.32:
+			if _move_dir.y < 0.0 and witch_data.chibi_up != null:
+				sprite_tex = witch_data.chibi_up
+			else:
+				sprite_tex = witch_data.chibi_down
+		else:
+			flip_x = -1.0 if _move_dir.x < 0.0 else 1.0
+			if _move_dir.y < -0.25 and witch_data.chibi_up_right != null:
+				sprite_tex = witch_data.chibi_up_right
+			elif witch_data.chibi_down_right != null:
+				sprite_tex = witch_data.chibi_down_right
+		var target_w: float = float(sprite_tex.get_width())
+		var target_h: float = float(sprite_tex.get_height())
+		draw_set_transform(Vector2(0, bounce_y), tilt, Vector2(_squash.x * flip_x, _squash.y))
+		draw_texture_rect(sprite_tex, Rect2(-target_w * 0.5, 34.0 - target_h, target_w, target_h), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		var theme_col: Color = Color(0.48, 0.22, 0.68)
+		var hair_col: Color = Color(0.28, 0.15, 0.14)
+		if witch_data:
+			match witch_data.witch_id:
+				&"lyra":
+					theme_col = Color(0.22, 0.65, 0.38)
+					hair_col = Color(0.92, 0.68, 0.34)
+				&"nyxara":
+					theme_col = Color(0.20, 0.32, 0.58)
+					hair_col = Color(0.86, 0.86, 0.95)
+				&"morrigan":
+					theme_col = Color(0.72, 0.14, 0.28)
+					hair_col = Color(0.12, 0.10, 0.16)
 
-	draw_set_transform(Vector2(0, bounce_y), tilt, Vector2(_squash.x * _facing, _squash.y))
+		draw_set_transform(Vector2(0, bounce_y), tilt, Vector2(_squash.x * _facing, _squash.y))
 
-	# Flowing hair behind
-	draw_circle(Vector2(-6, -12), 18.0, hair_col)
-	# Curvy corset dress silhouette (~3 heads semi-chibi)
-	var skirt: PackedVector2Array = PackedVector2Array([
-		Vector2(-10, 0), Vector2(10, 0), Vector2(20, 28), Vector2(-20, 28)
-	])
-	draw_colored_polygon(skirt, theme_col)
-	draw_polyline(skirt + PackedVector2Array([skirt[0]]), Color(0.09, 0.06, 0.12), 2.5)
-	# Fitted waist + bust highlight
-	draw_circle(Vector2(4, -2), 9.0, theme_col.lightened(0.15))
-	draw_circle(Vector2(5, -7), 6.5, Color(1.0, 0.86, 0.78))
-	# Head
-	draw_circle(Vector2(0, -24), 19.0, Color(1.0, 0.87, 0.79))
-	draw_circle(Vector2(0, -24), 19.0, Color(0.09, 0.06, 0.12), false, 2.5)
-	# Eyes
-	draw_circle(Vector2(4, -24), 2.6, Color(0.12, 0.08, 0.15))
-	draw_circle(Vector2(11, -24), 2.6, Color(0.12, 0.08, 0.15))
-	# Pointed witch hat
-	draw_colored_polygon(PackedVector2Array([Vector2(-26, -34), Vector2(26, -34), Vector2(0, -40)]), theme_col.darkened(0.2))
-	draw_colored_polygon(PackedVector2Array([Vector2(-14, -36), Vector2(14, -36), Vector2(-6, -68)]), theme_col.darkened(0.25))
-	draw_line(Vector2(-13, -38), Vector2(13, -38), Color(1.0, 0.78, 0.28), 4.0)
+		# Flowing hair behind
+		draw_circle(Vector2(-6, -12), 18.0, hair_col)
+		# Curvy corset dress silhouette (~3 heads semi-chibi)
+		var skirt: PackedVector2Array = PackedVector2Array([
+			Vector2(-10, 0), Vector2(10, 0), Vector2(20, 28), Vector2(-20, 28)
+		])
+		draw_colored_polygon(skirt, theme_col)
+		draw_polyline(skirt + PackedVector2Array([skirt[0]]), Color(0.09, 0.06, 0.12), 2.5)
+		# Fitted waist + bust highlight
+		draw_circle(Vector2(4, -2), 9.0, theme_col.lightened(0.15))
+		draw_circle(Vector2(5, -7), 6.5, Color(1.0, 0.86, 0.78))
+		# Head
+		draw_circle(Vector2(0, -24), 19.0, Color(1.0, 0.87, 0.79))
+		draw_circle(Vector2(0, -24), 19.0, Color(0.09, 0.06, 0.12), false, 2.5)
+		# Eyes
+		draw_circle(Vector2(4, -24), 2.6, Color(0.12, 0.08, 0.15))
+		draw_circle(Vector2(11, -24), 2.6, Color(0.12, 0.08, 0.15))
+		# Pointed witch hat
+		draw_colored_polygon(PackedVector2Array([Vector2(-26, -34), Vector2(26, -34), Vector2(0, -40)]), theme_col.darkened(0.2))
+		draw_colored_polygon(PackedVector2Array([Vector2(-14, -36), Vector2(14, -36), Vector2(-6, -68)]), theme_col.darkened(0.25))
+		draw_line(Vector2(-13, -38), Vector2(13, -38), Color(1.0, 0.78, 0.28), 4.0)
 
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-	# Held items displayed clearly next to hands
+	# Held items displayed clearly above/next to witch
+	var hand_base_y: float = -194.0 if has_chibi_art else -64.0
 	for i: int in range(held_items.size()):
 		var item_str: String = held_items[i]
-		var hp: Vector2 = Vector2(-26 + i * 26, -64 + bounce_y * 0.4)
-		if item_str.begins_with("ing:"):
+		var hp: Vector2 = Vector2(-26 + i * 26, hand_base_y + bounce_y * 0.4)
+		if item_str.begins_with("crate:"):
+			var c_parts: PackedStringArray = item_str.split(":")
+			var c_ing: StringName = StringName(c_parts[1]) if c_parts.size() >= 2 else &"red"
+			var c_amt: String = c_parts[2] if c_parts.size() >= 3 else "20"
+			var c_col: Color = KitchenStation._ingredient_color(c_ing)
+			var cp: Vector2 = Vector2(0, (hand_base_y - 10.0) + bounce_y * 0.35)
+			draw_rect(Rect2(cp.x - 19, cp.y - 17, 38, 34), Color(0.50, 0.32, 0.18))
+			draw_rect(Rect2(cp.x - 19, cp.y - 17, 38, 34), Color(0.09, 0.06, 0.12), false, 2.5)
+			draw_circle(cp, 10.0, c_col)
+			draw_string(font, cp + Vector2(-9, 5), c_amt, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(1.0, 0.98, 0.90))
+		elif item_str.begins_with("ing:"):
 			var ing: StringName = StringName(item_str.substr(4))
 			draw_circle(hp, 11.0, KitchenStation._ingredient_color(ing))
 			draw_circle(hp, 11.0, Color(0.1, 0.08, 0.14), false, 2.2)

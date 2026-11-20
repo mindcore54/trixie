@@ -8,8 +8,9 @@ upgrade_id = &"espejo_duplicador"
 display_name = "Espejo Duplicador"
 rarity = 3
 synergy_tags = PackedStringArray("Cadena", "Encanto")
-description = "• Entrega ¡CALIENTE! clona en Vitrina"
-max_stacks = 1
+description = "• Entrega ¡CALIENTE! clona en Vitrina (35% / 65% / 100% por nivel)"
+max_stacks = 3
 effect_params = {
+"clone_chance_per_level": 0.35,
 "clone_on_hot": true
 }

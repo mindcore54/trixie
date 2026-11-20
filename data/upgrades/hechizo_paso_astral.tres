@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_paso"]
+
+[resource]
+script = ExtResource("1_paso")
+upgrade_id = &"hechizo_paso_astral"
+display_name = "Paso Astral"
+kind = 2
+rarity = 1
+synergy_tags = PackedStringArray("Activa", "Velocidad")
+description = "• Activa: Embotella tus manos y da +70% velocidad por 5s/7s/9s (CD: 16s)"
+max_stacks = 3
+effect_params = {
+"active_type": "astral_step",
+"base_cd": 16.0,
+"cd_per_level": 2.0
+}

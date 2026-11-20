@@ -22,10 +22,16 @@ extends Resource
 @export var unlock_essence_cost: int = 0
 
 @export_group("Visual Assets")
+@export var fullbody_illustration: Texture2D
 @export var chibi_sprite_sheet: Texture2D
+@export var chibi_down: Texture2D
+@export var chibi_down_right: Texture2D
+@export var chibi_up: Texture2D
+@export var chibi_up_right: Texture2D
 @export var portrait_normal: Texture2D
 @export var portrait_confiada: Texture2D
 @export var portrait_nerviosa: Texture2D
 @export var portrait_sonrojada: Texture2D
 @export var portrait_hollin: Texture2D
+@export var portrait_sorprendida: Texture2D
 @export var cutin_illustration: Texture2D

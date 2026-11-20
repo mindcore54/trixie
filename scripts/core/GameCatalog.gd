@@ -14,6 +14,16 @@ static func get_witches() -> Array[WitchCharacterData]:
 		if res is WitchCharacterData:
 			loaded.append(res as WitchCharacterData)
 	if not loaded.is_empty():
+		var order: Array[StringName] = [&"trixie", &"lyra", &"nyxara", &"morrigan"]
+		loaded.sort_custom(func(a: WitchCharacterData, b: WitchCharacterData) -> bool:
+			var ia: int = order.find(a.witch_id)
+			var ib: int = order.find(b.witch_id)
+			if ia == -1:
+				ia = 999
+			if ib == -1:
+				ib = 999
+			return ia < ib
+		)
 		return loaded
 	return _build_default_witches()
 
@@ -421,8 +431,8 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u1.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u1.rarity = RogueliteUpgradeData.Rarity.RARE
 	u1.synergy_tags = PackedStringArray(["Familiar", "Caldero"])
-	u1.description = "• Cocina +50% rápido\n• Calderos no explotan"
-	u1.max_stacks = 2
+	u1.description = "• Nv.1: Invoca Michi (+35% cocción y protege caldero)\n• Nv.2+: +35% velocidad del Michi"
+	u1.max_stacks = 3
 	u1.effect_params = {"familiar_type": "michi_alado"}
 
 	var u2: RogueliteUpgradeData = RogueliteUpgradeData.new()
@@ -431,9 +441,9 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u2.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u2.rarity = RogueliteUpgradeData.Rarity.COMMON
 	u2.synergy_tags = PackedStringArray(["Velocidad"])
-	u2.description = "• +35% Velocidad al caminar"
-	u2.max_stacks = 3
-	u2.effect_params = {"speed_bonus": 0.35}
+	u2.description = "• +12% Velocidad al caminar por nivel"
+	u2.max_stacks = 5
+	u2.effect_params = {"speed_bonus": 0.12}
 
 	var u3: RogueliteUpgradeData = RogueliteUpgradeData.new()
 	u3.upgrade_id = &"corse_magnetico"
@@ -441,8 +451,8 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u3.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u3.rarity = RogueliteUpgradeData.Rarity.RARE
 	u3.synergy_tags = PackedStringArray(["Velocidad", "Carga"])
-	u3.description = "• +1 Ranura de mano\n• Embotella al instante"
-	u3.max_stacks = 1
+	u3.description = "• Nv.1: +1 Ranura de mano y embotellado rápido\n• Nv.2+: +1 Ranura adicional"
+	u3.max_stacks = 3
 	u3.effect_params = {"carry_bonus": 1, "instant_bottle": true}
 
 	var u4: RogueliteUpgradeData = RogueliteUpgradeData.new()
@@ -451,8 +461,8 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u4.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u4.rarity = RogueliteUpgradeData.Rarity.RARE
 	u4.synergy_tags = PackedStringArray(["Familiar", "Ingredientes"])
-	u4.description = "• Carga ingredientes al caldero"
-	u4.max_stacks = 2
+	u4.description = "• Nv.1: Invoca Diablillo (carga ingredientes)\n• Nv.2+: +35% velocidad del Diablillo"
+	u4.max_stacks = 3
 	u4.effect_params = {"familiar_type": "diablillo_carmesi"}
 
 	var u5: RogueliteUpgradeData = RogueliteUpgradeData.new()
@@ -461,8 +471,8 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u5.kind = RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON
 	u5.rarity = RogueliteUpgradeData.Rarity.EPIC
 	u5.synergy_tags = PackedStringArray(["Familiar", "Entrega"])
-	u5.description = "• Embotella y entrega solo"
-	u5.max_stacks = 2
+	u5.description = "• Nv.1: Invoca Murciélago (embotella y entrega)\n• Nv.2+: +35% velocidad del Murciélago"
+	u5.max_stacks = 3
 	u5.effect_params = {"familiar_type": "murcielago_sombrio"}
 
 	var u6: RogueliteUpgradeData = RogueliteUpgradeData.new()
@@ -471,8 +481,58 @@ static func _build_default_upgrades() -> Array[RogueliteUpgradeData]:
 	u6.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
 	u6.rarity = RogueliteUpgradeData.Rarity.BROKEN_SYNERGY
 	u6.synergy_tags = PackedStringArray(["Cadena", "Encanto"])
-	u6.description = "• Entrega ¡CALIENTE! clona en Vitrina"
-	u6.max_stacks = 1
-	u6.effect_params = {"clone_on_hot": true}
+	u6.description = "• Entrega ¡CALIENTE! clona en Vitrina (35% / 65% / 100% por nivel)"
+	u6.max_stacks = 3
+	u6.effect_params = {"clone_on_hot": true, "clone_chance_per_level": 0.35}
 
-	return [u1, u2, u3, u4, u5, u6]
+	var u7: RogueliteUpgradeData = RogueliteUpgradeData.new()
+	u7.upgrade_id = &"mortero_sismico"
+	u7.display_name = "Mortero Sísmico"
+	u7.kind = RogueliteUpgradeData.UpgradeKind.RELIC_PASSIVE
+	u7.rarity = RogueliteUpgradeData.Rarity.RARE
+	u7.synergy_tags = PackedStringArray(["Mortero", "Caldero"])
+	u7.description = "• Mezclar en Mortero acelera calderos (+25% / +40% / +55%)"
+	u7.max_stacks = 3
+	u7.effect_params = {"seismic_mortar": true, "seismic_boost_per_level": 0.15}
+
+	var u8: RogueliteUpgradeData = RogueliteUpgradeData.new()
+	u8.upgrade_id = &"hechizo_ebullicion"
+	u8.display_name = "Destello de Ebullición"
+	u8.kind = RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL
+	u8.rarity = RogueliteUpgradeData.Rarity.RARE
+	u8.synergy_tags = PackedStringArray(["Activa", "Caldero"])
+	u8.description = "• Activa: Termina todos los calderos al instante (CD: 18s/14s/10s)"
+	u8.max_stacks = 3
+	u8.effect_params = {"active_type": "instant_brew", "base_cd": 18.0, "cd_per_level": 4.0}
+
+	var u9: RogueliteUpgradeData = RogueliteUpgradeData.new()
+	u9.upgrade_id = &"hechizo_aroma"
+	u9.display_name = "Perfume Hipnótico"
+	u9.kind = RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL
+	u9.rarity = RogueliteUpgradeData.Rarity.RARE
+	u9.synergy_tags = PackedStringArray(["Activa", "Fila"])
+	u9.description = "• Activa: Congela paciencia de clientas por 6s/8s/10s (CD: 18s)"
+	u9.max_stacks = 3
+	u9.effect_params = {"active_type": "freeze_queue", "base_cd": 18.0, "cd_per_level": 2.0}
+
+	var u10: RogueliteUpgradeData = RogueliteUpgradeData.new()
+	u10.upgrade_id = &"hechizo_paso_astral"
+	u10.display_name = "Paso Astral"
+	u10.kind = RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL
+	u10.rarity = RogueliteUpgradeData.Rarity.RARE
+	u10.synergy_tags = PackedStringArray(["Activa", "Velocidad"])
+	u10.description = "• Activa: Embotella tus manos y da +70% velocidad por 5s/7s/9s (CD: 16s)"
+	u10.max_stacks = 3
+	u10.effect_params = {"active_type": "astral_step", "base_cd": 16.0, "cd_per_level": 2.0}
+
+	var u11: RogueliteUpgradeData = RogueliteUpgradeData.new()
+	u11.upgrade_id = &"hechizo_lluvia_oro"
+	u11.display_name = "Alquimia Dorada"
+	u11.kind = RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL
+	u11.rarity = RogueliteUpgradeData.Rarity.EPIC
+	u11.synergy_tags = PackedStringArray(["Activa", "Oro"])
+	u11.description = "• Activa: Otorga +25g/+45g/+65g al instante y +1 Combo (CD: 20s)"
+	u11.max_stacks = 3
+	u11.effect_params = {"active_type": "gold_alchemy", "base_cd": 20.0, "cd_per_level": 2.0}
+
+	return [u1, u2, u3, u4, u5, u6, u7, u8, u9, u10, u11]

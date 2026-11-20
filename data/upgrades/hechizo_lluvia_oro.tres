@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RogueliteUpgradeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/RogueliteUpgradeData.gd" id="1_oro"]
+
+[resource]
+script = ExtResource("1_oro")
+upgrade_id = &"hechizo_lluvia_oro"
+display_name = "Alquimia Dorada"
+kind = 2
+rarity = 2
+synergy_tags = PackedStringArray("Activa", "Oro")
+description = "• Activa: Otorga +25g/+45g/+65g al instante y +1 Combo (CD: 20s)"
+max_stacks = 3
+effect_params = {
+"active_type": "gold_alchemy",
+"base_cd": 20.0,
+"cd_per_level": 2.0
+}

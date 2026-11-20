@@ -8,9 +8,8 @@ upgrade_id = &"corse_magnetico"
 display_name = "Corsé Magnético"
 rarity = 1
 synergy_tags = PackedStringArray("Velocidad", "Carga")
-description = "• +1 Ranura de mano
-• Embotella al instante"
-max_stacks = 1
+description = "• Nv.1: +1 Ranura de mano y embotellado rápido\n• Nv.2+: +1 Ranura adicional"
+max_stacks = 3
 effect_params = {
 "carry_bonus": 1,
 "instant_bottle": true

@@ -36,6 +36,7 @@ signal queue_overflow_triggered()
 
 # Run economy & roguelite loop
 signal gold_changed(new_total: int, delta: int)
+signal xp_changed(level: int, current_xp: int, required_xp: int)
 signal combo_changed(new_combo: int, multiplier: float)
 signal day_started(day_number: int, duration_sec: float, is_boss_shift: bool)
 signal day_ended(day_number: int)

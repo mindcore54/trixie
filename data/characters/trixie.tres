@@ -1,13 +1,24 @@
 [gd_resource type="Resource" script_class="WitchCharacterData" format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/WitchCharacterData.gd" id="1_tol41"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/trixie_fullbody.png" id="2_full"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/trixie_chibi_down.png" id="3_cdown"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/trixie_chibi_down_right.png" id="4_cdr"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/trixie_chibi_up.png" id="5_cup"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/trixie_chibi_up_right.png" id="6_cur"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_normal.png" id="7_pnorm"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_confiada.png" id="8_pconf"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_nerviosa_sudando.png" id="9_pnerv"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_sonrojada_picante.png" id="10_psonr"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_hollin_derrota.png" id="11_pholl"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/portraits/hud/trixie_sorprendida.png" id="12_psorp"]
 
 [resource]
 script = ExtResource("1_tol41")
 witch_id = &"trixie"
 display_name = "Trixie"
-archetype_title = "Bruja de Fuego y Caos"
-short_bio = "Apasionada, coqueta y adicta a llevar sus calderos al límite."
+archetype_title = "Bruja Alquimista de Hongos y Caos"
+short_bio = "Apasionada, coqueta y ligeramente torpe; sueña con dirigir la pocionería más famosa del pueblo."
 move_speed = 360.0
 brew_speed_mult = 1.05
 passive_name = "Chispa Ardiente"
@@ -15,3 +26,14 @@ passive_description = "Mantiene el bono ¡CALIENTE! x1.5 durante más tiempo al 
 active_name = "Fiebre Escarlata"
 active_description = "Termina al instante todos los calderos hirviendo y otorga +60% velocidad por 5s."
 active_cooldown_sec = 16.0
+fullbody_illustration = ExtResource("2_full")
+chibi_down = ExtResource("3_cdown")
+chibi_down_right = ExtResource("4_cdr")
+chibi_up = ExtResource("5_cup")
+chibi_up_right = ExtResource("6_cur")
+portrait_normal = ExtResource("7_pnorm")
+portrait_confiada = ExtResource("8_pconf")
+portrait_nerviosa = ExtResource("9_pnerv")
+portrait_sonrojada = ExtResource("10_psonr")
+portrait_hollin = ExtResource("11_pholl")
+portrait_sorprendida = ExtResource("12_psorp")

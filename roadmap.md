@@ -28,10 +28,44 @@
     6. **Fricción Manual -> Automatización (Stock/Almacén) y Alcance Inicial de Arte:**
        * Evaluar cajas de ingredientes con stock (paquetes de 10) recargables desde una zona de suministro/carreta **visible en pantalla** (sin perder de vista calderos ni clientas) que luego se automatiza con familiares.
        * Arrancar la producción visual con **1 brujita jugable (*Trixie*)** + clientas (primero placeholders IA y luego dibujo final en Krita); el resto de brujas vendrán después.
-  * **Siguiente Foco Inmediato (Para retomar mañana):**
-    1. Implementar la **Barra de XP por entregas/rapidez** que dispara el Draft de cartas (reemplazando el Draft solo por fin de día).
-    2. Implementar el **sistema de Niveles + Límite `1 Familiar / 3 Pasivas / 3 Activas` (botones clicables + teclas `1/2/3`)**.
-    3. Hacer desbloqueables progresivos el **Mortero** y la **Vitrina**, depurar **Familiares** y armar los **tutoriales cortos** con diálogos.
+* **2026-11-20 — Barra de XP, Días de 5 Minutos y Pantalla de Builds Entre Días (Fase 2.1 / 2.3 parcial):**
+  * **Skills de Godot instaladas:** Copiadas las 14 skills de Godot 4.7 en `.agents/skills/` y creada la skill propia `trixie-art-pipeline`.
+  * **Barra de XP en tiempo real y subida de nivel de cartas:** Cada entrega otorga XP base + bono por rapidez (`patience_ratio`) y calor (`¡CALIENTE!`). Al llenar la barra de XP en pleno turno, los contadores se pausan, se abre el Draft para elegir una nueva habilidad o subir el nivel de una existente (`Nv. 1 -> Nv. 2 -> ...`), y se reanuda el mismo día sin saltar de jornada.
+  * **Rebalanceo inicial para niveles:** Ajustadas las 6 cartas en `res://data/upgrades/*.tres` y `GameCatalog.gd` (`Botas de Tacón Arcano` +12%/nivel hasta Nv. 5, `Espejo Duplicador` 35%/65%/100% por nivel, familiares y `Corsé Magnético` hasta Nv. 3).
+  * **Días de 5 minutos (`300s`) y fin del selector en cocina:** Eliminado el botón para cambiar de bruja en medio de la partida.
+  * **Pantalla de Preparación / Builds Entre Días (`KitchenHUD.gd` + `MainGame.gd`):** Al terminar cada día (o usar el botón de prueba `Fin de Día / Builds (Test)`), se abre la nueva pantalla con la bruja a **cuerpo completo** a la izquierda (solo **Trixie** jugable; **Lyra**, **Nyxara** y **Morrigan** bloqueadas para desbloqueo por historia, no por oro) y a la derecha **6 mejoras de build comprables con oro** (*Botas Ligeras*, *Llama del Caldero*, *Acero Templado*, *Encanto Comercial*, *Reloj de Arena*, *Corazón de Fénix*) más el resumen de habilidades de XP que se conservan para el día siguiente.
+  * **Límites de build (`1 Familiar / 3 Pasivas / 3 Activas`) + Botones de Activas (`1/2/3`):** Implementado `UpgradeKind.ACTIVE_SKILL`, 4 habilidades activas (`Destello de Ebullición`, `Perfume Hipnótico`, `Paso Astral`, `Alquimia Dorada`) y la pasiva `Mortero Sísmico` en `res://data/upgrades/` y `GameCatalog.gd`. El Draft filtra cartas nuevas al llenarse cada categoría (permitiendo seguir subiendo de nivel las ya equipadas), muestra el contador de slots en HUD/Draft y añade 3 botones clicables abajo al centro (`1/2/3`) sin tapar el retrato de clienta.
+  * **Inicio garantizado con Trixie:** Corregido el orden alfabético de carga de `.tres` en `GameCatalog.get_witches()` y `_find_witch_index(&"trixie")` en `MainGame.gd`.
+  * **Murciélago Mensajero + 2 Slots en Embotellado + Cierre de Tienda (`00:00`):**
+    * **Embotellado con 2 huecos (`KitchenStation.gd` + `WitchController.gd`):** La mesa de Embotellado ahora almacena hasta 2 pociones ya embotelladas con selección individual por hueco (tanto para Trixie como para el Murciélago).
+    * **IA del Murciélago Mensajero (`FamiliarEntity.gd`):** Recoge pociones listas del caldero sin embotellar (`raw:`), vuela obligatoriamente a Embotellado para sellarlas (`bot:`), prioriza recoger pociones pedidas desde **Vitrina** o **Embotellado**, y si carga una poción que nadie pide la suelta en Embotellado (o Vitrina como respaldo) en lugar de quedarse colgado. Añadido texto de estado sobre los familiares.
+    * **Cierre de tienda al llegar a `00:00` (`MainGame.gd` + `KitchenHUD.gd`):** El reloj cambia a `CERRANDO`, se bloquea la llegada de nuevas clientas y la pantalla de Builds entre días se abre automáticamente al atender a la última clienta de la fila.
+  * **Animación de sudor en familiares bloqueados, Stock de Ingredientes (Bodega x20 + Estante de Cajas) y Hora Pico:**
+    * **Gota de sudor anime (`FamiliarEntity.gd`):** Cuando el Murciélago no tiene huecos libres o el Diablillo se queda sin stock en caja, tiembla y muestra una gota de sudor azul animada sin texto.
+    * **Stock de ingredientes + Habitación de Almacén separada + Estante de Cajas (`KitchenStation.gd` + `WitchController.gd` + `MainGame.gd`):** Cada caja de ingrediente tiene `10/10` usos. En la pared izquierda de la cocina hay una **Puerta al Almacén** (`Almacén ◀`) que hace un paneo rápido de cámara (`0.22s`) a la habitación separada del **Almacén** con las 3 pilas infinitas de cajas pesadas `x20` (solo 1 caja a la vez con manos vacías, `-25%` velocidad al cargarla) y puerta de vuelta (`Cocina ▶`). Los sobrantes de caja se aparcan en el **Estante de Cajas (3 slots)** de la cocina y desaparecen en `0`.
+    * **Hora Pico sutil (`MainGame.gd` + `KitchenHUD.gd`):** Sin banners ni textos ni oro extra; durante las dos ventanas de Hora Pico (`03:15–02:20` y `01:15–00:15`) solo cambia el color del reloj a rojo/naranja y se acelera la llegada de clientas.
+  * **Estándar Oficial de Generación de Arte por Hojas (Documentado en `.agents/skills/trixie-art-pipeline/SKILL.md`):**
+    1. **Concept Art (`<Nombre> - Concept Art`):** Lámina base sobre `#FFFFFF` con cuerpo completo **frontal y trasero**, **retrato grande** del rostro reflejando personalidad, todos los accesorios/detalles del atuendo y título `<Nombre> - Concept Art`. **Obligatorio pasarlo como referencia** en cada generación siguiente.
+    2. **Hoja de Expresiones (`16:9`):** Todas las expresiones juntas en una sola imagen `16:9` sobre `#FFFFFF` usando el Concept Art de referencia para consistencia total.
+    3. **Hoja de Semi-Chibi 2.5D (`4:3`):** 4 poses direccionales en cuadrícula `2×2` (1 en cada esquina) sobre `#FFFFFF` usando el Concept Art de referencia: **abajo**, **diagonal derecha abajo**, **arriba (de espaldas)** y **diagonal derecha arriba** (izquierda por *flip* horizontal en Godot).
+  * **Menú Principal, Cinemática de Intro con Lore, Transiciones Fade y Tutorial Guiado (Fase 2.4):**
+    * **Menú Principal ([MainMenu.tscn](file:///c:/Users/mindcore.dev/Projects/trixie/scenes/ui/MainMenu.tscn) + [MainMenu.gd](file:///c:/Users/mindcore.dev/Projects/trixie/scripts/ui/MainMenu.gd)):** Escena de entrada en `project.godot` con título, Trixie animada a cuerpo completo, botones **Iniciar Juego**, **Opciones** (volumen general, pantalla completa, activar/desactivar tutorial en `GameSettings.gd`) y **Salir**.
+    * **Cinemática de Intro ([IntroCutscene.tscn](file:///c:/Users/mindcore.dev/Projects/trixie/scenes/ui/IntroCutscene.tscn) + [intro_cutscene.json](file:///c:/Users/mindcore.dev/Projects/trixie/data/dialogues/intro_cutscene.json)):** Diálogo visual-novel humorístico donde Trixie (ligeramente torpe pero decidida a tener la tienda más famosa del pueblo) le compra el local a **Doña Remedios**, con texto máquina de escribir, expresiones animadas (`CharacterArt.gd`), botón de saltar y transiciones **fade-in / fade-out a negro** (`SceneFader.gd`).
+    * **Diálogos de Trixie a la izquierda + Tutorial Guiado (`KitchenHUD.gd` + `MainGame.gd`):** Trixie tiene su propio retrato y pergamino en la esquina **inferior izquierda** (opuesta a las clientas). En Día 1 guía paso a paso la primera poción (flecha dorada pulsante sobre cada estación y paciencia congelada en la 1ª clienta), y la primera vez que una caja llega a `0/10` explica paso a paso cómo ir al **Almacén**, traer una caja `x20`, rellenar y usar el **Estante de Cajas**.
+  * **Arte Final de Trixie Integrado en Todo el Juego (Fase 3.1 — Pack Trixie):**
+    * Creado [slice_sprite_sheet.py](file:///c:/Users/mindcore.dev/Projects/trixie/tools/slice_sprite_sheet.py) con extracción por **componentes conexos** + limpieza de fondo `#FFFFFF` (`process_white_bg.py`) y limpieza de bolsillos cerrados en el rizo del sombrero.
+    * Generados e importados 11 PNGs transparentes en `res://assets/characters/playable/trixie/` (cuerpo completo `v05`, 6 expresiones de borde recto `v02`, 4 semi-chibis 2.5D verticales `v03`) y cableados en `data/characters/trixie.tres`, `WitchCharacterData.gd`, `CharacterArt.gd`, `IntroCutscene.gd`, `KitchenHUD.gd` y `WitchController.gd` (6 direcciones con *flip* horizontal + rebote *Helltaker*).
+  * **Splash Art + Logo 3D Transparente con Halo Mágico en Menú Principal:**
+    * Procesado `raw_assets/trixies_logo.jpg` a PNG transparente limpio (`res://assets/ui/menus/trixies_logo.png`) e integrado el splash art `res://assets/ui/menus/trixies_main_bg.jpg` como fondo a pantalla completa en [MainMenu.gd](file:///c:/Users/mindcore.dev/Projects/trixie/scripts/ui/MainMenu.gd) (listo para separar el personaje en DragonBones más adelante).
+    * Añadido halo mágico pulsante y destello dorado en el logo mediante shader propio ([logo_magic_halo.gdshader](file:///c:/Users/mindcore.dev/Projects/trixie/shaders/logo_magic_halo.gdshader)) + anillos arcanos, partículas orbitando y flotación suave sobre la zona izquierda sin tapar a Trixie ni a los michis voladores.
+  * **Estándar 1:1 Lanczos (Cero Reescalado en Godot) + Corrección de Orientación de Trixie:**
+    * Creado [export_character_sizes.py](file:///c:/Users/mindcore.dev/Projects/trixie/tools/export_character_sizes.py) y documentado como estándar permanente en `.agents/skills/trixie-art-pipeline/SKILL.md`: respalda recortes HD en `raw_assets/hd_cutouts/` y exporta 1:1 con *Lanczos* retratos en **3 tamaños exactos** (`cutscene 590×510`, `dialogue 420×370`, `hud 140×140` **cuadrado con zoom cerrado al rostro** mirando a la **derecha**), chibis a **`216px`** (corregido espejo de `down_right`/`up_right` para que mire a la dirección real al caminar izquierda/derecha, ajustado a las proporciones del concept art) y cuerpo completo (`300×366`).
+    * Rediseñada la esquina superior izquierda de [KitchenHUD.gd](file:///c:/Users/mindcore.dev/Projects/trixie/scripts/core/KitchenHUD.gd) siguiendo el concept art: cajas separadas para `[Tiempo] [Oro] [Vidas]`, debajo la **barra de XP**, debajo el **retrato cuadrado con zoom** de Trixie y los **diálogos/tutoriales saliendo en pergamino hacia su derecha** (eliminando el retrato duplicado abajo-izquierda que tapaba las cajas de ingredientes); botones de debug reubicados en una barrita compacta abajo-izquierda.
+    * Eliminadas las líneas verticales de 1px del degradado izquierdo en [MainMenu.gd](file:///c:/Users/mindcore.dev/Projects/trixie/scripts/ui/MainMenu.gd) y pre-escalados 1:1 el logo (`560×350`) y el fondo (`1920×1080`).
+  * **Validación:** `--import`, `MainMenu.tscn`, `IntroCutscene.tscn` y `--smoke-test` headless superados (`SMOKE_EXIT=0`, `SMOKE RESULT: PASS`).
+* **Siguiente Foco Inmediato:**
+  1. Hacer desbloqueables progresivos el **Mortero** y la **Vitrina**, depurar el atasco de **Familiares** junto al caldero y armar los **tutoriales cortos** con diálogos.
+  2. Auditar y ajustar el balance final de todas las cartas (pasivas, activas y familiares).
 
 ---
 
@@ -74,29 +108,31 @@
 ---
 
 ## Fase 2: Motor Roguelite por XP, Familiares y Escalada Incremental
-- [ ] **2.1 Barra de XP por Entregas y Progresión Suave de Estaciones:**
-  - [ ] Implementar **Barra de XP** que sube al entregar pociones + bono por rapidez de entrega, disparando el modal de Draft cada vez que se llena (en lugar de esperar al fin del día).
+- [x] **2.1 Barra de XP por Entregas y Días de 5 Minutos:**
+  - [x] Implementar **Barra de XP** que sube al entregar pociones + bono por rapidez de entrega, disparando el modal de Draft cada vez que se llena (conservando el día en curso y las habilidades entre días).
+  - [x] Alargar la duración de cada día a **5 minutos (`300s`)**, quitar el cambio de bruja en partida y crear la **Pantalla de Builds Entre Días** (brujita de cuerpo completo a la izquierda con desbloqueo por historia; mejoras de build con oro a la derecha).
   - [ ] Hacer que **Mortero** y **Vitrina** sean desbloqueables progresivamente (no activos desde el minuto 0) para suavizar el arranque.
-  - [ ] Evaluar mecánica de stock en cajas de ingredientes (paquetes de 10 desde zona de suministro visible en pantalla) para potenciar el contraste entre inicio manual y automatización.
-  - [ ] Implementar Jefes/Eventos de Oleada (ej. *Seraphina VIP*, *Hora Pico del Sabbat*, *Archidemonio*).
+  - [x] Implementar mecánica de stock en cajas de ingredientes (`10/10` por caja + Habitación separada de Almacén con cajas pesadas `x20` + Estante de Cajas de 3 slots en cocina) para potenciar el contraste entre inicio manual y automatización.
+  - [x] Implementar Oleadas de **Hora Pico** visuales dentro de cada día de 5 minutos (cambio de color del reloj y llegada acelerada, sin texto ni oro extra).
 - [ ] **2.2 Sistema de Familiares Autónomos y Depuración de NPCs:**
   - [ ] Revisar y depurar bugs de movimiento/estado donde los familiares se quedan pegados junto al caldero (ej. *Michi Alado*), y darles feedback visual claro de lo que hacen.
   - [ ] Implementar los 4 familiares iniciales (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Sombrío`, `Mandrágora Cantora`) con IA limpia y animaciones flotantes.
-- [ ] **2.3 Sistema de Niveles, Slots Límite (Vampire Survivors) y Catálogo de Reliquias:**
-  - [ ] Implementar **niveles acumulables por carta** (ej. Nv. 1 `+5%` velocidad -> Nv. 2 `+10%`, etc. cuando vuelve a aparecer en el Draft).
-  - [ ] Implementar **límite máximo de slots por partida:** **1 Familiar** + **3 Pasivas** + **3 Habilidades Activas** (con **botones clicables en UI** sin tapar el retrato de clienta + **teclas `1/2/3`** de fallback).
-  - [ ] Auditar y rebalancear todas las cartas actuales junto al desarrollador (ajustar *Espejo Duplicador*, que resulta demasiado fuerte al clonar directo a la Vitrina).
-  - [ ] Crear los archivos `.tres` definitivos en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
-  - [ ] Implementar tienda intermedia entre días (Reroll de cartas y Reparación de corazones).
+- [x] **2.3 Sistema de Niveles, Slots Límite (Vampire Survivors) y Catálogo de Reliquias:**
+  - [x] Implementar **niveles acumulables por carta** (ej. Nv. 1 `+12%` velocidad -> Nv. 2 `+24%`, *Espejo Duplicador* 35%/65%/100%, familiares y *Corsé Magnético* hasta Nv. 3).
+  - [x] Implementar **límite máximo de slots por partida:** **1 Familiar** + **3 Pasivas** + **3 Habilidades Activas** (con **botones clicables en UI** abajo-centro sin tapar el retrato de clienta + **teclas `1/2/3`** de atajo).
+  - [ ] Auditar y rebalancear el resto de cartas y añadir más variedad junto al desarrollador.
+  - [x] Crear los archivos `.tres` iniciales en `res://data/upgrades/` (`mortero_sismico` + 4 habilidades activas) y conectar sus hooks de evento.
+  - [x] Implementar pantalla/tienda intermedia entre días para mejorar builds con oro (y selección de brujita desbloqueada por historia).
 
-- [ ] **2.4 Tutoriales Cortos con Diálogos (Onboarding Orgánico):**
-  - [ ] Secuencia de diálogos cortos explicando paso a paso: 1 color al caldero, 2 colores al Mortero, revolver el caldero para el bono `¡CALIENTE!`, uso de la Vitrina y habilidad especial con clic derecho.
+- [x] **2.4 Tutoriales Cortos con Diálogos (Onboarding Orgánico):**
+  - [x] Secuencia guiada con flecha dorada y diálogos de Trixie a la izquierda: primera poción (caja ➔ caldero ➔ revolver/recoger ➔ embotellado ➔ entregar) y tutorial reactivo de reposición al Almacén cuando se agota una caja (`0/10`).
 
 ---
 
 ## Fase 3: Elenco Completo, Afinidad Picante e Integración de Arte Final
 - [ ] **3.1 Integración de Arte de Trixie y Sylvi (Primer Pack Visual):**
-  - [ ] Procesar dibujos de fondo blanco de **Trixie** (busto 6 emociones + semi-chibi + *cut-in*) y **Sylvi** (Fauno + 4 emociones) con `tools/process_white_bg.py`.
+  - [x] Procesar e integrar **Trixie** (cuerpo completo `v05` + 6 expresiones sin marco `v02` + 4 semi-chibis 2.5D `v03`) en Menú Principal, Intro, HUD, Tutorial, Pantalla de Builds y Cocina.
+  - [ ] Procesar e integrar **Doña Remedios** y **Sylvi** (Fauno + emociones + semi-chibi).
   - [ ] Reemplazar placeholders de cocina, calderos, ingredientes y pergamino *chipped*.
 - [ ] **3.2 Tres Protagonistas Adicionales:**
   - [ ] Integrar **Lyra** (Druida), **Nyxara** (Chamán) y **Morrigan** (Alquimista Oscura) con sus pasivas y activas únicas.
