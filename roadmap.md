@@ -16,7 +16,12 @@
   * **Corrección de mezclas y mortero:** Arreglado bug donde el mortero (`crushed_*`) impedía mezclar colores, y redefinido el rol obligatorio del **Mortero**: las pociones de 1 color van directo al caldero, mientras que las de 2 colores (`Rojo + Verde -> Círculo Amarillo`, `Rojo + Azul -> Morado`, `Azul + Verde -> Turquesa`) deben fusionarse primero en el Mortero (2 en mano o 1 a 1 en el cuenco) antes de entrar al caldero.
   * **Vitrina de 2 huecos + Tarjetas concisas:** Añadida la estación **Vitrina (2/2)** con selección individual por hueco (clic en poción = la agarras; clic en hueco vacío = colocas la última que tienes) y tarjetas roguelite acortadas.
   * **Decisión previa de pedido en clientas:** Las clientas muestran `. . .` un instante al llegar para ojear la Vitrina antes de decidir su pedido; si ya revelaron su globito de poción, **nunca cambian de opinión** a mitad de preparación.
-  * **Siguiente Foco Inmediato:** Que el desarrollador abra el proyecto en Godot (`F5`), juegue 1–2 turnos del Vertical Slice y marque qué siente lento, incómodo o mejorable para iterar al vuelo (Hito 1.6).
+  * **Playtest Completo (8 Días Superados — Hito 1.6 Validado):** El desarrollador completó una partida entera hasta el Día 8 validando que el bucle base es divertido. Puntos detectados para abordar en **Fase 2** (sin tocar código todavía):
+    1. **Desbloqueo progresivo al inicio:** Que el **Mortero** y la **Vitrina** se desbloqueen más adelante (cuando el jugador ya domina el bucle de 1 color) para hacer la entrada mucho más suave.
+    2. **Auditoría de cartas roguelite:** Revisar todas las cartas y nerfear/rebalancear efectos demasiado rotos (ej. *Espejo Duplicador* clonando pociones en Vitrina se siente demasiado fuerte).
+    3. **Revisión de Familiares y NPCs:** Depurar por qué los familiares (como *Michi Alado*) se quedan pegados al caldero y añadir feedback visual/tutorial claro de qué hace cada uno.
+    4. **Tutoriales cortos con diálogos** para explicar mecánicas (`¡CALIENTE!`, Mortero, Vitrina, Familiares).
+  * **Siguiente Foco Inmediato:** Cerrar ajustes de **Fase 2** (desbloqueos progresivos, revisión de cartas, depuración de familiares y tutoriales) o empezar a integrar los primeros artes de personajes en **Fase 3**.
 
 ---
 
@@ -53,18 +58,21 @@
 - [x] **1.5 Primer Draft Roguelite y Habilidad de Trixie:**
   - [x] Implementar clic derecho (`Fiebre Escarlata` / habilidades de las 4 brujas) con banner *cut-in* anime y audio procedural (`AudioJuiceManager.gd`).
   - [x] Implementar modal de Draft entre días eligiendo 1 de 3 mejoras (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Mensajero`, `Botas Arcanas`, `Corsé Magnético`, `Espejo Duplicador`) + botón Reroll y atajo de prueba.
-- [ ] **1.6 Validación de Playtest (Hito Crítico):**
-  - [ ] Probar manualmente con el desarrollador (F5 en Godot) y ajustar tiempos de cocción/paciencia/sensación de clics hasta que el bucle envicie antes de ilustrar el arte definitivo.
+- [x] **1.6 Validación de Playtest (Hito Crítico):**
+  - [x] Probar partida completa hasta el Día 8 con el desarrollador: bucle base validado como divertido tras ajustar cola, Mortero y Vitrina.
 
 ---
 
 ## Fase 2: Motor Roguelite, Familiares y Escalada Incremental
-- [ ] **2.1 Gestión de Días 1–8 + Modo Infinito:**
+- [ ] **2.1 Gestión de Días 1–8 + Modo Infinito + Progresión Suave:**
+  - [ ] Hacer que **Mortero** y **Vitrina** sean desbloqueables progresivamente (no activos desde el minuto 0) para suavizar el arranque.
   - [ ] Crear `RunManager.gd` y tabla de oleadas (`WaveScheduleData`) con escalado de frecuencia y complejidad de pedidos.
   - [ ] Implementar Jefes de Turno (Día 3 *Seraphina VIP*, Día 6 *Hora Pico del Sabbat*, Día 8 *Archidemonio*).
-- [ ] **2.2 Sistema de Familiares Autónomos:**
-  - [ ] Implementar los 4 familiares iniciales (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Sombrío`, `Mandrágora Cantora`) con IA de estado simple y animaciones flotantes.
-- [ ] **2.3 Catálogo Completo de 12 Reliquias y Sinergias:**
+- [ ] **2.2 Sistema de Familiares Autónomos y Depuración de NPCs:**
+  - [ ] Revisar y depurar bugs de movimiento/estado donde los familiares se quedan pegados junto al caldero (ej. *Michi Alado*), y darles feedback visual claro de lo que hacen.
+  - [ ] Implementar los 4 familiares iniciales (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Sombrío`, `Mandrágora Cantora`) con IA limpia y animaciones flotantes.
+- [ ] **2.3 Catálogo Completo de 12 Reliquias, Balance y Revisión de Cartas:**
+  - [ ] Auditar y rebalancear todas las cartas actuales junto al desarrollador (ajustar *Espejo Duplicador*, que resulta demasiado fuerte al clonar directo a la Vitrina).
   - [ ] Crear los 12 archivos `.tres` en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
   - [ ] Implementar tienda intermedia entre días (Reroll de cartas y Reparación de corazones).
 
