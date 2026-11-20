@@ -1,0 +1,27 @@
+# Godot 4.x engine cache & exports
+.godot/
+*.tmp
+godot_mcp_test_write.tmp
+export/
+builds/
+
+# Reference stash, backup chats & local agent skills
+stash/
+.agents/
+.agent/
+skills/
+
+# Raw uncropped white-background staging art (processed assets live in res://assets/)
+raw_assets/*
+!raw_assets/.gitkeep
+!raw_assets/.gdignore
+
+# Python & OS artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+desktop.ini
