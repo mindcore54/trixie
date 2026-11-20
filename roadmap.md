@@ -21,7 +21,13 @@
     2. **Auditoría de cartas roguelite:** Revisar todas las cartas y nerfear/rebalancear efectos demasiado rotos (ej. *Espejo Duplicador* clonando pociones en Vitrina se siente demasiado fuerte).
     3. **Revisión de Familiares y NPCs:** Depurar por qué los familiares (como *Michi Alado*) se quedan pegados al caldero y añadir feedback visual/tutorial claro de qué hace cada uno.
     4. **Tutoriales cortos con diálogos** para explicar mecánicas (`¡CALIENTE!`, Mortero, Vitrina, Familiares).
-  * **Siguiente Foco Inmediato:** Cerrar ajustes de **Fase 2** (desbloqueos progresivos, revisión de cartas, depuración de familiares y tutoriales) o empezar a integrar los primeros artes de personajes en **Fase 3**.
+    5. **Sistema de Reliquias por Niveles y Slots estilo *Vampire Survivors*:**
+       * Cada carta empieza con bonos pequeños incrementales (ej. Nv. 1 = `+5%` velocidad al caminar o cocinado) y sube de nivel al volver a salir (`Nv. 2`, `Nv. 3`..., sumando `+5%` extra cada vez).
+       * **Topes de build por partida:** máximo **1 Familiar**, **3 Reliquias Pasivas** (velocidad, cocinado, carga, etc.) y **3 Habilidades Activas por tecla** (ej. transformar poción, frenar caída de paciencia por unos segundos, acelerar calderos).
+  * **Siguiente Foco Inmediato (Para retomar la próxima sesión):**
+    1. Definir y diseñar las **3 Pasivas + 3 Activas (con niveles escalables)** y la estructura de **1 Familiar máximo**.
+    2. Hacer desbloqueables el **Mortero** y la **Vitrina** tras superar los primeros pedidos.
+    3. Depurar la IA/feedback visual de **Familiares** y armar los **tutoriales cortos** con diálogos.
 
 ---
 
@@ -71,9 +77,11 @@
 - [ ] **2.2 Sistema de Familiares Autónomos y Depuración de NPCs:**
   - [ ] Revisar y depurar bugs de movimiento/estado donde los familiares se quedan pegados junto al caldero (ej. *Michi Alado*), y darles feedback visual claro de lo que hacen.
   - [ ] Implementar los 4 familiares iniciales (`Michi Alado`, `Diablillo Carmesí`, `Murciélago Sombrío`, `Mandrágora Cantora`) con IA limpia y animaciones flotantes.
-- [ ] **2.3 Catálogo Completo de 12 Reliquias, Balance y Revisión de Cartas:**
+- [ ] **2.3 Sistema de Niveles, Slots Límite (Vampire Survivors) y Catálogo de Reliquias:**
+  - [ ] Implementar **niveles acumulables por carta** (ej. Nv. 1 `+5%` velocidad -> Nv. 2 `+10%`, etc. cuando vuelve a aparecer en el Draft).
+  - [ ] Implementar **límite máximo de slots por partida:** **1 Familiar** + **3 Pasivas** + **3 Habilidades Activas** (activables por tecla, ej. transmutar una poción en otra o ralentizar la pérdida de paciencia unos segundos).
   - [ ] Auditar y rebalancear todas las cartas actuales junto al desarrollador (ajustar *Espejo Duplicador*, que resulta demasiado fuerte al clonar directo a la Vitrina).
-  - [ ] Crear los 12 archivos `.tres` en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
+  - [ ] Crear los archivos `.tres` definitivos en `res://data/upgrades/` y conectar los hooks de evento (`espejo_duplicador`, `corazon_fenix`, `mortero_sismico`, etc.).
   - [ ] Implementar tienda intermedia entre días (Reroll de cartas y Reparación de corazones).
 
 - [ ] **2.4 Tutoriales Cortos con Diálogos (Onboarding Orgánico):**
