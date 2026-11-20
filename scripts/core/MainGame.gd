@@ -144,29 +144,41 @@ func _run_smoke_test() -> void:
 		c1.take_ready_potion()
 	var upgrade_ready_ok: bool = raw_blocked_ok
 
-	# Verify Display Stand (2 slots) + customer temptation switch + manual delivery
-	if active_customers.is_empty():
-		_spawn_customer()
+	# Verify Display Stand per-slot pick/place (2 different potions) + customer pre-reveal decision
 	var display_st: KitchenStation = _find_station(&"display_stand")
-	var cust_before_tempt: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
 	var display_ok: bool = false
-	if display_st != null and cust_before_tempt != null:
-		var other_recipe: PotionRecipeData = null
-		for r: PotionRecipeData in recipes_catalog:
-			if r.recipe_id != cust_before_tempt.requested_recipe.recipe_id:
-				other_recipe = r
+	if display_st != null:
+		display_st.store_potion_in_slot(0, "bot:elixir_ignis:0:0")
+		display_st.store_potion_in_slot(1, "bot:bruma_lunar:0:0")
+		witch.held_items.clear()
+		witch._interact_with_display_stand(display_st, 0)
+		witch._interact_with_display_stand(display_st, 1)
+		var picked_both_ok: bool = witch.held_items.size() == 2 and witch.held_items[0] == "bot:elixir_ignis:0:0" and witch.held_items[1] == "bot:bruma_lunar:0:0" and display_st.get_occupied_slot_count() == 0
+		witch._interact_with_display_stand(display_st, 1)
+		var placed_in_slot1_ok: bool = display_st.is_slot_occupied(1) and not display_st.is_slot_occupied(0) and witch.held_items.size() == 1
+		# Now spawn a fresh customer while bruma_lunar sits in Vitrina slot 1 and wait for her pre-reveal decision
+		for old_c: CustomerEntity in active_customers:
+			if is_instance_valid(old_c):
+				old_c.queue_free()
+		active_customers.clear()
+		_spawn_customer()
+		var new_cust: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
+		var hidden_initially: bool = new_cust != null and not new_cust.order_revealed
+		for _w: int in range(90):
+			await get_tree().process_frame
+			if new_cust != null and new_cust.order_revealed:
 				break
-		if other_recipe != null:
-			display_st.store_potion("bot:%s:0:0" % String(other_recipe.recipe_id))
-			cust_before_tempt._display_check_timer = 0.0
-			_check_display_temptations()
-			var switched: bool = cust_before_tempt.tempted_by_display and cust_before_tempt.requested_recipe.recipe_id == other_recipe.recipe_id
-			witch.held_items.clear()
-			witch._interact_with_display_stand(display_st)
-			var picked_back: bool = witch.held_items.size() == 1 and display_st.stored_potions.is_empty()
-			var gold_before_disp: int = gold
-			witch._try_deliver_to(cust_before_tempt)
-			display_ok = switched and picked_back and gold > gold_before_disp
+		var locked_onto_vitrina: bool = new_cust != null and new_cust.order_revealed and new_cust.tempted_by_display and new_cust.requested_recipe.recipe_id == &"bruma_lunar"
+		# Adding another potion afterwards must NOT change her locked order
+		display_st.store_potion_in_slot(0, "bot:savia_pura:0:0")
+		await get_tree().process_frame
+		var stayed_locked: bool = new_cust != null and new_cust.requested_recipe.recipe_id == &"bruma_lunar"
+		witch.held_items.clear()
+		witch._interact_with_display_stand(display_st, 1)
+		var gold_before_disp: int = gold
+		witch._try_deliver_to(new_cust)
+		display_ok = picked_both_ok and placed_in_slot1_ok and hidden_initially and locked_onto_vitrina and stayed_locked and gold > gold_before_disp
+		display_st.clear_display_slots()
 
 	# Verify timers pause while draft cards are open (animations keep ticking, timers do not)
 	cauldron.add_ingredient(&"red")
@@ -234,7 +246,7 @@ func _start_new_run() -> void:
 		st.familiar_protected = false
 		st.has_mortar_bonus = false
 		st.held_ingredients.clear()
-		st.stored_potions.clear()
+		st.clear_display_slots()
 		st.active_recipe = null
 		st.cauldron_state = KitchenStation.CauldronState.IDLE
 		st.queue_redraw()
@@ -298,8 +310,7 @@ func _process(delta: float) -> void:
 		_spawn_customer()
 		spawn_timer = maxf(7.5, 16.5 - float(day_number - 1) * 1.3)
 
-	# Check customer patience expirations & display stand temptations
-	_check_display_temptations()
+	# Check customer patience expirations
 	var i: int = 0
 	while i < active_customers.size():
 		var cust: CustomerEntity = active_customers[i]
@@ -347,13 +358,47 @@ func _spawn_customer() -> void:
 	add_child(cust)
 	cust.setup(arch, recipe, slot_idx, _queue_slots[slot_idx])
 	cust.customer_clicked.connect(_on_customer_clicked)
+	cust.order_decision_ready.connect(_on_customer_order_decision_ready)
 	active_customers.append(cust)
 
-	EventBus.customer_arrived.emit(arch.customer_id, slot_idx, recipe.recipe_id)
-	if slot_idx == 0 and not arch.greeting_lines.is_empty():
-		var line: String = arch.greeting_lines[randi() % arch.greeting_lines.size()]
-		EventBus.customer_dialogue_requested.emit(arch.customer_id, arch.portrait_normal, line, false)
-		hud.set_customer_affinity(arch.customer_id, int(customer_affinity.get(arch.customer_id, 0)))
+
+func _on_customer_order_decision_ready(cust: CustomerEntity) -> void:
+	if not is_instance_valid(cust) or cust.is_served or cust.archetype == null:
+		return
+
+	var display_st: KitchenStation = _find_station(&"display_stand")
+	if display_st != null:
+		var available: Dictionary = {}
+		for rec_id: StringName in display_st.get_displayed_recipe_ids():
+			available[rec_id] = int(available.get(rec_id, 0)) + 1
+		for other: CustomerEntity in active_customers:
+			if other != cust and is_instance_valid(other) and not other.is_served and other.order_revealed and other.requested_recipe != null:
+				var r_id: StringName = other.requested_recipe.recipe_id
+				if int(available.get(r_id, 0)) > 0:
+					available[r_id] = int(available[r_id]) - 1
+		for rec_id: StringName in available.keys():
+			if int(available[rec_id]) > 0:
+				var disp_rec: PotionRecipeData = GameCatalog.find_recipe_by_id(rec_id, recipes_catalog)
+				if disp_rec != null:
+					cust.set_tempted_order(disp_rec)
+					_spawn_popup(cust.global_position + Vector2(-35, -108), "¡Quiere la de vitrina!", Color(1.0, 0.86, 0.30))
+					EventBus.customer_arrived.emit(cust.archetype.customer_id, cust.queue_slot, disp_rec.recipe_id)
+					if not cust.archetype.display_tempted_lines.is_empty():
+						var t_line: String = cust.archetype.display_tempted_lines[randi() % cust.archetype.display_tempted_lines.size()]
+						EventBus.customer_dialogue_requested.emit(
+							cust.archetype.customer_id,
+							cust.archetype.portrait_happy if cust.archetype.portrait_happy else cust.archetype.portrait_normal,
+							t_line,
+							false
+						)
+						hud.set_customer_affinity(cust.archetype.customer_id, int(customer_affinity.get(cust.archetype.customer_id, 0)))
+					return
+
+	EventBus.customer_arrived.emit(cust.archetype.customer_id, cust.queue_slot, cust.requested_recipe.recipe_id)
+	if cust.queue_slot == 0 and not cust.archetype.greeting_lines.is_empty():
+		var line: String = cust.archetype.greeting_lines[randi() % cust.archetype.greeting_lines.size()]
+		EventBus.customer_dialogue_requested.emit(cust.archetype.customer_id, cust.archetype.portrait_normal, line, false)
+		hud.set_customer_affinity(cust.archetype.customer_id, int(customer_affinity.get(cust.archetype.customer_id, 0)))
 
 
 func _on_customer_clicked(cust: CustomerEntity) -> void:
@@ -562,37 +607,9 @@ func _build_kitchen_stations() -> void:
 func _get_wanted_recipes() -> Array[StringName]:
 	var list: Array[StringName] = []
 	for cust: CustomerEntity in active_customers:
-		if is_instance_valid(cust) and not cust.is_served and cust.requested_recipe != null:
+		if is_instance_valid(cust) and not cust.is_served and cust.order_revealed and cust.requested_recipe != null:
 			list.append(cust.requested_recipe.recipe_id)
 	return list
-
-
-func _check_display_temptations() -> void:
-	var display_st: KitchenStation = _find_station(&"display_stand")
-	if display_st == null or display_st.stored_potions.is_empty():
-		return
-
-	var available: Dictionary = {}
-	for rec_id: StringName in display_st.get_displayed_recipe_ids():
-		available[rec_id] = int(available.get(rec_id, 0)) + 1
-
-	for cust: CustomerEntity in active_customers:
-		if is_instance_valid(cust) and not cust.is_served and cust.requested_recipe != null:
-			var r_id: StringName = cust.requested_recipe.recipe_id
-			if int(available.get(r_id, 0)) > 0:
-				available[r_id] = int(available[r_id]) - 1
-
-	for cust: CustomerEntity in active_customers:
-		if not is_instance_valid(cust) or cust.is_served or cust.tempted_by_display or cust._display_check_timer > 0.0:
-			continue
-		for rec_id: StringName in available.keys():
-			if int(available[rec_id]) > 0:
-				var rec: PotionRecipeData = GameCatalog.find_recipe_by_id(rec_id, recipes_catalog)
-				if rec != null:
-					available[rec_id] = int(available[rec_id]) - 1
-					cust.tempt_with_recipe(rec)
-					_spawn_popup(cust.global_position + Vector2(-35, -108), "¡Antojo de vitrina!", Color(1.0, 0.86, 0.30))
-					break
 
 
 func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: StringName, label_txt: String, pos: Vector2, c_idx: int, col: Color) -> void:

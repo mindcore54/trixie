@@ -31,8 +31,10 @@ signal station_clicked(station: KitchenStation)
 @export var accent_color: Color = Color(0.85, 0.32, 0.45)
 
 var hovered: bool = false
+var hovered_slot: int = -1
+var last_clicked_slot: int = 0
 var held_ingredients: Array[StringName] = []
-var stored_potions: Array[String] = []
+var display_slots: Array[String] = ["", ""]
 var cauldron_state: CauldronState = CauldronState.IDLE
 var active_recipe: PotionRecipeData = null
 var brew_elapsed: float = 0.0
@@ -64,6 +66,7 @@ func _ready() -> void:
 	)
 	mouse_exited.connect(func() -> void:
 		hovered = false
+		hovered_slot = -1
 		queue_redraw()
 	)
 
@@ -78,12 +81,19 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
+			if station_type == StationType.DISPLAY_STAND:
+				last_clicked_slot = 0 if get_local_mouse_position().x < 0.0 else 1
 			get_viewport().set_input_as_handled()
 			station_clicked.emit(self)
 
 
 func _process(delta: float) -> void:
 	_pulse_time += delta
+	if station_type == StationType.DISPLAY_STAND and hovered:
+		var new_slot: int = 0 if get_local_mouse_position().x < 0.0 else 1
+		if new_slot != hovered_slot:
+			hovered_slot = new_slot
+			queue_redraw()
 	if station_type != StationType.CAULDRON:
 		return
 	if EventBus.timers_paused:
@@ -315,62 +325,77 @@ func _draw_bottling(outline_col: Color, outline_w: float) -> void:
 	_draw_station_caption(display_label, Vector2(0, 56))
 
 
-func can_store_potion() -> bool:
-	return station_type == StationType.DISPLAY_STAND and stored_potions.size() < MAX_DISPLAY_SLOTS
-
-
-func store_potion(bot_item: String) -> bool:
-	if not can_store_potion() or not bot_item.begins_with("bot:"):
+func is_slot_occupied(slot_idx: int) -> bool:
+	if station_type != StationType.DISPLAY_STAND or slot_idx < 0 or slot_idx >= MAX_DISPLAY_SLOTS:
 		return false
-	stored_potions.append(bot_item)
+	return display_slots[slot_idx] != ""
+
+
+func store_potion_in_slot(slot_idx: int, bot_item: String) -> bool:
+	if station_type != StationType.DISPLAY_STAND or slot_idx < 0 or slot_idx >= MAX_DISPLAY_SLOTS:
+		return false
+	if display_slots[slot_idx] != "" or not bot_item.begins_with("bot:"):
+		return false
+	display_slots[slot_idx] = bot_item
 	queue_redraw()
 	return true
 
 
+func take_potion_from_slot(slot_idx: int) -> String:
+	if station_type != StationType.DISPLAY_STAND or slot_idx < 0 or slot_idx >= MAX_DISPLAY_SLOTS:
+		return ""
+	var item: String = display_slots[slot_idx]
+	if item != "":
+		display_slots[slot_idx] = ""
+		queue_redraw()
+	return item
+
+
+func get_occupied_slot_count() -> int:
+	var count: int = 0
+	for s: String in display_slots:
+		if s != "":
+			count += 1
+	return count
+
+
+func clear_display_slots() -> void:
+	display_slots = ["", ""]
+	queue_redraw()
+
+
 func get_displayed_recipe_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for item: String in stored_potions:
+	for item: String in display_slots:
+		if item == "":
+			continue
 		var parts: PackedStringArray = item.split(":")
 		if parts.size() >= 2:
 			ids.append(StringName(parts[1]))
 	return ids
 
 
-func take_displayed_potion_for(wanted_recipes: Array[StringName]) -> String:
-	if stored_potions.is_empty():
-		return ""
-	for w: StringName in wanted_recipes:
-		for i: int in range(stored_potions.size()):
-			var parts: PackedStringArray = stored_potions[i].split(":")
-			if parts.size() >= 2 and StringName(parts[1]) == w:
-				var picked: String = stored_potions[i]
-				stored_potions.remove_at(i)
-				queue_redraw()
-				return picked
-	var fallback: String = stored_potions.pop_back()
-	queue_redraw()
-	return fallback
-
-
 func _draw_display_stand(outline_col: Color, outline_w: float) -> void:
 	draw_rect(Rect2(-56, -36, 120, 82), Color(0, 0, 0, 0.25))
 	draw_rect(Rect2(-58, -40, 116, 78), Color(0.42, 0.28, 0.20))
-	draw_rect(Rect2(-58, -40, 116, 78), outline_col, false, outline_w)
+	draw_rect(Rect2(-58, -40, 116, 78), Color(0.11, 0.08, 0.14) if hovered else outline_col, false, 3.0 if hovered else outline_w)
 	# Glass showcase top
 	draw_rect(Rect2(-50, -32, 100, 58), Color(0.68, 0.88, 0.96, 0.25))
 	draw_rect(Rect2(-50, -32, 100, 58), Color(0.75, 0.92, 1.0, 0.6), false, 1.5)
 	for i: int in range(MAX_DISPLAY_SLOTS):
-		var sx: float = -24.0 + float(i) * 48.0
-		draw_circle(Vector2(sx, 0), 17.0, Color(0.24, 0.16, 0.26, 0.85))
-		draw_circle(Vector2(sx, 0), 17.0, Color(0.86, 0.72, 0.36, 0.7), false, 2.0)
-		if i < stored_potions.size():
-			var parts: PackedStringArray = stored_potions[i].split(":")
+		var sx: float = -26.0 + float(i) * 52.0
+		var is_slot_hovered: bool = hovered and hovered_slot == i
+		var ped_border: Color = Color(1.0, 0.94, 0.45) if is_slot_hovered else Color(0.86, 0.72, 0.36, 0.75)
+		draw_circle(Vector2(sx, 0), 19.0, Color(0.24, 0.16, 0.26, 0.9))
+		draw_circle(Vector2(sx, 0), 19.0, ped_border, false, 3.5 if is_slot_hovered else 2.0)
+		if display_slots[i] != "":
+			var parts: PackedStringArray = display_slots[i].split(":")
 			var rec_id: String = parts[1] if parts.size() > 1 else ""
 			var flask_col: Color = WitchController._recipe_color_hint(rec_id)
-			draw_circle(Vector2(sx, 2), 12.0, flask_col)
-			draw_circle(Vector2(sx, 2), 12.0, Color(0.95, 0.98, 1.0), false, 2.5)
-			draw_rect(Rect2(sx - 4, -15, 8, 6), Color(0.76, 0.52, 0.30))
-	_draw_station_caption("%s (%d/2)" % [display_label, stored_potions.size()], Vector2(0, 56))
+			draw_circle(Vector2(sx, 2), 13.0, flask_col)
+			draw_circle(Vector2(sx, 2), 13.0, Color(0.95, 0.98, 1.0), false, 2.5)
+			draw_rect(Rect2(sx - 4, -16, 8, 6), Color(0.76, 0.52, 0.30))
+	_draw_station_caption("%s (%d/2)" % [display_label, get_occupied_slot_count()], Vector2(0, 56))
 
 
 func _draw_trash(outline_col: Color, outline_w: float) -> void:

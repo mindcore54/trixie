@@ -108,6 +108,7 @@ func enqueue_station(station: KitchenStation) -> void:
 		"target": station,
 		"pos": dest,
 		"id": station.station_id,
+		"slot": station.last_clicked_slot,
 	})
 
 
@@ -299,7 +300,8 @@ func _arrive_at_task(task: Dictionary) -> void:
 				_current_task.clear()
 
 		KitchenStation.StationType.DISPLAY_STAND:
-			_interact_with_display_stand(st)
+			var slot_idx: int = clampi(int(task.get("slot", 0)), 0, KitchenStation.MAX_DISPLAY_SLOTS - 1)
+			_interact_with_display_stand(st, slot_idx)
 			_current_task.clear()
 
 		KitchenStation.StationType.TRASH:
@@ -480,38 +482,39 @@ func _get_raw_hand_indices() -> Array[int]:
 	return out
 
 
-func _interact_with_display_stand(st: KitchenStation) -> void:
+func _interact_with_display_stand(st: KitchenStation, slot_idx: int = 0) -> void:
+	var target_slot: int = clampi(slot_idx, 0, KitchenStation.MAX_DISPLAY_SLOTS - 1)
+	if st.is_slot_occupied(target_slot):
+		if held_items.size() >= get_max_carry():
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Manos llenas!", Color(1.0, 0.7, 0.25))
+			return
+		var picked: String = st.take_potion_from_slot(target_slot)
+		if picked != "":
+			held_items.append(picked)
+			_do_squash(Vector2(1.18, 0.84))
+			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Tomado de vitrina!", Color(1.0, 0.88, 0.35))
+			_emit_step(st.station_id)
+		return
+
 	var bot_idx: int = -1
-	for i: int in range(held_items.size()):
+	for i: int in range(held_items.size() - 1, -1, -1):
 		if held_items[i].begins_with("bot:"):
 			bot_idx = i
 			break
 
-	if bot_idx != -1 and st.can_store_potion():
+	if bot_idx != -1:
 		var item_str: String = held_items[bot_idx]
-		if st.store_potion(item_str):
+		if st.store_potion_in_slot(target_slot, item_str):
 			held_items.remove_at(bot_idx)
 			_do_squash(Vector2(1.15, 0.86))
 			popup_requested.emit(st.global_position + Vector2(0, -52), "¡En vitrina!", Color(0.55, 0.95, 1.0))
 			_emit_step(st.station_id)
 			return
 
-	if not st.stored_potions.is_empty() and held_items.size() < get_max_carry():
-		var wanted: Array[StringName] = []
-		if wanted_recipes_getter.is_valid():
-			wanted = wanted_recipes_getter.call() as Array[StringName]
-		var picked: String = st.take_displayed_potion_for(wanted)
-		if picked != "":
-			held_items.append(picked)
-			_do_squash(Vector2(1.18, 0.84))
-			popup_requested.emit(st.global_position + Vector2(0, -52), "¡Tomado de vitrina!", Color(1.0, 0.88, 0.35))
-			_emit_step(st.station_id)
-			return
-
 	if _has_unsealed_potion():
 		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Embotella antes de exponer!", Color(0.55, 0.92, 1.0))
-	elif st.stored_potions.size() >= KitchenStation.MAX_DISPLAY_SLOTS:
-		popup_requested.emit(st.global_position + Vector2(0, -52), "¡Vitrina llena (2/2)!", Color(1.0, 0.72, 0.25))
+	else:
+		popup_requested.emit(st.global_position + Vector2(0, -52), "Espacio vacío", Color(0.85, 0.85, 0.95))
 
 
 func _has_any_ingredient() -> bool:

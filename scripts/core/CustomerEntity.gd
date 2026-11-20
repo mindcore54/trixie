@@ -3,6 +3,7 @@ extends Area2D
 ## 2.5D semi-chibi customer standing at the service counter queue with order speech bubble & patience.
 
 signal customer_clicked(customer: CustomerEntity)
+signal order_decision_ready(customer: CustomerEntity)
 
 var archetype: CustomerArchetypeData
 var requested_recipe: PotionRecipeData
@@ -14,11 +15,12 @@ var patience_slow_mult: float = 1.0
 var hovered: bool = false
 var is_served: bool = false
 var tempted_by_display: bool = false
+var order_revealed: bool = false
 
 var _bob_time: float = 0.0
 var _target_pos: Vector2 = Vector2.ZERO
 var _warned_impatient: bool = false
-var _display_check_timer: float = 1.6
+var _decide_timer: float = 0.85
 
 
 func _ready() -> void:
@@ -47,6 +49,8 @@ func setup(data: CustomerArchetypeData, recipe: PotionRecipeData, slot_idx: int,
 	_target_pos = slot_world_pos
 	patience_max = data.base_patience_sec * patience_mult
 	patience_remaining = patience_max
+	order_revealed = false
+	_decide_timer = 0.85
 	position = slot_world_pos + Vector2(180.0, 0.0)
 	var tw: Tween = create_tween()
 	tw.tween_property(self, "position", _target_pos, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
@@ -70,20 +74,11 @@ func boost_patience(sec: float) -> void:
 	queue_redraw()
 
 
-func tempt_with_recipe(new_recipe: PotionRecipeData) -> void:
+func set_tempted_order(new_recipe: PotionRecipeData) -> void:
 	if new_recipe == null or is_served:
 		return
 	requested_recipe = new_recipe
 	tempted_by_display = true
-	boost_patience(5.0)
-	if archetype != null and not archetype.display_tempted_lines.is_empty():
-		var line: String = archetype.display_tempted_lines[randi() % archetype.display_tempted_lines.size()]
-		EventBus.customer_dialogue_requested.emit(
-			archetype.customer_id,
-			archetype.portrait_happy if archetype.portrait_happy else archetype.portrait_normal,
-			line,
-			false
-		)
 	queue_redraw()
 
 
@@ -104,8 +99,13 @@ func _process(delta: float) -> void:
 	if EventBus.timers_paused:
 		queue_redraw()
 		return
-	if _display_check_timer > 0.0:
-		_display_check_timer -= delta
+	if not order_revealed:
+		_decide_timer -= delta
+		if _decide_timer <= 0.0:
+			order_revealed = true
+			order_decision_ready.emit(self)
+		queue_redraw()
+		return
 	if patience_frozen_timer > 0.0:
 		patience_frozen_timer -= delta
 	else:
@@ -179,11 +179,14 @@ func _draw() -> void:
 	draw_circle(Vector2(-6, -18 + bob), 2.3, Color(0.12, 0.08, 0.14))
 	draw_circle(Vector2(6, -18 + bob), 2.3, Color(0.12, 0.08, 0.14))
 
-	# Order speech bubble above head (especially clear for first 4 slots)
-	if requested_recipe != null and not is_served:
+	# Order speech bubble above head (only shown once she decides after peeking at vitrina)
+	if not is_served:
 		var bub_pos: Vector2 = Vector2(-42, -92 + bob * 0.5)
 		draw_rect(Rect2(bub_pos, Vector2(84, 42)), Color(0.98, 0.96, 0.90))
 		draw_rect(Rect2(bub_pos, Vector2(84, 42)), Color(0.12, 0.09, 0.14), false, 2.5)
+		if not order_revealed or requested_recipe == null:
+			draw_string(ThemeDB.fallback_font, bub_pos + Vector2(20, 27), ". . .", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(0.35, 0.25, 0.20))
+			return
 		# Flask color + raw ingredient dots needed (1 or 2 via mortar)
 		draw_circle(bub_pos + Vector2(22, 21), 11.0, requested_recipe.potion_color)
 		draw_circle(bub_pos + Vector2(22, 21), 11.0, Color(0.1, 0.08, 0.12), false, 2.0)
