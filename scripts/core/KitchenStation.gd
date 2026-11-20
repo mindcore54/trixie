@@ -34,7 +34,7 @@ var active_recipe: PotionRecipeData = null
 var brew_elapsed: float = 0.0
 var brew_duration: float = 3.0
 var overheat_elapsed: float = 0.0
-var overheat_duration: float = 4.5
+var overheat_duration: float = 16.0
 var is_stirred_hot: bool = false
 var familiar_protected: bool = false
 var _cooldown_timer: float = 0.0
@@ -101,7 +101,7 @@ func _process(delta: float) -> void:
 				return
 			overheat_elapsed += delta
 			var ratio: float = clampf(overheat_elapsed / maxf(0.1, overheat_duration), 0.0, 1.0)
-			if ratio >= 0.45:
+			if ratio >= 0.65:
 				cauldron_state = CauldronState.OVERBOIL_WARNING
 			EventBus.cauldron_progress_updated.emit(cauldron_index, 1.0, ratio)
 			if overheat_elapsed >= overheat_duration:
@@ -270,12 +270,12 @@ func _draw_cauldron(outline_col: Color, outline_w: float) -> void:
 		draw_arc(Vector2.ZERO, 50.0, -PI / 2.0, -PI / 2.0 + TAU * pct, 32, Color(0.3, 0.95, 0.55), 6.0)
 	elif cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING:
 		var danger: float = clampf(overheat_elapsed / maxf(0.1, overheat_duration), 0.0, 1.0)
-		var ring_col: Color = Color(1.0, 0.85, 0.2) if danger < 0.45 else Color(1.0, 0.22, 0.22)
+		var ring_col: Color = Color(1.0, 0.85, 0.2) if danger < 0.65 else Color(1.0, 0.22, 0.22)
 		if familiar_protected:
 			ring_col = Color(0.4, 0.92, 1.0)
 			danger = 0.0
 		draw_arc(Vector2.ZERO, 50.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - danger), 32, ring_col, 6.0)
-		_draw_station_caption("¡LISTA!" if danger < 0.45 else "¡VA A EXPLOTAR!", Vector2(0, -58), ring_col)
+		_draw_station_caption("¡LISTA!" if danger < 0.65 else "¡VA A EXPLOTAR!", Vector2(0, -58), ring_col)
 
 	if is_stirred_hot and (cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY):
 		_draw_station_caption("¡CALIENTE!", Vector2(0, -76), Color(1.0, 0.65, 0.2))

@@ -194,7 +194,7 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	sylvi.customer_id = &"sylvi"
 	sylvi.display_name = "Sylvi"
 	sylvi.species_archetype = "Fauno Fiestera"
-	sylvi.base_patience_sec = 29.0
+	sylvi.base_patience_sec = 62.0
 	sylvi.tip_generosity_mult = 1.25
 	sylvi.preferred_recipes = [&"elixir_ignis", &"filtro_estelar"]
 	sylvi.greeting_lines = PackedStringArray([
@@ -217,7 +217,7 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	velvet.customer_id = &"velvet"
 	velvet.display_name = "Velvet"
 	velvet.species_archetype = "Súcubo Ejecutiva"
-	velvet.base_patience_sec = 23.0
+	velvet.base_patience_sec = 52.0
 	velvet.tip_generosity_mult = 1.6
 	velvet.preferred_recipes = [&"filtro_estelar", &"concentrado_carmesi"]
 	velvet.greeting_lines = PackedStringArray([
@@ -241,7 +241,7 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	seraphina.display_name = "Seraphina"
 	seraphina.species_archetype = "Paladín Reprimida"
 	seraphina.is_vip_boss = true
-	seraphina.base_patience_sec = 25.0
+	seraphina.base_patience_sec = 56.0
 	seraphina.tip_generosity_mult = 1.45
 	seraphina.preferred_recipes = [&"savia_pura", &"bruma_lunar"]
 	seraphina.greeting_lines = PackedStringArray([
@@ -264,7 +264,7 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	mona.customer_id = &"mona"
 	mona.display_name = "Mona"
 	mona.species_archetype = "Bruja Rival Tsundere"
-	mona.base_patience_sec = 32.0
+	mona.base_patience_sec = 70.0
 	mona.tip_generosity_mult = 1.15
 	mona.preferred_recipes = [&"bruma_lunar", &"tonico_silvestre"]
 	mona.greeting_lines = PackedStringArray([
@@ -287,7 +287,7 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	roxy.customer_id = &"roxy"
 	roxy.display_name = "Roxy"
 	roxy.species_archetype = "Cazadora Lupina"
-	roxy.base_patience_sec = 30.0
+	roxy.base_patience_sec = 65.0
 	roxy.tip_generosity_mult = 1.3
 	roxy.preferred_recipes = [&"elixir_ignis", &"tonico_silvestre", &"concentrado_carmesi"]
 	roxy.greeting_lines = PackedStringArray([
@@ -314,8 +314,8 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r1.recipe_id = &"elixir_ignis"
 	r1.display_name = "Elixir Ignis"
 	r1.required_ingredients = [&"red"]
-	r1.base_brew_time_sec = 2.6
-	r1.overheat_grace_sec = 5.0
+	r1.base_brew_time_sec = 2.2
+	r1.overheat_grace_sec = 16.0
 	r1.base_gold_value = 35
 	r1.unlock_day = 1
 	r1.potion_color = Color(0.96, 0.25, 0.30)
@@ -324,8 +324,8 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r2.recipe_id = &"bruma_lunar"
 	r2.display_name = "Bruma Lunar"
 	r2.required_ingredients = [&"blue"]
-	r2.base_brew_time_sec = 2.6
-	r2.overheat_grace_sec = 5.0
+	r2.base_brew_time_sec = 2.2
+	r2.overheat_grace_sec = 16.0
 	r2.base_gold_value = 35
 	r2.unlock_day = 1
 	r2.potion_color = Color(0.24, 0.65, 1.0)
@@ -334,8 +334,8 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r3.recipe_id = &"savia_pura"
 	r3.display_name = "Savia Pura"
 	r3.required_ingredients = [&"green"]
-	r3.base_brew_time_sec = 2.6
-	r3.overheat_grace_sec = 5.0
+	r3.base_brew_time_sec = 2.2
+	r3.overheat_grace_sec = 16.0
 	r3.base_gold_value = 35
 	r3.unlock_day = 1
 	r3.potion_color = Color(0.22, 0.88, 0.45)
@@ -344,18 +344,18 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r4.recipe_id = &"filtro_estelar"
 	r4.display_name = "Filtro Estelar"
 	r4.required_ingredients = [&"red", &"blue"]
-	r4.base_brew_time_sec = 3.4
-	r4.overheat_grace_sec = 4.6
+	r4.base_brew_time_sec = 3.0
+	r4.overheat_grace_sec = 15.0
 	r4.base_gold_value = 70
-	r4.unlock_day = 1
+	r4.unlock_day = 2
 	r4.potion_color = Color(0.76, 0.30, 0.98)
 
 	var r5: PotionRecipeData = PotionRecipeData.new()
 	r5.recipe_id = &"tonico_silvestre"
 	r5.display_name = "Tónico Silvestre"
 	r5.required_ingredients = [&"green", &"red"]
-	r5.base_brew_time_sec = 3.4
-	r5.overheat_grace_sec = 4.6
+	r5.base_brew_time_sec = 3.0
+	r5.overheat_grace_sec = 15.0
 	r5.base_gold_value = 75
 	r5.unlock_day = 2
 	r5.potion_color = Color(0.98, 0.65, 0.16)
@@ -365,8 +365,8 @@ static func _build_default_recipes() -> Array[PotionRecipeData]:
 	r6.display_name = "Concentrado Carmesí"
 	r6.required_ingredients = [&"crushed_red", &"blue"]
 	r6.requires_mortar = true
-	r6.base_brew_time_sec = 3.8
-	r6.overheat_grace_sec = 4.2
+	r6.base_brew_time_sec = 3.4
+	r6.overheat_grace_sec = 15.0
 	r6.base_gold_value = 120
 	r6.unlock_day = 3
 	r6.potion_color = Color(1.0, 0.18, 0.56)

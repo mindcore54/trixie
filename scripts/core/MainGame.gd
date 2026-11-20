@@ -4,7 +4,7 @@ extends Node2D
 ## floating juice popups, roguelite upgrades, and HUD.
 
 const MAX_CUSTOMERS_IN_QUEUE: int = 5
-const COMBO_WINDOW_SEC: float = 7.5
+const COMBO_WINDOW_SEC: float = 15.0
 
 var witches: Array[WitchCharacterData] = []
 var customers_catalog: Array[CustomerArchetypeData] = []
@@ -179,9 +179,6 @@ func _start_new_run() -> void:
 		st.cauldron_state = KitchenStation.CauldronState.IDLE
 		st.queue_redraw()
 
-	if active_w.witch_id == &"nyxara":
-		spawn_familiar("michi_alado")
-
 	_start_day(1)
 	EventBus.gold_changed.emit(gold, 0)
 	EventBus.combo_changed.emit(0, 1.0)
@@ -193,8 +190,8 @@ func _restart_run() -> void:
 
 func _start_day(day: int) -> void:
 	day_number = day
-	day_time_left = 60.0 + float(day - 1) * 5.0
-	spawn_timer = 1.2
+	day_time_left = 75.0 + float(day - 1) * 5.0
+	spawn_timer = 14.0
 	reroll_cost = 35
 	var active_w: WitchCharacterData = witches[_selected_witch_idx]
 	for st: KitchenStation in stations:
@@ -228,10 +225,13 @@ func _process(delta: float) -> void:
 			combo = 0
 			EventBus.combo_changed.emit(0, 1.0)
 
+	if active_customers.is_empty() and spawn_timer > 2.2:
+		spawn_timer = 2.2
+
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		_spawn_customer()
-		spawn_timer = maxf(2.6, 8.8 - float(day_number) * 0.75)
+		spawn_timer = maxf(7.5, 16.5 - float(day_number - 1) * 1.3)
 
 	# Check customer patience expirations
 	var i: int = 0
@@ -264,8 +264,6 @@ func _spawn_customer() -> void:
 	if not run_active:
 		return
 	if active_customers.size() >= MAX_CUSTOMERS_IN_QUEUE:
-		EventBus.queue_overflow_triggered.emit()
-		_end_run(false, "La fila de clientas superó el límite de 5 y colapsó la tienda.")
 		return
 
 	var valid_recipes: Array[PotionRecipeData] = []

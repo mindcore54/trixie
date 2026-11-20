@@ -85,7 +85,8 @@ func _process(delta: float) -> void:
 	if patience_frozen_timer > 0.0:
 		patience_frozen_timer -= delta
 	else:
-		patience_remaining -= delta * patience_slow_mult
+		var slot_drain_mult: float = 1.0 if queue_slot == 0 else 0.40
+		patience_remaining -= delta * patience_slow_mult * slot_drain_mult
 
 	if patience_remaining <= patience_max * 0.28 and not _warned_impatient:
 		_warned_impatient = true

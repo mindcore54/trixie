@@ -11,6 +11,7 @@
   * Implementados y verificados los sistemas núcleo en Godot 4.7.2: `AudioJuiceManager.gd` (SFX pentatónicos procedurales, hitstop, screen shake), `GameCatalog.gd` + 21 archivos `.tres` en `res://data/` (4 brujas, 5 clientas, 6 recetas, 6 mejoras/familiares), `KitchenStation.gd`, `CustomerEntity.gd`, `FamiliarEntity.gd`, `WitchController.gd` (cola de hasta 6 clics), `KitchenHUD.gd` (busto reactivo 6 emociones, retrato grande abajo-derecha, pergamino *chipped*, *cut-in* y modal de draft) y `MainGame.gd`.
   * **Validación:** `--smoke-test` headless superado (`gold=66, combo=1, day=2, familiars=1, ability_ok=true`) y arranque de `Main.tscn` limpio sin errores.
   * **Control refinado (Post-Playtest):** Bloqueado clic en suelo vacío (solo estaciones y clientas válidas) y simplificada la cola a **1 clic en curso + 1 clic siguiente en buffer** (`MAX_NEXT_BUFFER = 1`) para eliminar sobrecarga visual manteniendo el encadenado fluido.
+  * **Balance de timings iniciales (Post-Playtest):** Relajada la cadencia de llegada (`14s` inicial, `16.5s` intervalo Día 1), paciencia aumentada (`52–70s` con desgaste al `40%` en fila trasera), ventana de sobrecalentamiento ampliada a `16s` (alerta solo en el último 35%), Día 1 solo con recetas de 1 ingrediente, y eliminado el familiar automático de Nyxara al arranque para que el inicio manual sea 100% limpio.
   * **Siguiente Foco Inmediato:** Que el desarrollador abra el proyecto en Godot (`F5`), juegue 1–2 turnos del Vertical Slice y marque qué siente lento, incómodo o mejorable para iterar al vuelo (Hito 1.6).
 
 ---
