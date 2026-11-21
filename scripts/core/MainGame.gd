@@ -9,6 +9,11 @@ const DAY_DURATION_SEC: float = 300.0
 const MAX_FAMILIAR_SLOTS: int = 1
 const MAX_PASSIVE_SLOTS: int = 3
 const MAX_ACTIVE_SLOTS: int = 3
+const KITCHEN_BG_TEX_PATH: String = "res://assets/backgrounds/kitchen_bg.jpg"
+const KITCHEN_DESK_TEX_PATH: String = "res://assets/backgrounds/kitchen_desk.png"
+const KITCHEN_DESK_POS: Vector2 = Vector2(1170.0, 353.0)
+const BINS_TABLE_TEX_PATH: String = "res://assets/props/stations/station_bins_table_empty.png"
+const BINS_TABLE_POS: Vector2 = Vector2(360.0, 905.0)
 
 enum TutorialStep {
 	NONE,
@@ -82,17 +87,27 @@ var mirror_clone_enabled: bool = false
 var mirror_clone_chance: float = 0.0
 var _selected_witch_idx: int = 0
 var _popups: Array[Dictionary] = []
+var _kitchen_bg_tex: Texture2D = null
+var _kitchen_desk_tex: Texture2D = null
+var _customers_layer: Node2D
+var _desk_sprite: Sprite2D
+var _kitchen_layer: Node2D
+var _bins_table_sprite: Sprite2D
+var _familiars_layer: Node2D
+var _world_overlay: Node2D
 
 var _queue_slots: Array[Vector2] = [
-	Vector2(1380, 560),
-	Vector2(1425, 480),
-	Vector2(1470, 405),
-	Vector2(1515, 335),
-	Vector2(1560, 265),
+	Vector2(1415, 650),
+	Vector2(1400, 575),
+	Vector2(1385, 505),
+	Vector2(1385, 440),
+	Vector2(1420, 385),
 ]
 
 
 func _ready() -> void:
+	_kitchen_bg_tex = load(KITCHEN_BG_TEX_PATH) as Texture2D
+	_kitchen_desk_tex = load(KITCHEN_DESK_TEX_PATH) as Texture2D
 	witches = GameCatalog.get_witches()
 	_selected_witch_idx = _find_witch_index(&"trixie")
 	customers_catalog = GameCatalog.get_customers()
@@ -104,17 +119,53 @@ func _ready() -> void:
 	add_child(camera)
 	AudioJuiceManager.register_camera(camera)
 
+	# 2.5D depth layers: customers behind desk -> desk cutout -> kitchen Y-sort -> flying familiars -> popups/tutorial
+	_customers_layer = Node2D.new()
+	_customers_layer.y_sort_enabled = true
+	_customers_layer.z_index = 1
+	add_child(_customers_layer)
+
+	_desk_sprite = Sprite2D.new()
+	_desk_sprite.texture = _kitchen_desk_tex
+	_desk_sprite.centered = false
+	_desk_sprite.position = KITCHEN_DESK_POS
+	_desk_sprite.z_index = 2
+	_desk_sprite.visible = _kitchen_bg_tex != null and _kitchen_desk_tex != null
+	add_child(_desk_sprite)
+
+	_kitchen_layer = Node2D.new()
+	_kitchen_layer.y_sort_enabled = true
+	_kitchen_layer.z_index = 3
+	add_child(_kitchen_layer)
+
+	var bins_tex: Texture2D = load(BINS_TABLE_TEX_PATH) as Texture2D if ResourceLoader.exists(BINS_TABLE_TEX_PATH) else null
+	_bins_table_sprite = Sprite2D.new()
+	_bins_table_sprite.texture = bins_tex
+	_bins_table_sprite.centered = true
+	_bins_table_sprite.position = BINS_TABLE_POS
+	_bins_table_sprite.visible = bins_tex != null
+	_kitchen_layer.add_child(_bins_table_sprite)
+
+	_familiars_layer = Node2D.new()
+	_familiars_layer.z_index = 10
+	add_child(_familiars_layer)
+
+	_world_overlay = Node2D.new()
+	_world_overlay.z_index = 20
+	_world_overlay.draw.connect(_draw_world_overlay)
+	add_child(_world_overlay)
+
 	_build_kitchen_stations()
 
 	witch = WitchController.new()
-	witch.position = Vector2(880, 580)
+	witch.position = Vector2(740, 640)
 	witch.bottling_station_pos = _find_station(&"bottling").global_position
 	witch.seismic_mortar_callback = _on_seismic_mortar
 	witch.wanted_recipes_getter = _get_wanted_recipes
 	witch.potion_delivered_to_customer.connect(_on_potion_delivered)
 	witch.popup_requested.connect(_spawn_popup)
 	witch.room_transition_requested.connect(_on_room_transition_requested)
-	add_child(witch)
+	_kitchen_layer.add_child(witch)
 
 	hud = KitchenHUD.new()
 	add_child(hud)
@@ -599,7 +650,7 @@ func _start_day(day: int) -> void:
 	if camera != null:
 		camera.position = Vector2(960, 540)
 	if witch != null and witch.position.x < 0.0:
-		witch.position = Vector2(880, 580)
+		witch.position = Vector2(740, 640)
 	spawn_timer = 14.0
 	reroll_cost = 35
 	for aid: StringName in active_skill_cooldowns.keys():
@@ -653,6 +704,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_update_popups(delta)
 	_tutorial_pulse_time += delta
+	if _world_overlay != null:
+		_world_overlay.queue_redraw()
 	if not run_active:
 		return
 
@@ -749,7 +802,7 @@ func _spawn_customer() -> void:
 	var slot_idx: int = active_customers.size()
 
 	var cust: CustomerEntity = CustomerEntity.new()
-	add_child(cust)
+	_customers_layer.add_child(cust)
 	cust.setup(arch, recipe, slot_idx, _queue_slots[slot_idx])
 	cust.customer_clicked.connect(_on_customer_clicked)
 	cust.order_decision_ready.connect(_on_customer_order_decision_ready)
@@ -1106,7 +1159,7 @@ func trigger_equipped_active_skill(slot_idx: int) -> bool:
 func spawn_familiar(familiar_type: String) -> FamiliarEntity:
 	var fam: FamiliarEntity = FamiliarEntity.new()
 	fam.position = witch.position + Vector2(-70, -40)
-	add_child(fam)
+	_familiars_layer.add_child(fam)
 	fam.configure(
 		familiar_type,
 		stations,
@@ -1278,22 +1331,22 @@ func _update_guided_tutorial() -> void:
 			elif has_raw:
 				_set_tutorial_step(TutorialStep.BOTTLE_POTION, "¡Cuidado que quema! Llévala a la mesa de Embotellado para sellarla en un frasco.", "normal")
 				if bottle_st != null:
-					_tutorial_target_pos = bottle_st.global_position + Vector2(0, -56)
+					_tutorial_target_pos = bottle_st.global_position + Vector2(0, -102)
 					_tutorial_has_target = true
 			elif caul_busy:
 				var caul_msg: String = "¡Ya está lista! Haz clic en el caldero para recogerla antes de que se queme." if caul0.cauldron_state != KitchenStation.CauldronState.BREWING else "¡Mira cómo hierve! Haz clic en el caldero para revolverla (¡CALIENTE! = más oro) y recógela al terminar."
 				_set_tutorial_step(TutorialStep.STIR_OR_COLLECT, caul_msg, "confiada")
-				_tutorial_target_pos = caul0.global_position + Vector2(0, -68)
+				_tutorial_target_pos = caul0.global_position + Vector2(0, -108)
 				_tutorial_has_target = true
 			elif has_ing:
 				_set_tutorial_step(TutorialStep.ADD_TO_CAULDRON, "¡Bien! Ahora haz clic en el Caldero para empezar a cocinarla.", "normal")
 				if caul0 != null:
-					_tutorial_target_pos = caul0.global_position + Vector2(0, -68)
+					_tutorial_target_pos = caul0.global_position + Vector2(0, -108)
 					_tutorial_has_target = true
 			else:
 				_set_tutorial_step(TutorialStep.PICK_INGREDIENT, "¡Mi primera clienta! Mira qué color pide y haz clic en esa caja para tomar el ingrediente.", "nerviosa")
 				if bin_st != null:
-					_tutorial_target_pos = bin_st.global_position + Vector2(0, -64)
+					_tutorial_target_pos = bin_st.global_position + Vector2(0, -100)
 					_tutorial_has_target = true
 		return
 
@@ -1327,13 +1380,13 @@ func _update_guided_tutorial() -> void:
 					_tutorial_has_target = true
 			else:
 				_set_tutorial_step(TutorialStep.RESTOCK_POUR, "¡Ahora haz clic en la caja vacía para rellenarla! Lo que sobre guárdalo en el Estante de Cajas.", "normal")
-				_tutorial_target_pos = empty_bin.global_position + Vector2(0, -64)
+				_tutorial_target_pos = empty_bin.global_position + Vector2(0, -100)
 				_tutorial_has_target = true
 		else:
 			if current_room == &"kitchen":
 				_set_tutorial_step(TutorialStep.RESTOCK_DOOR, "¡Ay no, se acabó esa caja! Haz clic en la puerta del Almacén a la izquierda para reponer.", "sorprendida")
 				if door_storage != null:
-					_tutorial_target_pos = door_storage.global_position + Vector2(0, -86)
+					_tutorial_target_pos = door_storage.global_position + Vector2(0, -155)
 					_tutorial_has_target = true
 			else:
 				_set_tutorial_step(TutorialStep.RESTOCK_PICK_CRATE, "Aquí están las cajas grandes de x20. ¡Con las manos vacías, haz clic en la caja del color que falta!", "normal")
@@ -1363,7 +1416,7 @@ func _on_room_transition_requested(door_id: StringName) -> void:
 		_pan_camera_to(Vector2(-960, 540))
 	elif door_id == &"door_to_kitchen":
 		current_room = &"kitchen"
-		witch.global_position = Vector2(235, 455)
+		witch.global_position = Vector2(290, 585)
 		_pan_camera_to(Vector2(960, 540))
 
 
@@ -1377,8 +1430,8 @@ func _pan_camera_to(target_pos: Vector2) -> void:
 
 
 func _build_kitchen_stations() -> void:
-	# Doorway from Kitchen to Storage Room (left wall of kitchen)
-	_add_station(&"door_to_storage", KitchenStation.StationType.ROOM_DOOR, &"", "Almacén", Vector2(155, 455), -1, Color(0.86, 0.68, 0.36))
+	# Doorway from Kitchen to Storage Room (painted arch on left wall)
+	_add_station(&"door_to_storage", KitchenStation.StationType.ROOM_DOOR, &"", "Almacén", Vector2(200, 515), -1, Color(0.86, 0.68, 0.36), true)
 
 	# Separate Storage Room (x = -1920..0): Door back to Kitchen + 3 infinite x20 crate supplies
 	_add_station(&"door_to_kitchen", KitchenStation.StationType.ROOM_DOOR, &"", "Cocina", Vector2(-155, 540), -1, Color(0.86, 0.68, 0.36))
@@ -1386,17 +1439,18 @@ func _build_kitchen_stations() -> void:
 	_add_station(&"supply_blue", KitchenStation.StationType.SUPPLY_SOURCE, &"blue", "Cajas Azul", Vector2(-960, 540), -1, Color(0.24, 0.65, 1.0))
 	_add_station(&"supply_green", KitchenStation.StationType.SUPPLY_SOURCE, &"green", "Cajas Verde", Vector2(-640, 540), -1, Color(0.22, 0.88, 0.45))
 
-	# Kitchen Layout mirroring stash/imagen3.jpeg + Crate Rack (3 slots) below bins
-	_add_station(&"bin_red", KitchenStation.StationType.INGREDIENT_BIN, &"red", "Hierba Ignis", Vector2(230, 740), -1, Color(0.95, 0.24, 0.30))
-	_add_station(&"bin_blue", KitchenStation.StationType.INGREDIENT_BIN, &"blue", "Cristal Cryo", Vector2(365, 740), -1, Color(0.24, 0.65, 1.0))
-	_add_station(&"bin_green", KitchenStation.StationType.INGREDIENT_BIN, &"green", "Savia Silvestre", Vector2(500, 740), -1, Color(0.22, 0.88, 0.45))
-	_add_station(&"crate_rack", KitchenStation.StationType.CRATE_RACK, &"", "Estante Cajas", Vector2(365, 895), -1, Color(0.76, 0.56, 0.32))
-	_add_station(&"mortar", KitchenStation.StationType.MORTAR, &"", "Mortero", Vector2(735, 290), -1, Color(0.85, 0.78, 0.7))
-	_add_station(&"cauldron_0", KitchenStation.StationType.CAULDRON, &"", "Caldero 1", Vector2(380, 390), 0, Color(0.6, 0.3, 0.9))
-	_add_station(&"cauldron_1", KitchenStation.StationType.CAULDRON, &"", "Caldero 2", Vector2(550, 320), 1, Color(0.6, 0.3, 0.9))
-	_add_station(&"bottling", KitchenStation.StationType.BOTTLING, &"", "Embotellado", Vector2(1070, 290), -1, Color(0.55, 0.9, 1.0))
-	_add_station(&"display_stand", KitchenStation.StationType.DISPLAY_STAND, &"", "Vitrina", Vector2(1070, 540), -1, Color(0.95, 0.80, 0.35))
-	_add_station(&"trash", KitchenStation.StationType.TRASH, &"", "Basura", Vector2(720, 820), -1, Color(0.45, 0.4, 0.5))
+	# Kitchen Layout aligned to 1920x1080 painted kitchen_bg.jpg (v02) + exact 1:1 station sprites:
+	# 3 Ingredient Bins aligned to the unified 3-bin wooden table at BINS_TABLE_POS
+	_add_station(&"bin_red", KitchenStation.StationType.INGREDIENT_BIN, &"red", "Hierba Ignis", Vector2(221, 905), -1, Color(0.95, 0.24, 0.30))
+	_add_station(&"bin_blue", KitchenStation.StationType.INGREDIENT_BIN, &"blue", "Cristal Cryo", Vector2(363, 905), -1, Color(0.24, 0.65, 1.0))
+	_add_station(&"bin_green", KitchenStation.StationType.INGREDIENT_BIN, &"green", "Savia Silvestre", Vector2(500, 905), -1, Color(0.22, 0.88, 0.45))
+	_add_station(&"crate_rack", KitchenStation.StationType.CRATE_RACK, &"", "Estante Cajas", Vector2(765, 905), -1, Color(0.76, 0.56, 0.32))
+	_add_station(&"mortar", KitchenStation.StationType.MORTAR, &"", "Mortero", Vector2(800, 395), -1, Color(0.85, 0.78, 0.7))
+	_add_station(&"cauldron_0", KitchenStation.StationType.CAULDRON, &"", "Caldero 1", Vector2(415, 405), 0, Color(0.6, 0.3, 0.9))
+	_add_station(&"cauldron_1", KitchenStation.StationType.CAULDRON, &"", "Caldero 2", Vector2(605, 395), 1, Color(0.6, 0.3, 0.9))
+	_add_station(&"bottling", KitchenStation.StationType.BOTTLING, &"", "Embotellado", Vector2(1010, 395), -1, Color(0.55, 0.9, 1.0))
+	_add_station(&"display_stand", KitchenStation.StationType.DISPLAY_STAND, &"", "Vitrina", Vector2(1242, 434), -1, Color(0.95, 0.80, 0.35))
+	_add_station(&"trash", KitchenStation.StationType.TRASH, &"", "Basura", Vector2(1155, 865), -1, Color(0.45, 0.4, 0.5))
 
 
 func _get_wanted_recipes() -> Array[StringName]:
@@ -1407,7 +1461,7 @@ func _get_wanted_recipes() -> Array[StringName]:
 	return list
 
 
-func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: StringName, label_txt: String, pos: Vector2, c_idx: int, col: Color) -> void:
+func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: StringName, label_txt: String, pos: Vector2, c_idx: int, col: Color, use_bg_art: bool = false) -> void:
 	var st: KitchenStation = KitchenStation.new()
 	st.station_id = st_id
 	st.station_type = st_type
@@ -1415,9 +1469,14 @@ func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: S
 	st.display_label = label_txt
 	st.cauldron_index = c_idx
 	st.accent_color = col
+	st.use_background_art = use_bg_art
 	st.position = pos
 	st.station_clicked.connect(_on_station_clicked)
-	add_child(st)
+	if use_bg_art:
+		st.z_index = 1
+		add_child(st)
+	else:
+		_kitchen_layer.add_child(st)
 	stations.append(st)
 
 
@@ -1459,21 +1518,31 @@ func _draw() -> void:
 		draw_line(Vector2(-1780, sgy), Vector2(-120, sgy), Color(0.24, 0.18, 0.16, 0.55), 2.0)
 	draw_string(font, Vector2(-1150, 165), "ALMACÉN DE INGREDIENTES", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0.95, 0.84, 0.58, 0.85))
 
-	# Cozy dark wooden walls + stone flagstone 2.5D floor (Kitchen: x = 0..1920)
-	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.20, 0.14, 0.16))
-	draw_rect(Rect2(0, 0, 1920, 220), Color(0.32, 0.21, 0.17))
-	draw_rect(Rect2(120, 220, 1680, 780), Color(0.43, 0.37, 0.36))
-	# Stone tiles grid hint
-	for gx: int in range(120, 1800, 120):
-		draw_line(Vector2(gx, 220), Vector2(gx, 1000), Color(0.33, 0.28, 0.29, 0.5), 2.0)
-	for gy: int in range(220, 1000, 90):
-		draw_line(Vector2(120, gy), Vector2(1800, gy), Color(0.33, 0.28, 0.29, 0.5), 2.0)
+	# Painted 1:1 1920x1080 Kitchen Background (with fallback placeholder geometry)
+	if _kitchen_bg_tex != null:
+		draw_texture_rect(_kitchen_bg_tex, Rect2(0.0, 0.0, 1920.0, 1080.0), false)
+	else:
+		# Cozy dark wooden walls + stone flagstone 2.5D floor (Kitchen: x = 0..1920)
+		draw_rect(Rect2(0, 0, 1920, 1080), Color(0.20, 0.14, 0.16))
+		draw_rect(Rect2(0, 0, 1920, 220), Color(0.32, 0.21, 0.17))
+		draw_rect(Rect2(120, 220, 1680, 780), Color(0.43, 0.37, 0.36))
+		# Stone tiles grid hint
+		for gx: int in range(120, 1800, 120):
+			draw_line(Vector2(gx, 220), Vector2(gx, 1000), Color(0.33, 0.28, 0.29, 0.5), 2.0)
+		for gy: int in range(220, 1000, 90):
+			draw_line(Vector2(120, gy), Vector2(1800, gy), Color(0.33, 0.28, 0.29, 0.5), 2.0)
 
-	# Service Counter separating kitchen & customer line (Right)
-	var counter_rect: Rect2 = Rect2(1250, 240, 72, 460)
-	draw_rect(Rect2(1258, 248, 72, 464), Color(0, 0, 0, 0.3))
-	draw_rect(counter_rect, Color(0.48, 0.30, 0.20))
-	draw_rect(counter_rect, Color(0.11, 0.08, 0.14), false, 3.5)
+		# Service Counter separating kitchen & customer line (Right)
+		var counter_rect: Rect2 = Rect2(1250, 240, 72, 460)
+		draw_rect(Rect2(1258, 248, 72, 464), Color(0, 0, 0, 0.3))
+		draw_rect(counter_rect, Color(0.48, 0.30, 0.20))
+		draw_rect(counter_rect, Color(0.11, 0.08, 0.14), false, 3.5)
+
+
+func _draw_world_overlay() -> void:
+	if _world_overlay == null:
+		return
+	var font: Font = ThemeDB.fallback_font
 
 	# Floating juice popups
 	for p: Dictionary in _popups:
@@ -1481,15 +1550,15 @@ func _draw() -> void:
 		var txt: String = p["text"] as String
 		var col: Color = p["color"] as Color
 		var alpha: float = clampf(float(p["life"]), 0.0, 1.0)
-		draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(0.05, 0.03, 0.08, alpha))
-		draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(col.r, col.g, col.b, alpha))
+		_world_overlay.draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(0.05, 0.03, 0.08, alpha))
+		_world_overlay.draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(col.r, col.g, col.b, alpha))
 
 	# Guided tutorial pulsing golden ring & bouncing arrow over target station/customer
 	if _tutorial_has_target and run_active:
 		var bob_a: float = sin(_tutorial_pulse_time * 7.0) * 10.0
 		var ring_r: float = 34.0 + sin(_tutorial_pulse_time * 5.0) * 5.0
 		var tip: Vector2 = _tutorial_target_pos + Vector2(0.0, bob_a)
-		draw_arc(_tutorial_target_pos + Vector2(0.0, 56.0), ring_r, 0.0, TAU, 32, Color(1.0, 0.88, 0.30, 0.92), 4.5)
+		_world_overlay.draw_arc(_tutorial_target_pos + Vector2(0.0, 56.0), ring_r, 0.0, TAU, 32, Color(1.0, 0.88, 0.30, 0.92), 4.5)
 		var arrow: PackedVector2Array = PackedVector2Array([
 			tip + Vector2(0, 18),
 			tip + Vector2(-20, -10),
@@ -1499,5 +1568,5 @@ func _draw() -> void:
 			tip + Vector2(8, -10),
 			tip + Vector2(20, -10),
 		])
-		draw_colored_polygon(arrow, Color(1.0, 0.86, 0.28))
-		draw_polyline(arrow + PackedVector2Array([arrow[0]]), Color(0.10, 0.06, 0.14), 3.0)
+		_world_overlay.draw_colored_polygon(arrow, Color(1.0, 0.86, 0.28))
+		_world_overlay.draw_polyline(arrow + PackedVector2Array([arrow[0]]), Color(0.10, 0.06, 0.14), 3.0)

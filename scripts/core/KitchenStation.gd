@@ -19,6 +19,9 @@ const MAX_BOTTLING_SLOTS: int = 2
 const MAX_BIN_STOCK: int = 10
 const SUPPLY_CRATE_AMOUNT: int = 20
 const MAX_CRATE_RACK_SLOTS: int = 3
+const STATION_TEX_DIR: String = "res://assets/props/stations/"
+
+static var _tex_cache: Dictionary = {}
 
 enum CauldronState {
 	IDLE,
@@ -36,6 +39,7 @@ signal station_clicked(station: KitchenStation)
 @export var display_label: String = ""
 @export var cauldron_index: int = -1
 @export var accent_color: Color = Color(0.85, 0.32, 0.45)
+@export var use_background_art: bool = false
 
 var hovered: bool = false
 var hovered_slot: int = -1
@@ -69,13 +73,23 @@ func _ready() -> void:
 	var shape: CollisionShape2D = CollisionShape2D.new()
 	var rect: RectangleShape2D = RectangleShape2D.new()
 	if station_type == StationType.CAULDRON:
-		rect.size = Vector2(138.0, 118.0)
+		rect.size = Vector2(168.0, 172.0)
+	elif station_type == StationType.MORTAR:
+		rect.size = Vector2(154.0, 142.0)
+	elif station_type == StationType.BOTTLING:
+		rect.size = Vector2(190.0, 178.0)
 	elif station_type == StationType.CRATE_RACK:
-		rect.size = Vector2(210.0, 96.0)
+		rect.size = Vector2(256.0, 130.0)
+	elif station_type == StationType.DISPLAY_STAND:
+		rect.size = Vector2(96.0, 180.0)
+	elif station_type == StationType.INGREDIENT_BIN:
+		rect.size = Vector2(142.0, 152.0)
+	elif station_type == StationType.TRASH:
+		rect.size = Vector2(90.0, 104.0)
 	elif station_type == StationType.SUPPLY_SOURCE:
 		rect.size = Vector2(126.0, 108.0)
 	elif station_type == StationType.ROOM_DOOR:
-		rect.size = Vector2(96.0, 152.0)
+		rect.size = Vector2(124.0, 300.0) if use_background_art else Vector2(96.0, 152.0)
 	else:
 		rect.size = Vector2(126.0, 108.0)
 	shape.shape = rect
@@ -102,7 +116,9 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			if station_type == StationType.DISPLAY_STAND or station_type == StationType.BOTTLING:
+			if station_type == StationType.DISPLAY_STAND:
+				last_clicked_slot = 0 if get_local_mouse_position().y < 24.0 else 1
+			elif station_type == StationType.BOTTLING:
 				last_clicked_slot = 0 if get_local_mouse_position().x < 0.0 else 1
 			elif station_type == StationType.CRATE_RACK:
 				last_clicked_slot = _crate_rack_slot_from_x(get_local_mouse_position().x)
@@ -112,10 +128,15 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 
 func _process(delta: float) -> void:
 	_pulse_time += delta
-	if (station_type == StationType.DISPLAY_STAND or station_type == StationType.BOTTLING) and hovered:
-		var new_slot: int = 0 if get_local_mouse_position().x < 0.0 else 1
-		if new_slot != hovered_slot:
-			hovered_slot = new_slot
+	if station_type == StationType.DISPLAY_STAND and hovered:
+		var new_d_slot: int = 0 if get_local_mouse_position().y < 24.0 else 1
+		if new_d_slot != hovered_slot:
+			hovered_slot = new_d_slot
+			queue_redraw()
+	elif station_type == StationType.BOTTLING and hovered:
+		var new_b_slot: int = 0 if get_local_mouse_position().x < 0.0 else 1
+		if new_b_slot != hovered_slot:
+			hovered_slot = new_b_slot
 			queue_redraw()
 	elif station_type == StationType.CRATE_RACK and hovered:
 		var new_c_slot: int = _crate_rack_slot_from_x(get_local_mouse_position().x)
@@ -294,9 +315,9 @@ func reset_ingredient_stock() -> void:
 
 
 func _crate_rack_slot_from_x(local_x: float) -> int:
-	if local_x < -34.0:
+	if local_x < -42.0:
 		return 0
-	if local_x > 34.0:
+	if local_x > 42.0:
 		return 2
 	return 1
 
@@ -340,27 +361,99 @@ func clear_crate_slots() -> void:
 	queue_redraw()
 
 
+static func _get_tex(file_name: String) -> Texture2D:
+	if _tex_cache.has(file_name):
+		return _tex_cache[file_name] as Texture2D
+	var path: String = STATION_TEX_DIR + file_name
+	var tex: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	_tex_cache[file_name] = tex
+	return tex
+
+
+func _draw_sprite_centered(tex: Texture2D, tint: Color = Color.WHITE, offset: Vector2 = Vector2.ZERO, scale_xy: Vector2 = Vector2.ONE) -> void:
+	var sz: Vector2 = tex.get_size()
+	var draw_sz: Vector2 = Vector2(sz.x * scale_xy.x, sz.y * scale_xy.y)
+	draw_texture_rect(tex, Rect2(offset - draw_sz * 0.5, draw_sz), false, tint)
+
+
+func _draw_round_potion(center: Vector2, flask_col: Color, radius: float = 14.0) -> void:
+	draw_circle(center + Vector2(2.0, 4.0), radius, Color(0.0, 0.0, 0.0, 0.28))
+	draw_circle(center, radius, flask_col)
+	draw_circle(center, radius, Color(0.92, 0.96, 1.0), false, 2.4)
+	draw_circle(center - Vector2(radius * 0.34, radius * 0.34), radius * 0.28, Color(1.0, 1.0, 1.0, 0.72))
+	draw_rect(Rect2(center.x - 4.5, center.y - radius - 5.0, 9.0, 6.0), Color(0.76, 0.52, 0.30))
+	draw_rect(Rect2(center.x - 4.5, center.y - radius - 5.0, 9.0, 6.0), Color(0.14, 0.08, 0.12), false, 1.5)
+
+
 func _draw_crate(outline_col: Color, outline_w: float) -> void:
+	var empty_flash: bool = ingredient_stock <= 0 and int(_pulse_time * 6.0) % 2 == 0
+	var stock_col: Color = Color(1.0, 0.28, 0.28) if ingredient_stock <= 0 else (Color(1.0, 0.78, 0.25) if ingredient_stock <= 3 else Color(0.98, 0.96, 0.88))
+	var ing_key: String = String(ingredient_id)
+	var fill_tex: Texture2D = _get_tex("station_ing_%s.png" % ing_key)
+
+	if fill_tex != null:
+		var base_y: float = -42.0
+		if ing_key == "blue":
+			base_y = -46.0
+		elif ing_key == "green":
+			base_y = -35.0
+
+		if hovered:
+			var hover_rect: Rect2 = Rect2(-58.0, -58.0, 116.0, 78.0)
+			draw_rect(hover_rect, Color(1.0, 0.92, 0.45, 0.85), false, 2.5)
+		if ingredient_stock <= 0 and empty_flash:
+			var alert_rect: Rect2 = Rect2(-56.0, -56.0, 112.0, 74.0)
+			draw_rect(alert_rect, Color(1.0, 0.28, 0.28, 0.30))
+			draw_rect(alert_rect, Color(1.0, 0.30, 0.30, 0.95), false, 2.5)
+
+		if ingredient_stock > 0:
+			var fill_scale: Vector2 = Vector2.ONE
+			var fill_off: Vector2 = Vector2.ZERO
+			if ingredient_stock <= 3:
+				fill_scale = Vector2(0.86, 0.76)
+				fill_off = Vector2(0.0, 8.0)
+			elif ingredient_stock <= 6:
+				fill_scale = Vector2(0.94, 0.88)
+				fill_off = Vector2(0.0, 4.0)
+			var fill_tint: Color = Color(1.16, 1.12, 1.04) if hovered else Color.WHITE
+			_draw_sprite_centered(fill_tex, fill_tint, Vector2(0.0, base_y) + fill_off, fill_scale)
+
+		_draw_station_caption("%d/%d" % [ingredient_stock, MAX_BIN_STOCK], Vector2(0, -96), stock_col)
+		if hovered:
+			_draw_station_caption(display_label, Vector2(0, 92))
+		return
+
 	var box: Rect2 = Rect2(-52, -40, 104, 80)
 	draw_rect(Rect2(-48, -32, 104, 82), Color(0, 0, 0, 0.28))
 	draw_rect(box, Color(0.46, 0.28, 0.18))
-	var empty_flash: bool = ingredient_stock <= 0 and int(_pulse_time * 6.0) % 2 == 0
 	var final_outline: Color = Color(1.0, 0.25, 0.25) if empty_flash else outline_col
 	draw_rect(box, final_outline, false, 4.5 if empty_flash else outline_w)
 	draw_rect(Rect2(-42, -30, 84, 54), Color(0.20, 0.14, 0.15) if ingredient_stock <= 0 else accent_color.darkened(0.35))
-	# Draw glowing ingredient gems/herbs proportional to stock
 	var vis_gems: int = mini(3, ceili(float(ingredient_stock) / 3.4))
 	for i: int in range(vis_gems):
 		var ox: float = -22.0 + i * 22.0
 		var oy: float = -6.0 + sin(_pulse_time * 2.5 + i) * 2.0
 		draw_circle(Vector2(ox, oy), 13.0, accent_color)
 		draw_circle(Vector2(ox - 3, oy - 3), 4.0, Color(1, 1, 1, 0.7))
-	var stock_col: Color = Color(1.0, 0.28, 0.28) if ingredient_stock <= 0 else (Color(1.0, 0.78, 0.25) if ingredient_stock <= 3 else Color(0.98, 0.96, 0.88))
 	_draw_station_caption("%d/%d" % [ingredient_stock, MAX_BIN_STOCK], Vector2(0, -48), stock_col)
 	_draw_station_caption(display_label, Vector2(0, 56))
 
 
 func _draw_mortar(outline_col: Color, outline_w: float) -> void:
+	var tex: Texture2D = _get_tex("station_mortar.png")
+	if tex != null:
+		draw_set_transform(Vector2(0.0, 56.0), 0.0, Vector2(1.0, 0.42))
+		draw_circle(Vector2.ZERO, 68.0, Color(0.0, 0.0, 0.0, 0.26))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		_draw_sprite_centered(tex, tint)
+		if not held_ingredients.is_empty():
+			draw_circle(Vector2(2.0, -33.0), 10.0, _ingredient_color(held_ingredients[0]))
+			draw_circle(Vector2(2.0, -33.0), 10.0, Color(0.10, 0.08, 0.14), false, 2.2)
+		if hovered:
+			_draw_station_caption(display_label, Vector2(0, 86))
+		return
+
 	draw_circle(Vector2(3, 8), 46.0, Color(0, 0, 0, 0.28))
 	draw_rect(Rect2(-52, -38, 104, 76), Color(0.42, 0.30, 0.24))
 	draw_rect(Rect2(-52, -38, 104, 76), outline_col, false, outline_w)
@@ -375,19 +468,7 @@ func _draw_mortar(outline_col: Color, outline_w: float) -> void:
 
 
 func _draw_cauldron(outline_col: Color, outline_w: float) -> void:
-	# Stone hearth glow
-	draw_circle(Vector2(0, 8), 58.0, Color(0.25, 0.22, 0.27))
-	if cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY:
-		draw_circle(Vector2(0, 10), 50.0 + sin(_pulse_time * 6.0) * 3.0, Color(1.0, 0.45, 0.15, 0.32))
-
-	# Iron cauldron pot
-	var body_col: Color = Color(0.20, 0.18, 0.24)
-	if cauldron_state == CauldronState.EXPLODED_COOLDOWN:
-		body_col = Color(0.14, 0.12, 0.14)
-	draw_circle(Vector2.ZERO, 44.0, body_col)
-	draw_circle(Vector2.ZERO, 44.0, outline_col, false, outline_w)
-
-	# Liquid color inside
+	var tex: Texture2D = _get_tex("station_cauldron.png")
 	var liq_col: Color = Color(0.30, 0.26, 0.38)
 	if active_recipe != null:
 		liq_col = active_recipe.potion_color
@@ -395,16 +476,80 @@ func _draw_cauldron(outline_col: Color, outline_w: float) -> void:
 		liq_col = _ingredient_color(held_ingredients[0])
 	if cauldron_state == CauldronState.OVERBOIL_WARNING and int(_pulse_time * 10.0) % 2 == 0:
 		liq_col = Color(1.0, 0.18, 0.12)
+
+	if tex != null:
+		var shake_x: float = sin(_pulse_time * 42.0) * 3.0 if cauldron_state == CauldronState.OVERBOIL_WARNING else 0.0
+		var hover_tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		var caul_tint: Color = Color(0.55, 0.50, 0.55) if cauldron_state == CauldronState.EXPLODED_COOLDOWN else hover_tint
+		draw_set_transform(Vector2(shake_x, 66.0), 0.0, Vector2(1.0, 0.45))
+		draw_circle(Vector2.ZERO, 76.0, Color(0.0, 0.0, 0.0, 0.26))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+		_draw_sprite_centered(tex, caul_tint, Vector2(shake_x, 0.0))
+
+		var is_active_cook: bool = cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING
+		if is_active_cook:
+			# Warm flickering fire glow over firewood logs
+			var fire_pulse: float = sin(_pulse_time * 9.0) * 3.5
+			draw_set_transform(Vector2(shake_x, 42.0), 0.0, Vector2(1.0, 0.48))
+			draw_circle(Vector2.ZERO, 44.0 + fire_pulse, Color(1.0, 0.42, 0.10, 0.36))
+			draw_circle(Vector2(0.0, -4.0), 26.0 + fire_pulse * 0.5, Color(1.0, 0.78, 0.24, 0.45))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+			# Colored liquid inside the painted cauldron mouth
+			draw_set_transform(Vector2(shake_x, -58.0), 0.0, Vector2(1.0, 0.38))
+			draw_circle(Vector2.ZERO, 48.0, liq_col)
+			draw_circle(Vector2(-12.0, -10.0), 22.0, liq_col.lightened(0.28))
+			draw_circle(Vector2.ZERO, 48.0, Color(0.10, 0.08, 0.14), false, 2.5)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+			# Rising bubbles
+			var b_y: float = -60.0 - fmod(_pulse_time * 24.0, 22.0)
+			draw_circle(Vector2(shake_x - 12.0, b_y), 4.5, Color(1.0, 1.0, 1.0, 0.70))
+			draw_circle(Vector2(shake_x + 14.0, b_y + 6.0), 3.5, Color(1.0, 1.0, 1.0, 0.58))
+
+		# Progress / Danger arc hugging the cauldron mouth in 2.5D perspective
+		if cauldron_state == CauldronState.BREWING:
+			var pct: float = clampf(brew_elapsed / maxf(0.1, brew_duration), 0.0, 1.0)
+			draw_set_transform(Vector2(shake_x, -58.0), 0.0, Vector2(1.0, 0.44))
+			draw_arc(Vector2.ZERO, 53.0, -PI / 2.0, -PI / 2.0 + TAU * pct, 32, Color(0.3, 0.95, 0.55), 7.0)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		elif cauldron_state == CauldronState.READY or cauldron_state == CauldronState.OVERBOIL_WARNING:
+			var danger: float = clampf(overheat_elapsed / maxf(0.1, overheat_duration), 0.0, 1.0)
+			var ring_col: Color = Color(1.0, 0.85, 0.2) if danger < 0.65 else Color(1.0, 0.22, 0.22)
+			if familiar_protected:
+				ring_col = Color(0.4, 0.92, 1.0)
+				danger = 0.0
+			draw_set_transform(Vector2(shake_x, -58.0), 0.0, Vector2(1.0, 0.44))
+			draw_arc(Vector2.ZERO, 53.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - danger), 32, ring_col, 7.0)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			_draw_station_caption("¡LISTA!" if danger < 0.65 else "¡VA A EXPLOTAR!", Vector2(0, -98), ring_col)
+
+		if is_stirred_hot and (cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY):
+			_draw_station_caption("¡CALIENTE!", Vector2(0, -116), Color(1.0, 0.65, 0.2))
+		elif cauldron_state == CauldronState.EXPLODED_COOLDOWN:
+			_draw_station_caption("¡CHAMUSCADO!", Vector2(0, -98), Color(0.95, 0.35, 0.35))
+		elif not held_ingredients.is_empty() and cauldron_state == CauldronState.IDLE:
+			for i: int in range(held_ingredients.size()):
+				draw_circle(Vector2(-12 + i * 24, -78), 9.0, _ingredient_color(held_ingredients[i]))
+
+		if hovered:
+			_draw_station_caption(display_label, Vector2(0, 104))
+		return
+
+	# Fallback placeholder geometry
+	draw_circle(Vector2(0, 8), 58.0, Color(0.25, 0.22, 0.27))
+	if cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY:
+		draw_circle(Vector2(0, 10), 50.0 + sin(_pulse_time * 6.0) * 3.0, Color(1.0, 0.45, 0.15, 0.32))
+	var body_col: Color = Color(0.14, 0.12, 0.14) if cauldron_state == CauldronState.EXPLODED_COOLDOWN else Color(0.20, 0.18, 0.24)
+	draw_circle(Vector2.ZERO, 44.0, body_col)
+	draw_circle(Vector2.ZERO, 44.0, outline_col, false, outline_w)
 	draw_circle(Vector2(0, -3), 31.0, liq_col)
 	draw_circle(Vector2(0, -3), 31.0, Color(0.1, 0.08, 0.14), false, 2.5)
-
-	# Bubbles
 	if cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY:
 		var b_y: float = -8.0 - fmod(_pulse_time * 24.0, 18.0)
 		draw_circle(Vector2(-10, b_y), 4.5, Color(1, 1, 1, 0.65))
 		draw_circle(Vector2(11, b_y + 5.0), 3.5, Color(1, 1, 1, 0.55))
-
-	# Progress / Danger rings
 	if cauldron_state == CauldronState.BREWING:
 		var pct: float = clampf(brew_elapsed / maxf(0.1, brew_duration), 0.0, 1.0)
 		draw_arc(Vector2.ZERO, 50.0, -PI / 2.0, -PI / 2.0 + TAU * pct, 32, Color(0.3, 0.95, 0.55), 6.0)
@@ -416,7 +561,6 @@ func _draw_cauldron(outline_col: Color, outline_w: float) -> void:
 			danger = 0.0
 		draw_arc(Vector2.ZERO, 50.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - danger), 32, ring_col, 6.0)
 		_draw_station_caption("¡LISTA!" if danger < 0.65 else "¡VA A EXPLOTAR!", Vector2(0, -58), ring_col)
-
 	if is_stirred_hot and (cauldron_state == CauldronState.BREWING or cauldron_state == CauldronState.READY):
 		_draw_station_caption("¡CALIENTE!", Vector2(0, -76), Color(1.0, 0.65, 0.2))
 	elif cauldron_state == CauldronState.EXPLODED_COOLDOWN:
@@ -424,7 +568,6 @@ func _draw_cauldron(outline_col: Color, outline_w: float) -> void:
 	elif not held_ingredients.is_empty() and cauldron_state == CauldronState.IDLE:
 		for i: int in range(held_ingredients.size()):
 			draw_circle(Vector2(-12 + i * 24, -56), 9.0, _ingredient_color(held_ingredients[i]))
-
 	_draw_station_caption(display_label, Vector2(0, 62))
 
 
@@ -484,10 +627,32 @@ func clear_bottling_slots() -> void:
 
 
 func _draw_bottling(outline_col: Color, outline_w: float) -> void:
+	var tex: Texture2D = _get_tex("station_bottling.png")
+	if tex != null:
+		draw_set_transform(Vector2(0.0, 74.0), 0.0, Vector2(1.0, 0.40))
+		draw_circle(Vector2.ZERO, 86.0, Color(0.0, 0.0, 0.0, 0.26))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		_draw_sprite_centered(tex, tint)
+		var slot_centers: Array[Vector2] = [Vector2(-35.0, 32.0), Vector2(35.0, 32.0)]
+		for i: int in range(MAX_BOTTLING_SLOTS):
+			var sp: Vector2 = slot_centers[i]
+			if hovered and hovered_slot == i:
+				draw_set_transform(sp, 0.0, Vector2(1.0, 0.65))
+				draw_circle(Vector2.ZERO, 22.0, Color(1.0, 0.94, 0.45), false, 3.5)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			if bottling_slots[i] != "":
+				var parts: PackedStringArray = bottling_slots[i].split(":")
+				var rec_id: String = parts[1] if parts.size() > 1 else ""
+				_draw_round_potion(sp + Vector2(0.0, -8.0), WitchController._recipe_color_hint(rec_id), 14.0)
+		var occ_b: int = get_occupied_bottling_count()
+		if hovered or occ_b > 0:
+			_draw_station_caption("%s (%d/2)" % [display_label, occ_b], Vector2(0, 106))
+		return
+
 	draw_rect(Rect2(-56, -38, 120, 84), Color(0, 0, 0, 0.25))
 	draw_rect(Rect2(-58, -42, 116, 80), Color(0.38, 0.27, 0.22))
 	draw_rect(Rect2(-58, -42, 116, 80), Color(0.11, 0.08, 0.14) if hovered else outline_col, false, 3.0 if hovered else outline_w)
-	# 2 Bottling storage slots (empty flasks when free, colored bottled potion when stored)
 	for i: int in range(MAX_BOTTLING_SLOTS):
 		var fx: float = -26.0 + float(i) * 52.0
 		var is_slot_hovered: bool = hovered and hovered_slot == i
@@ -559,29 +724,60 @@ func get_displayed_recipe_ids() -> Array[StringName]:
 
 
 func _draw_display_stand(outline_col: Color, outline_w: float) -> void:
-	draw_rect(Rect2(-56, -36, 120, 82), Color(0, 0, 0, 0.25))
-	draw_rect(Rect2(-58, -40, 116, 78), Color(0.42, 0.28, 0.20))
-	draw_rect(Rect2(-58, -40, 116, 78), Color(0.11, 0.08, 0.14) if hovered else outline_col, false, 3.0 if hovered else outline_w)
-	# Glass showcase top
-	draw_rect(Rect2(-50, -32, 100, 58), Color(0.68, 0.88, 0.96, 0.25))
-	draw_rect(Rect2(-50, -32, 100, 58), Color(0.75, 0.92, 1.0, 0.6), false, 1.5)
+	var tex: Texture2D = _get_tex("station_vitrina.png")
+	if tex != null:
+		var tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		_draw_sprite_centered(tex, tint)
+		var ped_centers: Array[Vector2] = [Vector2(-2.0, -6.0), Vector2(1.0, 50.0)]
+		for i: int in range(MAX_DISPLAY_SLOTS):
+			var pc: Vector2 = ped_centers[i]
+			if hovered and hovered_slot == i:
+				draw_set_transform(pc, 0.0, Vector2(1.0, 0.65))
+				draw_circle(Vector2.ZERO, 19.0, Color(1.0, 0.94, 0.45), false, 3.2)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			if display_slots[i] != "":
+				var parts: PackedStringArray = display_slots[i].split(":")
+				var rec_id: String = parts[1] if parts.size() > 1 else ""
+				_draw_round_potion(pc + Vector2(0.0, -10.0), WitchController._recipe_color_hint(rec_id), 13.0)
+		var occ_d: int = get_occupied_slot_count()
+		if hovered or occ_d > 0:
+			_draw_station_caption("%s (%d/2)" % [display_label, occ_d], Vector2(0, 104))
+		return
+
+	draw_rect(Rect2(-34, -55, 78, 120), Color(0, 0, 0, 0.25))
+	draw_rect(Rect2(-38, -59, 76, 118), Color(0.42, 0.28, 0.20))
+	draw_rect(Rect2(-38, -59, 76, 118), Color(0.11, 0.08, 0.14) if hovered else outline_col, false, 3.0 if hovered else outline_w)
+	# Glass showcase top (vertical cabinet oriented along the counter)
+	draw_rect(Rect2(-31, -52, 62, 104), Color(0.68, 0.88, 0.96, 0.25))
+	draw_rect(Rect2(-31, -52, 62, 104), Color(0.75, 0.92, 1.0, 0.6), false, 1.5)
 	for i: int in range(MAX_DISPLAY_SLOTS):
-		var sx: float = -26.0 + float(i) * 52.0
+		var sy: float = -26.0 + float(i) * 52.0
 		var is_slot_hovered: bool = hovered and hovered_slot == i
 		var ped_border: Color = Color(1.0, 0.94, 0.45) if is_slot_hovered else Color(0.86, 0.72, 0.36, 0.75)
-		draw_circle(Vector2(sx, 0), 19.0, Color(0.24, 0.16, 0.26, 0.9))
-		draw_circle(Vector2(sx, 0), 19.0, ped_border, false, 3.5 if is_slot_hovered else 2.0)
+		draw_circle(Vector2(0.0, sy), 19.0, Color(0.24, 0.16, 0.26, 0.9))
+		draw_circle(Vector2(0.0, sy), 19.0, ped_border, false, 3.5 if is_slot_hovered else 2.0)
 		if display_slots[i] != "":
 			var parts: PackedStringArray = display_slots[i].split(":")
 			var rec_id: String = parts[1] if parts.size() > 1 else ""
 			var flask_col: Color = WitchController._recipe_color_hint(rec_id)
-			draw_circle(Vector2(sx, 2), 13.0, flask_col)
-			draw_circle(Vector2(sx, 2), 13.0, Color(0.95, 0.98, 1.0), false, 2.5)
-			draw_rect(Rect2(sx - 4, -16, 8, 6), Color(0.76, 0.52, 0.30))
-	_draw_station_caption("%s (%d/2)" % [display_label, get_occupied_slot_count()], Vector2(0, 56))
+			draw_circle(Vector2(0.0, sy + 2.0), 13.0, flask_col)
+			draw_circle(Vector2(0.0, sy + 2.0), 13.0, Color(0.95, 0.98, 1.0), false, 2.5)
+			draw_rect(Rect2(-4, sy - 16, 8, 6), Color(0.76, 0.52, 0.30))
+	_draw_station_caption("%s (%d/2)" % [display_label, get_occupied_slot_count()], Vector2(0, 76))
 
 
 func _draw_trash(outline_col: Color, outline_w: float) -> void:
+	var tex: Texture2D = _get_tex("station_trash.png")
+	if tex != null:
+		draw_set_transform(Vector2(0.0, 40.0), 0.0, Vector2(1.0, 0.45))
+		draw_circle(Vector2.ZERO, 34.0, Color(0.0, 0.0, 0.0, 0.26))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		_draw_sprite_centered(tex, tint)
+		if hovered:
+			_draw_station_caption(display_label, Vector2(0, 62))
+		return
+
 	draw_circle(Vector2.ZERO, 34.0, Color(0.28, 0.22, 0.32))
 	draw_circle(Vector2.ZERO, 34.0, outline_col, false, outline_w)
 	draw_circle(Vector2.ZERO, 22.0, Color(0.12, 0.08, 0.16))
@@ -603,6 +799,34 @@ func _draw_supply_source(outline_col: Color, outline_w: float) -> void:
 
 
 func _draw_crate_rack(outline_col: Color, outline_w: float) -> void:
+	var tex: Texture2D = _get_tex("station_pallet.png")
+	if tex != null:
+		draw_set_transform(Vector2(0.0, 52.0), 0.0, Vector2(1.0, 0.36))
+		draw_circle(Vector2.ZERO, 122.0, Color(0.0, 0.0, 0.0, 0.22))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var tint: Color = Color(1.13, 1.10, 1.03) if hovered else Color.WHITE
+		_draw_sprite_centered(tex, tint)
+		for i: int in range(MAX_CRATE_RACK_SLOTS):
+			var sx: float = -76.0 + float(i) * 76.0
+			var slot_rect: Rect2 = Rect2(sx - 28.0, -40.0, 56.0, 48.0)
+			if hovered and hovered_slot == i:
+				draw_rect(slot_rect, Color(1.0, 0.94, 0.45, 0.22))
+				draw_rect(slot_rect, Color(1.0, 0.94, 0.45), false, 3.0)
+			if crate_slots[i] != "":
+				var parts: PackedStringArray = crate_slots[i].split(":")
+				var c_ing: StringName = StringName(parts[1]) if parts.size() >= 2 else &"red"
+				var c_amt: String = parts[2] if parts.size() >= 3 else "0"
+				var c_col: Color = _ingredient_color(c_ing)
+				draw_rect(Rect2(sx - 24.0, -38.0, 48.0, 44.0), Color(0.52, 0.34, 0.20))
+				draw_rect(Rect2(sx - 24.0, -38.0, 48.0, 44.0), Color(0.12, 0.08, 0.14), false, 2.2)
+				draw_rect(Rect2(sx - 18.0, -32.0, 36.0, 32.0), c_col.darkened(0.25))
+				draw_circle(Vector2(sx, -16.0), 12.0, c_col)
+				_draw_station_caption(c_amt, Vector2(sx, -10.0), Color(1.0, 0.98, 0.92))
+		var occ_c: int = get_occupied_crate_count()
+		if hovered or occ_c > 0:
+			_draw_station_caption("%s (%d/3)" % [display_label, occ_c], Vector2(0, 78))
+		return
+
 	draw_rect(Rect2(-102, -36, 208, 78), Color(0, 0, 0, 0.25))
 	draw_rect(Rect2(-104, -40, 208, 76), Color(0.36, 0.24, 0.17))
 	draw_rect(Rect2(-104, -40, 208, 76), Color(0.11, 0.08, 0.14) if hovered else outline_col, false, 3.0 if hovered else outline_w)
@@ -626,6 +850,25 @@ func _draw_crate_rack(outline_col: Color, outline_w: float) -> void:
 
 
 func _draw_room_door(outline_col: Color, outline_w: float) -> void:
+	if use_background_art:
+		if hovered:
+			var hover_rect: Rect2 = Rect2(-52, -135, 104, 270)
+			draw_rect(hover_rect, Color(1.0, 0.90, 0.45, 0.22))
+			draw_rect(hover_rect, Color(1.0, 0.92, 0.48, 0.95), false, 3.5)
+		var bob_x: float = sin(_pulse_time * 4.5) * 4.0
+		var badge_rect: Rect2 = Rect2(-58, 104, 116, 30)
+		draw_rect(badge_rect, Color(0.10, 0.06, 0.14, 0.88))
+		draw_rect(badge_rect, Color(1.0, 0.88, 0.38, 0.92) if hovered else Color(0.76, 0.56, 0.30, 0.88), false, 2.2)
+		var arrow_pts: PackedVector2Array = PackedVector2Array([
+			Vector2(-46 + bob_x, 119),
+			Vector2(-32 + bob_x, 111),
+			Vector2(-32 + bob_x, 127),
+		])
+		draw_colored_polygon(arrow_pts, Color(1.0, 0.88, 0.38))
+		draw_polyline(arrow_pts + PackedVector2Array([arrow_pts[0]]), Color(0.10, 0.06, 0.14), 1.6)
+		_draw_station_caption(display_label, Vector2(12, 124), Color(1.0, 0.94, 0.70))
+		return
+
 	var frame: Rect2 = Rect2(-38, -68, 76, 136)
 	draw_rect(Rect2(-34, -62, 76, 138), Color(0, 0, 0, 0.32))
 	draw_rect(frame, Color(0.32, 0.20, 0.14))

@@ -51,7 +51,7 @@ func setup(data: CustomerArchetypeData, recipe: PotionRecipeData, slot_idx: int,
 	patience_remaining = patience_max
 	order_revealed = false
 	_decide_timer = 0.85
-	position = slot_world_pos + Vector2(180.0, 0.0)
+	position = Vector2(1485.0, 355.0)
 	var tw: Tween = create_tween()
 	tw.tween_property(self, "position", _target_pos, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	queue_redraw()

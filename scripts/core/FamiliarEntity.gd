@@ -197,7 +197,7 @@ func _act_murcielago() -> void:
 	if display_st != null:
 		var match_disp_slot: int = _find_wanted_slot(display_st.display_slots, customers)
 		if match_disp_slot != -1:
-			_target_pos = display_st.global_position + Vector2(-24 + match_disp_slot * 48, -26)
+			_target_pos = display_st.global_position + (Vector2(-2, -6) if match_disp_slot == 0 else Vector2(1, 50))
 			_status_hint = "De Vitrina"
 			if global_position.distance_to(_target_pos) <= 24.0:
 				var picked: String = display_st.take_potion_from_slot(match_disp_slot)
@@ -210,7 +210,7 @@ func _act_murcielago() -> void:
 	if bottling_st != null:
 		var match_bot_slot: int = _find_wanted_slot(bottling_st.bottling_slots, customers)
 		if match_bot_slot != -1:
-			_target_pos = bottling_st.global_position + Vector2(-24 + match_bot_slot * 48, -26)
+			_target_pos = bottling_st.global_position + Vector2(-35 + match_bot_slot * 70, 12)
 			_status_hint = "De Embotellado"
 			if global_position.distance_to(_target_pos) <= 24.0:
 				var picked_b: String = bottling_st.take_bottled_from_slot(match_bot_slot)

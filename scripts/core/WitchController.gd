@@ -119,13 +119,34 @@ func trigger_ability(cauldrons: Array[KitchenStation], customers: Array[Customer
 	return true
 
 
+static func get_counter_service_pos(customer_pos: Vector2) -> Vector2:
+	var stand_y: float = clampf(customer_pos.y, 415.0, 880.0)
+	var counter_left_x: float = 1168.0 + (stand_y - 353.0) * 0.172
+	return Vector2(counter_left_x - 58.0, stand_y)
+
+
 func enqueue_station(station: KitchenStation) -> void:
-	var offset: Vector2 = Vector2(0, 54)
-	if station.station_type == KitchenStation.StationType.CAULDRON:
-		offset = Vector2(0, 62)
-	elif station.station_type == KitchenStation.StationType.ROOM_DOOR:
-		offset = Vector2(54, 0) if station.station_id == &"door_to_storage" else Vector2(-54, 0)
-	var dest: Vector2 = station.global_position + offset
+	var dest: Vector2
+	if station.station_type == KitchenStation.StationType.DISPLAY_STAND:
+		dest = get_counter_service_pos(station.global_position + Vector2(0, 24))
+	else:
+		var offset: Vector2 = Vector2(0, 54)
+		match station.station_type:
+			KitchenStation.StationType.CAULDRON:
+				offset = Vector2(0, 86)
+			KitchenStation.StationType.MORTAR:
+				offset = Vector2(0, 70)
+			KitchenStation.StationType.BOTTLING:
+				offset = Vector2(0, 86)
+			KitchenStation.StationType.TRASH:
+				offset = Vector2(-62, -16)
+			KitchenStation.StationType.INGREDIENT_BIN:
+				offset = Vector2(0, -78)
+			KitchenStation.StationType.CRATE_RACK:
+				offset = Vector2(0, -68)
+			KitchenStation.StationType.ROOM_DOOR:
+				offset = Vector2(88, 65) if station.station_id == &"door_to_storage" else Vector2(-54, 0)
+		dest = station.global_position + offset
 	_buffer_or_start_task({
 		"kind": "station",
 		"target": station,
@@ -136,7 +157,7 @@ func enqueue_station(station: KitchenStation) -> void:
 
 
 func enqueue_customer(customer: CustomerEntity) -> void:
-	var dest: Vector2 = customer.global_position + Vector2(-84, 0)
+	var dest: Vector2 = get_counter_service_pos(customer.global_position)
 	_buffer_or_start_task({
 		"kind": "customer",
 		"target": customer,
@@ -266,7 +287,7 @@ func _get_live_task_pos(task: Dictionary) -> Vector2:
 		var raw_target: Variant = task.get("target")
 		if is_instance_valid(raw_target) and raw_target is CustomerEntity:
 			var c: CustomerEntity = raw_target as CustomerEntity
-			return c.global_position + Vector2(-84, 0)
+			return get_counter_service_pos(c.global_position)
 	return task.get("pos", global_position) as Vector2
 
 
