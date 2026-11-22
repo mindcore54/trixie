@@ -1,1499 +1,2276 @@
 class_name MainGame
 extends Node2D
-## Coordinates the 2.5D potion kitchen arena, wave director, customers, familiars,
-## floating juice popups, roguelite upgrades, and HUD.
+## Tactical 2D Alchemy Incremental Prototype (Zero Autoclicker).
+## Mechanics:
+## - Left-click an orb to extract it; hold & drag across matching colors (plus Stars/Bombs) to chain!
+## - Right-click an orb to purge unwanted colors safely without hurting the potion tube or combo.
+## - Active Customer sets a live Color Chemistry trio: LIKED (+tube, 2x essence, +Frenzy),
+##   NEUTRAL (+small tube, 1x essence), DISLIKED (-18% tube, resets combo).
+## - Frenzy transmutes all DISLIKED orbs into LIKED orbs and doubles output for a burst.
 
-const MAX_CUSTOMERS_IN_QUEUE: int = 5
-const COMBO_WINDOW_SEC: float = 15.0
-const DAY_DURATION_SEC: float = 300.0
-const MAX_FAMILIAR_SLOTS: int = 1
-const MAX_PASSIVE_SLOTS: int = 3
-const MAX_ACTIVE_SLOTS: int = 3
-const KITCHEN_BG_TEX_PATH: String = "res://assets/backgrounds/kitchen_bg.jpg"
-const KITCHEN_DESK_TEX_PATH: String = "res://assets/backgrounds/kitchen_desk.png"
-const KITCHEN_DESK_POS: Vector2 = Vector2(1170.0, 353.0)
-const BINS_TABLE_TEX_PATH: String = "res://assets/props/stations/station_bins_table_empty.png"
-const BINS_TABLE_POS: Vector2 = Vector2(360.0, 905.0)
-
-enum TutorialStep {
-	NONE,
-	PICK_INGREDIENT,
-	ADD_TO_CAULDRON,
-	STIR_OR_COLLECT,
-	BOTTLE_POTION,
-	DELIVER_CUSTOMER,
-	RESTOCK_DOOR,
-	RESTOCK_PICK_CRATE,
-	RESTOCK_RETURN,
-	RESTOCK_POUR,
+enum ViewMode {
+	CAULDRON,
+	UPGRADE_TREE,
+	GALLERY,
 }
 
+enum BubbleKind {
+	RED,
+	BLUE,
+	GREEN,
+	GOLD,
+	BOMB,
+}
+
+const VIEWPORT_SIZE: Vector2 = Vector2(1920.0, 1080.0)
+const CAULDRON_CENTER: Vector2 = Vector2(880.0, 565.0)
+const CAULDRON_RADIUS: float = 335.0
+const ORB_RADIUS: float = 34.0
+const BASE_ROUND_DURATION: float = 25.0
+const CAULDRON_TEX_PATH: String = "res://assets/props/stations/station_cauldron.png"
+
+const TUBE_RECT: Rect2 = Rect2(1312.0, 265.0, 54.0, 445.0)
+const AFFINITY_THRESHOLDS: Array[int] = [3, 7, 12]
+
+const CUSTOMER_CHEMISTRY: Dictionary = {
+	&"sylvi": {"liked": BubbleKind.RED, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.BLUE},
+	&"velvet": {"liked": BubbleKind.BLUE, "neutral": BubbleKind.RED, "disliked": BubbleKind.GREEN},
+	&"seraphina": {"liked": BubbleKind.GREEN, "neutral": BubbleKind.BLUE, "disliked": BubbleKind.RED},
+	&"mona": {"liked": BubbleKind.BLUE, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.RED},
+	&"roxy": {"liked": BubbleKind.RED, "neutral": BubbleKind.BLUE, "disliked": BubbleKind.GREEN},
+}
+
+const GALLERY_TITLES: Dictionary = {
+	&"trixie": ["Chispas de Apertura", "Sobrecalentamiento Picante", "Maestra del Aquelarre"],
+	&"sylvi": ["Brindis del Bosque", "Calor bajo las Hojas", "Fiesta Privada con Trixie"],
+	&"velvet": ["Mirada Ejecutiva", "Prueba Directa del Cucharón", "Contrato Carmesí"],
+	&"seraphina": ["Inspección de Pureza", "Armadura Entreabierta", "Confesión Secreta de la Orden"],
+	&"mona": ["Rivalidad en el Caldero", "Sonrojo Tsundere", "Noche de Alquimia Compartida"],
+	&"roxy": ["Aullido de Luna Llena", "Cazadora Cautivada", "Frasco Reservado"],
+}
+
+# Catalogs
 var witches: Array[WitchCharacterData] = []
 var customers_catalog: Array[CustomerArchetypeData] = []
-var recipes_catalog: Array[PotionRecipeData] = []
-var upgrades_catalog: Array[RogueliteUpgradeData] = []
+var tree_nodes: Array[Dictionary] = []
+var _node_by_id: Dictionary = {}
 
-var stations: Array[KitchenStation] = []
-var active_customers: Array[CustomerEntity] = []
-var active_familiars: Array[FamiliarEntity] = []
-var acquired_upgrades: Dictionary = {}
-var upgrade_levels: Dictionary = {}
-var equipped_familiar_ids: Array[StringName] = []
-var equipped_passive_ids: Array[StringName] = []
-var equipped_active_ids: Array[StringName] = []
-var active_skill_cooldowns: Dictionary = {}
-var seismic_mortar_boost: float = 0.25
-var build_levels: Dictionary = {
-	"move_speed": 0,
-	"brew_speed": 0,
-	"cauldron_grace": 0,
-	"gold_tips": 0,
-	"ability_cdr": 0,
-	"extra_heart": 0,
+# Economy & progression
+var view_mode: ViewMode = ViewMode.CAULDRON
+var essence_gold: int = 0
+var total_essence_earned: int = 0
+var round_number: int = 1
+var round_duration: float = BASE_ROUND_DURATION
+var round_time_left: float = BASE_ROUND_DURATION
+var round_ending: bool = false
+var _round_end_timer: float = 0.0
+var _round_essence_gained: int = 0
+var orders_completed: int = 0
+var victory_achieved: bool = false
+var _victory_banner_shown: bool = false
+
+var node_levels: Dictionary = {
+	&"root_cauldron": 1,
 }
-var unlocked_witch_ids: Array[StringName] = [&"trixie"]
-var customer_affinity: Dictionary = {}
 
-var witch: WitchController
-var hud: KitchenHUD
-var camera: Camera2D
+# Derived tactical stats
+var spawn_cap: int = 6
+var spawn_interval: float = 1.15
+var chain_link_range: float = 225.0
+var chain_bonus_per_lvl: float = 0.0
+var aroma_essence_mult: float = 1.0
+var aroma_tube_bonus: float = 0.0
+var purge_recycle_lvl: int = 0
+var frenzy_gain_mult: float = 1.0
+var frenzy_duration_sec: float = 5.0
+var chain_spark_jumps: int = 0
+var bomb_chance: float = 0.0
+var star_chance: float = 0.0
+var fam_michi_lvl: int = 0
+var fam_imp_lvl: int = 0
+var fam_bat_lvl: int = 0
+var order_bonus_mult: float = 1.0
+var vip_tier: int = 0
+var crit_potion_lvl: int = 0
 
-var day_number: int = 1
-var day_time_left: float = DAY_DURATION_SEC
-var shop_closing: bool = false
-var rush_hour_active: bool = false
-var current_room: StringName = &"kitchen"
-var _camera_tween: Tween
-var spawn_timer: float = 2.0
-var _tutorial_step: TutorialStep = TutorialStep.NONE
-var _first_potion_tutorial_done: bool = false
-var _restock_tutorial_done: bool = false
-var _tutorial_restock_ing: StringName = &""
-var _tutorial_target_pos: Vector2 = Vector2.ZERO
-var _tutorial_has_target: bool = false
-var _tutorial_pulse_time: float = 0.0
-var gold: int = 0
-var xp_level: int = 1
-var current_xp: int = 0
-var xp_to_next_level: int = 80
-var _pending_level_drafts: int = 0
-var combo: int = 0
-var combo_timer: float = 0.0
-var hearts: int = 3
-var max_hearts: int = 3
-var reroll_cost: int = 35
-var run_active: bool = true
-var mirror_clone_enabled: bool = false
-var mirror_clone_chance: float = 0.0
-var _selected_witch_idx: int = 0
+# Live cauldron runtime state
+var _time: float = 0.0
+var _spawn_accum: float = 0.0
+var _michi_timer: float = 1.2
+var _imp_timer: float = 1.6
+var _bat_timer: float = 1.8
+var _combo: int = 0
+var _combo_timer: float = 0.0
+var _frenzy_charge: float = 0.0
+var _frenzy_timer: float = 0.0
+var _cauldron_shake: float = 0.0
+var _tube_flash_timer: float = 0.0
+var _tube_flash_positive: bool = true
+
+var _mouse_pos: Vector2 = CAULDRON_CENTER
+var _prev_mouse_pos: Vector2 = CAULDRON_CENTER
+var _hovered_orb_idx: int = -1
+var _is_dragging: bool = false
+var _drag_chain: Array[int] = []
+var _drag_base_color: int = -1
+
+var _orbs: Array[Dictionary] = []
+var _lightning_arcs: Array[Dictionary] = []
+var _shockwaves: Array[Dictionary] = []
 var _popups: Array[Dictionary] = []
-var _kitchen_bg_tex: Texture2D = null
-var _kitchen_desk_tex: Texture2D = null
-var _customers_layer: Node2D
-var _desk_sprite: Sprite2D
-var _kitchen_layer: Node2D
-var _bins_table_sprite: Sprite2D
-var _familiars_layer: Node2D
-var _world_overlay: Node2D
+var _ambient_steam: Array[Dictionary] = []
 
-var _queue_slots: Array[Vector2] = [
-	Vector2(1415, 650),
-	Vector2(1400, 575),
-	Vector2(1385, 505),
-	Vector2(1385, 440),
-	Vector2(1420, 385),
-]
+# Left (Trixie) & Right (Customer) state
+var _trixie_emotion: String = "normal"
+var _trixie_emotion_timer: float = 0.0
+var _trixie_line: String = "Clic o arrastra orbes del color AFÍN. Clic Der purga ❌."
+
+var _active_customer: CustomerArchetypeData
+var _potion_tube_pct: float = 0.0
+var _customer_order_reward: int = 24
+var _customer_line: String = "¡Necesito algo bien fuerte para esta noche!"
+var _customer_spicy_mode: bool = false
+var _customer_flash_timer: float = 0.0
+var _customer_slide_t: float = 1.0
+
+var customer_affinity_pts: Dictionary = {}
+var _toast_timer: float = 0.0
+
+# UI nodes
+var camera: Camera2D
+var _cauldron_tex: Texture2D
+var _ui_layer: CanvasLayer
+
+var _top_essence_lbl: Label
+var _top_timer_lbl: Label
+var _top_round_lbl: Label
+var _tab_cauldron_btn: Button
+var _tab_tree_btn: Button
+var _tab_gallery_btn: Button
+var _tree_badge_panel: PanelContainer
+
+var _cauldron_hud_root: Control
+var _trixie_speech_lbl: Label
+var _frenzy_bar: ProgressBar
+var _frenzy_btn: Button
+var _cust_name_lbl: Label
+var _cust_aff_lbl: Label
+var _cust_liked_lbl: Label
+var _cust_neutral_lbl: Label
+var _cust_disliked_lbl: Label
+var _cust_speech_lbl: Label
+var _end_round_btn: Button
+var _toast_lbl: Label
+
+var _tree_view_root: Control
+var _tree_canvas: Control
+var _tree_hovered_id: StringName = &""
+var _tree_selected_id: StringName = &"aroma_concentrado"
+var _tree_info_title: Label
+var _tree_info_desc: Label
+var _tree_info_stats: Label
+var _tree_buy_btn: Button
+var _tree_boil_btn: Button
+
+var _gallery_view_root: Control
+var _gallery_selected_char_id: StringName = &"sylvi"
+var _gallery_char_buttons: Dictionary = {}
+var _gallery_portrait_canvas: Control
+var _gallery_title_lbl: Label
+var _gallery_aff_lbl: Label
+var _gallery_lines_lbl: Label
+var _gallery_gift_btn: Button
+var _gallery_cards_box: HBoxContainer
+var _lightbox_overlay: ColorRect
+var _lightbox_title_lbl: Label
+var _lightbox_scene_idx: int = 0
+var _lightbox_canvas: Control
+var _lightbox_caption_lbl: Label
+
+var _pause_overlay: ColorRect
+var _victory_overlay: ColorRect
 
 
 func _ready() -> void:
-	_kitchen_bg_tex = load(KITCHEN_BG_TEX_PATH) as Texture2D
-	_kitchen_desk_tex = load(KITCHEN_DESK_TEX_PATH) as Texture2D
+	randomize()
 	witches = GameCatalog.get_witches()
-	_selected_witch_idx = _find_witch_index(&"trixie")
 	customers_catalog = GameCatalog.get_customers()
-	recipes_catalog = GameCatalog.get_recipes()
-	upgrades_catalog = GameCatalog.get_upgrades()
+	tree_nodes = GameCatalog.get_incremental_nodes()
+	for nd: Dictionary in tree_nodes:
+		_node_by_id[nd["id"] as StringName] = nd
+
+	for c: CustomerArchetypeData in customers_catalog:
+		customer_affinity_pts[c.customer_id] = 0
+	customer_affinity_pts[&"trixie"] = 0
+
+	_cauldron_tex = load(CAULDRON_TEX_PATH) as Texture2D
 
 	camera = Camera2D.new()
-	camera.position = Vector2(960, 540)
+	camera.position = VIEWPORT_SIZE * 0.5
 	add_child(camera)
-	AudioJuiceManager.register_camera(camera)
+	var audio: Node = _audio()
+	if audio != null:
+		audio.call("register_camera", camera)
 
-	# 2.5D depth layers: customers behind desk -> desk cutout -> kitchen Y-sort -> flying familiars -> popups/tutorial
-	_customers_layer = Node2D.new()
-	_customers_layer.y_sort_enabled = true
-	_customers_layer.z_index = 1
-	add_child(_customers_layer)
+	for i: int in range(20):
+		_ambient_steam.append({
+			"x": randf_range(-CAULDRON_RADIUS * 0.8, CAULDRON_RADIUS * 0.8),
+			"y": randf_range(-CAULDRON_RADIUS * 0.6, CAULDRON_RADIUS * 0.6),
+			"r": randf_range(4.0, 12.0),
+			"spd": randf_range(16.0, 34.0),
+			"phase": randf_range(0.0, TAU),
+		})
 
-	_desk_sprite = Sprite2D.new()
-	_desk_sprite.texture = _kitchen_desk_tex
-	_desk_sprite.centered = false
-	_desk_sprite.position = KITCHEN_DESK_POS
-	_desk_sprite.z_index = 2
-	_desk_sprite.visible = _kitchen_bg_tex != null and _kitchen_desk_tex != null
-	add_child(_desk_sprite)
+	_recalc_stats()
+	_build_ui()
+	_pick_next_customer(true)
+	_start_round(1)
 
-	_kitchen_layer = Node2D.new()
-	_kitchen_layer.y_sort_enabled = true
-	_kitchen_layer.z_index = 3
-	add_child(_kitchen_layer)
+	var fader: Node = _fader()
+	if fader != null and bool(fader.call("is_black")):
+		fader.call("fade_in", 0.45)
 
-	var bins_tex: Texture2D = load(BINS_TABLE_TEX_PATH) as Texture2D if ResourceLoader.exists(BINS_TABLE_TEX_PATH) else null
-	_bins_table_sprite = Sprite2D.new()
-	_bins_table_sprite.texture = bins_tex
-	_bins_table_sprite.centered = true
-	_bins_table_sprite.position = BINS_TABLE_POS
-	_bins_table_sprite.visible = bins_tex != null
-	_kitchen_layer.add_child(_bins_table_sprite)
-
-	_familiars_layer = Node2D.new()
-	_familiars_layer.z_index = 10
-	add_child(_familiars_layer)
-
-	_world_overlay = Node2D.new()
-	_world_overlay.z_index = 20
-	_world_overlay.draw.connect(_draw_world_overlay)
-	add_child(_world_overlay)
-
-	_build_kitchen_stations()
-
-	witch = WitchController.new()
-	witch.position = Vector2(740, 640)
-	witch.bottling_station_pos = _find_station(&"bottling").global_position
-	witch.seismic_mortar_callback = _on_seismic_mortar
-	witch.wanted_recipes_getter = _get_wanted_recipes
-	witch.potion_delivered_to_customer.connect(_on_potion_delivered)
-	witch.popup_requested.connect(_spawn_popup)
-	witch.room_transition_requested.connect(_on_room_transition_requested)
-	_kitchen_layer.add_child(witch)
-
-	hud = KitchenHUD.new()
-	add_child(hud)
-	hud.configure_witches(witches, _selected_witch_idx)
-	hud.force_draft_requested.connect(_on_force_xp_level_requested)
-	hud.force_end_day_requested.connect(_finish_day)
-	hud.toggle_fullscreen_requested.connect(_toggle_fullscreen)
-	hud.upgrade_chosen.connect(_on_upgrade_chosen)
-	hud.reroll_requested.connect(_on_reroll_requested)
-	hud.build_upgrade_purchased.connect(_on_build_upgrade_purchased)
-	hud.witch_selected_between_days.connect(_on_witch_selected_between_days)
-	hud.active_skill_slot_pressed.connect(trigger_equipped_active_skill)
-	hud.next_day_requested.connect(_on_next_day_requested)
-	hud.restart_run_requested.connect(_restart_run)
-	hud.return_to_menu_requested.connect(_return_to_menu)
-
-	EventBus.cauldron_exploded.connect(_on_cauldron_exploded)
-
-	_start_new_run()
 	if OS.get_cmdline_user_args().has("--smoke-test"):
-		call_deferred("_run_smoke_test")
+		call_deferred("_run_cmdline_smoke_and_quit")
 
 
-func _run_smoke_test() -> void:
-	var starts_with_trixie_ok: bool = not witches.is_empty() and witches[_selected_witch_idx].witch_id == &"trixie"
-	var day_duration_ok: bool = is_equal_approx(DAY_DURATION_SEC, 300.0) and day_time_left > 298.0 and day_time_left <= 300.0
+func _run_cmdline_smoke_and_quit() -> void:
 	await get_tree().process_frame
-	await get_tree().process_frame
-
-	if active_customers.is_empty():
-		push_error("SMOKE FAIL: no initial customer spawned")
-		get_tree().quit(1)
-		return
-
-	var cust: CustomerEntity = active_customers[0]
-	var reqs: Array[StringName] = cust.requested_recipe.required_ingredients
-	var cauldron: KitchenStation = _find_station(&"cauldron_0")
-	var bottling: KitchenStation = _find_station(&"bottling")
-
-	var steps: Array[Variant] = []
-	for ing: StringName in reqs:
-		steps.append(_find_station(StringName("bin_" + String(ing))))
-	steps.append(cauldron)
-	steps.append(cauldron)
-	steps.append(bottling)
-	steps.append(cust)
-
-	Engine.time_scale = 5.0
-	var max_queue_seen: int = 0
-	for step_target: Variant in steps:
-		while witch.action_queue.size() >= WitchController.MAX_NEXT_BUFFER:
-			await get_tree().process_frame
-		if step_target is KitchenStation:
-			witch.enqueue_station(step_target as KitchenStation)
-		elif step_target is CustomerEntity:
-			witch.enqueue_customer(step_target as CustomerEntity)
-		max_queue_seen = maxi(max_queue_seen, witch.action_queue.size())
-		await get_tree().process_frame
-
-	for _f: int in range(300):
-		await get_tree().physics_frame
-		if gold > 0:
-			break
-
-	var xp_after_delivery_ok: bool = current_xp > 0 or xp_level > 1
-
-	var cauldrons: Array[KitchenStation] = [cauldron, _find_station(&"cauldron_1")]
-	var ability_ok: bool = witch.trigger_ability(cauldrons, active_customers, active_familiars)
-	await get_tree().process_frame
-
-	# Verify mortar color-combining (red + green -> mix_yellow circle -> cauldron tonico_silvestre)
-	var mortar: KitchenStation = _find_station(&"mortar")
-	var c1: KitchenStation = _find_station(&"cauldron_1")
-	witch.held_items.clear()
-	witch.held_items.append("ing:red")
-	witch.held_items.append("ing:green")
-	var mortar_mix_ok: bool = witch._perform_mortar_mix(mortar) and witch.held_items.size() == 1 and witch.held_items[0] == "ing:mix_yellow"
-	var raw_blocked_ok: bool = false
-	if mortar_mix_ok:
-		var yellow_ing: StringName = StringName(witch.held_items[0].substr(4))
-		witch.held_items.clear()
-		raw_blocked_ok = c1.add_ingredient(yellow_ing) and c1.active_recipe != null and c1.active_recipe.recipe_id == &"tonico_silvestre"
-		raw_blocked_ok = raw_blocked_ok and not c1.can_accept_ingredient(&"green")
-		c1.finish_instant()
-		c1.take_ready_potion()
-	var upgrade_ready_ok: bool = raw_blocked_ok
-
-	# Verify Display Stand per-slot pick/place + customer pre-reveal decision
-	var display_st: KitchenStation = _find_station(&"display_stand")
-	var display_ok: bool = false
-	if display_st != null:
-		display_st.store_potion_in_slot(0, "bot:elixir_ignis:0:0")
-		display_st.store_potion_in_slot(1, "bot:bruma_lunar:0:0")
-		witch.held_items.clear()
-		witch._interact_with_display_stand(display_st, 0)
-		witch._interact_with_display_stand(display_st, 1)
-		var picked_both_ok: bool = witch.held_items.size() == 2 and witch.held_items[0] == "bot:elixir_ignis:0:0" and witch.held_items[1] == "bot:bruma_lunar:0:0" and display_st.get_occupied_slot_count() == 0
-		witch._interact_with_display_stand(display_st, 1)
-		var placed_in_slot1_ok: bool = display_st.is_slot_occupied(1) and not display_st.is_slot_occupied(0) and witch.held_items.size() == 1
-		for old_c: CustomerEntity in active_customers:
-			if is_instance_valid(old_c):
-				old_c.queue_free()
-		active_customers.clear()
-		_spawn_customer()
-		var new_cust: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
-		var hidden_initially: bool = new_cust != null and not new_cust.order_revealed
-		for _w: int in range(120):
-			await get_tree().physics_frame
-			if new_cust != null and new_cust.order_revealed:
-				break
-		var locked_onto_vitrina: bool = new_cust != null and new_cust.order_revealed and new_cust.tempted_by_display and new_cust.requested_recipe.recipe_id == &"bruma_lunar"
-		display_st.store_potion_in_slot(0, "bot:savia_pura:0:0")
-		await get_tree().physics_frame
-		var stayed_locked: bool = new_cust != null and new_cust.requested_recipe.recipe_id == &"bruma_lunar"
-		witch.held_items.clear()
-		witch._interact_with_display_stand(display_st, 1)
-		var gold_before_disp: int = gold
-		witch._try_deliver_to(new_cust)
-		var disp_gold_ok: bool = gold > gold_before_disp
-		display_ok = picked_both_ok and placed_in_slot1_ok and hidden_initially and locked_onto_vitrina and stayed_locked and disp_gold_ok
-		if not display_ok:
-			print("DISPLAY DEBUG => picked=%s placed=%s hidden=%s locked=%s stayed=%s gold_ok=%s revealed=%s" % [
-				str(picked_both_ok), str(placed_in_slot1_ok), str(hidden_initially), str(locked_onto_vitrina), str(stayed_locked), str(disp_gold_ok), str(new_cust != null and new_cust.order_revealed)
-			])
-		display_st.clear_display_slots()
-
-	# Clear any organic level-up draft opened by the display delivery before testing explicit XP draft pause
-	var botas_upg: RogueliteUpgradeData = null
-	for u: RogueliteUpgradeData in upgrades_catalog:
-		if u.upgrade_id == &"botas_tacon_arcano":
-			botas_upg = u
-			break
-	var safety_drafts: int = 0
-	while not run_active and botas_upg != null and safety_drafts < 5:
-		_on_upgrade_chosen(botas_upg)
-		safety_drafts += 1
-
-	# Verify XP level-up pauses timers, opens Draft without advancing day, and upgrades skill levels
-	cauldron.add_ingredient(&"red")
-	var paused_day_before: float = day_time_left
-	var paused_brew_before: float = cauldron.brew_elapsed
-	var cust_patience_before: float = active_customers[0].patience_remaining if not active_customers.is_empty() else 0.0
-	var lvl_before_xp: int = xp_level
-	_gain_xp(xp_to_next_level - current_xp)
-	for _p: int in range(12):
-		await get_tree().physics_frame
-	var timers_stayed_paused: bool = (
-		EventBus.timers_paused
-		and xp_level == lvl_before_xp + 1
-		and is_equal_approx(day_time_left, paused_day_before)
-		and is_equal_approx(cauldron.brew_elapsed, paused_brew_before)
-		and (active_customers.is_empty() or is_equal_approx(active_customers[0].patience_remaining, cust_patience_before))
-	)
-
-	var michi_upg: RogueliteUpgradeData = _find_upgrade_by_id(&"michi_alado")
-	if michi_upg != null:
-		_on_upgrade_chosen(michi_upg)
-	await get_tree().process_frame
-	var stayed_same_day_ok: bool = day_number == 1 and run_active and int(upgrade_levels.get(&"michi_alado", 0)) == 1 and active_familiars.size() == 1
-
-	# Level up again and upgrade the same skill to Lv. 2
-	_gain_xp(xp_to_next_level - current_xp)
-	if michi_upg != null:
-		_on_upgrade_chosen(michi_upg)
-	var skill_leveled_up_ok: bool = int(upgrade_levels.get(&"michi_alado", 0)) == 2 and active_familiars.size() == 1
-
-	# Verify 1 Familiar / 3 Passives / 3 Actives slot limits
-	var diablillo_upg: RogueliteUpgradeData = _find_upgrade_by_id(&"diablillo_carmesi")
-	var murcielago_upg: RogueliteUpgradeData = _find_upgrade_by_id(&"murcielago_sombrio")
-	var familiar_limit_ok: bool = (
-		equipped_familiar_ids.size() == 1
-		and not can_acquire_or_upgrade_card(diablillo_upg)
-		and not can_acquire_or_upgrade_card(murcielago_upg)
-		and can_acquire_or_upgrade_card(michi_upg)
-	)
-
-	for pid: StringName in [&"botas_tacon_arcano", &"corse_magnetico", &"espejo_duplicador"]:
-		if not equipped_passive_ids.has(pid):
-			var p_upg: RogueliteUpgradeData = _find_upgrade_by_id(pid)
-			if p_upg != null:
-				_on_upgrade_chosen(p_upg)
-	var mortero_upg: RogueliteUpgradeData = _find_upgrade_by_id(&"mortero_sismico")
-	var botas_check: RogueliteUpgradeData = _find_upgrade_by_id(&"botas_tacon_arcano")
-	var passive_limit_ok: bool = (
-		equipped_passive_ids.size() == 3
-		and not can_acquire_or_upgrade_card(mortero_upg)
-		and can_acquire_or_upgrade_card(botas_check)
-	)
-
-	for aid: StringName in [&"hechizo_ebullicion", &"hechizo_aroma", &"hechizo_paso_astral"]:
-		var a_upg: RogueliteUpgradeData = _find_upgrade_by_id(aid)
-		if a_upg != null:
-			_on_upgrade_chosen(a_upg)
-	var oro_upg: RogueliteUpgradeData = _find_upgrade_by_id(&"hechizo_lluvia_oro")
-	var active_triggered_ok: bool = trigger_equipped_active_skill(0)
-	var active_limit_ok: bool = (
-		equipped_active_ids.size() == 3
-		and not can_acquire_or_upgrade_card(oro_upg)
-		and active_triggered_ok
-		and float(active_skill_cooldowns.get(&"hechizo_ebullicion", 0.0)) > 0.0
-	)
-
-	# Verify Bat (Murcielago) workflow: cauldron -> raw -> Bottling -> store unwanted in Bottling slot -> pick from Vitrina & deliver
-	var bat_flow_ok: bool = false
-	var test_bat: FamiliarEntity = spawn_familiar("murcielago_sombrio")
-	test_bat.speed_buff_mult = 4.0
-	for old_c2: CustomerEntity in active_customers:
-		if is_instance_valid(old_c2):
-			old_c2.queue_free()
-	active_customers.clear()
-	bottling.clear_bottling_slots()
-	if display_st != null:
-		display_st.clear_display_slots()
-	cauldron.held_ingredients.clear()
-	cauldron.active_recipe = null
-	cauldron.cauldron_state = KitchenStation.CauldronState.IDLE
-	cauldron.add_ingredient(&"red")
-	cauldron.finish_instant()
-	test_bat.global_position = cauldron.global_position + Vector2(0, -32)
-	var saw_raw_carry: bool = false
-	var dropped_in_bottling: bool = false
-	for _b: int in range(180):
-		await get_tree().physics_frame
-		if test_bat._carrying_item.begins_with("raw:"):
-			saw_raw_carry = true
-		if saw_raw_carry and test_bat._carrying_item == "" and bottling.get_occupied_bottling_count() == 1:
-			dropped_in_bottling = true
-			break
-	var bat_vitrina_ok: bool = false
-	if dropped_in_bottling and display_st != null:
-		display_st.store_potion_in_slot(0, "bot:savia_pura:0:0")
-		_spawn_customer()
-		var bat_cust: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
-		for _bw: int in range(120):
-			await get_tree().physics_frame
-			if bat_cust != null and bat_cust.order_revealed:
-				break
-		var gold_before_bat: int = gold
-		for _bd: int in range(240):
-			await get_tree().physics_frame
-			if gold > gold_before_bat:
-				bat_vitrina_ok = true
-				break
-		# Clear any organic level-up draft from bat delivery
-		var bat_safety: int = 0
-		while not run_active and botas_check != null and can_acquire_or_upgrade_card(botas_check) and bat_safety < 5:
-			_on_upgrade_chosen(botas_check)
-			bat_safety += 1
-	bat_flow_ok = saw_raw_carry and dropped_in_bottling and bat_vitrina_ok
-	# Verify Bat blocked sweat animation state when Bottling (2/2) and Vitrina (2/2) are full
-	for old_cb: CustomerEntity in active_customers:
-		if is_instance_valid(old_cb):
-			old_cb.queue_free()
-	active_customers.clear()
-	bottling.clear_bottling_slots()
-	bottling.store_bottled_in_slot(0, "bot:elixir_ignis:0:0")
-	bottling.store_bottled_in_slot(1, "bot:bruma_lunar:0:0")
-	if display_st != null:
-		display_st.clear_display_slots()
-		display_st.store_potion_in_slot(0, "bot:elixir_ignis:0:0")
-		display_st.store_potion_in_slot(1, "bot:bruma_lunar:0:0")
-	test_bat._carrying_item = "bot:savia_pura:0:0"
-	test_bat.work_cooldown = 0.0
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var bat_blocked_ok: bool = test_bat._is_blocked
-	active_familiars.erase(test_bat)
-	test_bat.queue_free()
-	bottling.clear_bottling_slots()
-	if display_st != null:
-		display_st.clear_display_slots()
-
-	# Verify Ingredient Bin Stock (10 max), Bodega Crate (20), Crate Rack (3 slots), and Crate disappearance at 0
-	var bin_red: KitchenStation = _find_station(&"bin_red")
-	var crate_rack: KitchenStation = _find_station(&"crate_rack")
-	var crate_stock_ok: bool = false
-	if bin_red != null and crate_rack != null:
-		bin_red.ingredient_stock = 0
-		witch.held_items.clear()
-		witch.held_items.append("crate:red:20")
-		witch._try_refill_bin_with_crate(bin_red)
-		var first_refill_ok: bool = bin_red.ingredient_stock == 10 and witch.held_items.size() == 1 and witch.held_items[0] == "crate:red:10"
-		witch._interact_with_crate_rack(crate_rack, 0)
-		var rack_store_ok: bool = witch.held_items.is_empty() and crate_rack.is_crate_slot_occupied(0)
-		witch._interact_with_crate_rack(crate_rack, 0)
-		var rack_pick_ok: bool = witch.held_items.size() == 1 and witch.held_items[0] == "crate:red:10" and not crate_rack.is_crate_slot_occupied(0)
-		bin_red.ingredient_stock = 0
-		witch._try_refill_bin_with_crate(bin_red)
-		var crate_vanished_ok: bool = bin_red.ingredient_stock == 10 and witch.held_items.is_empty()
-		crate_stock_ok = first_refill_ok and rack_store_ok and rack_pick_ok and crate_vanished_ok
-
-	# Verify Room Transition: Kitchen -> Storage Room -> Kitchen
-	_on_room_transition_requested(&"door_to_storage")
-	var entered_storage_ok: bool = current_room == &"storage" and witch.global_position.x < 0.0
-	_on_room_transition_requested(&"door_to_kitchen")
-	var returned_kitchen_ok: bool = current_room == &"kitchen" and witch.global_position.x > 0.0
-	var storage_room_ok: bool = entered_storage_ok and returned_kitchen_ok
-
-	# Verify Rush Hour triggers in rush window
-	day_time_left = 180.0
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var rush_hour_ok: bool = rush_hour_active and storage_room_ok
-
-	# Verify Shop Closing at 00:00: blocks new customers, waits until last customer is served, then opens Build Screen
-	var shop_closing_ok: bool = false
-	for old_c3: CustomerEntity in active_customers:
-		if is_instance_valid(old_c3):
-			old_c3.queue_free()
-	active_customers.clear()
-	_spawn_customer()
-	var last_cust: CustomerEntity = active_customers[0] if not active_customers.is_empty() else null
-	for _lw: int in range(120):
-		await get_tree().physics_frame
-		if last_cust != null and last_cust.order_revealed:
-			break
-	day_time_left = 0.02
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var count_before_blocked_spawn: int = active_customers.size()
-	_spawn_customer()
-	var closing_waits_ok: bool = shop_closing and active_customers.size() == count_before_blocked_spawn and not hud.is_build_screen_visible() and run_active
-	if last_cust != null and is_instance_valid(last_cust) and last_cust.requested_recipe != null:
-		witch.held_items.clear()
-		witch.held_items.append("bot:%s:0:0" % String(last_cust.requested_recipe.recipe_id))
-		witch._try_deliver_to(last_cust)
-		var close_safety: int = 0
-		while not run_active and not hud.is_build_screen_visible() and botas_check != null and can_acquire_or_upgrade_card(botas_check) and close_safety < 5:
-			_on_upgrade_chosen(botas_check)
-			close_safety += 1
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	shop_closing_ok = closing_waits_ok and hud.is_build_screen_visible() and not run_active
-
-	var build_screen_ok: bool = hud.is_build_screen_visible() and not run_active
-	var gold_before_build: int = gold
-	_on_build_upgrade_purchased(&"move_speed")
-	var build_purchase_ok: bool = int(build_levels.get("move_speed", 0)) == 1 and gold < gold_before_build
-	_on_next_day_requested()
-	await get_tree().process_frame
-	var day2_persisted_ok: bool = (
-		day_number == 2
-		and run_active
-		and not shop_closing
-		and day_time_left > 298.0
-		and xp_level >= 3
-		and int(upgrade_levels.get(&"michi_alado", 0)) == 2
-		and active_familiars.size() == 1
-		and equipped_familiar_ids.size() == 1
-		and equipped_passive_ids.size() == 3
-		and equipped_active_ids.size() == 3
-	)
-
-	Engine.time_scale = 1.0
-	print("SMOKE STATS => gold=%d combo=%d day=%d xp_lvl=%d familiars=%d starts_trixie=%s day_300s=%s xp_delivery=%s ability_ok=%s max_buf=%d mortar=%s mortar_caul=%s display=%s timers_paused_ok=%s same_day=%s skill_lv2=%s fam_lim=%s pas_lim=%s act_lim=%s bat_flow=%s bat_sweat=%s crate_stock=%s rush=%s shop_close=%s build_screen=%s build_buy=%s day2_persist=%s" % [
-		gold, combo, day_number, xp_level, active_familiars.size(), str(starts_with_trixie_ok), str(day_duration_ok), str(xp_after_delivery_ok), str(ability_ok), max_queue_seen, str(mortar_mix_ok), str(upgrade_ready_ok), str(display_ok), str(timers_stayed_paused), str(stayed_same_day_ok), str(skill_leveled_up_ok), str(familiar_limit_ok), str(passive_limit_ok), str(active_limit_ok), str(bat_flow_ok), str(bat_blocked_ok), str(crate_stock_ok), str(rush_hour_ok), str(shop_closing_ok), str(build_screen_ok), str(build_purchase_ok), str(day2_persisted_ok)
-	])
-	var ok: bool = (
-		gold > 0
-		and combo >= 1
-		and starts_with_trixie_ok
-		and day_duration_ok
-		and xp_after_delivery_ok
-		and ability_ok
-		and max_queue_seen <= WitchController.MAX_NEXT_BUFFER
-		and mortar_mix_ok
-		and upgrade_ready_ok
-		and display_ok
-		and timers_stayed_paused
-		and stayed_same_day_ok
-		and skill_leveled_up_ok
-		and familiar_limit_ok
-		and passive_limit_ok
-		and active_limit_ok
-		and bat_flow_ok
-		and bat_blocked_ok
-		and crate_stock_ok
-		and rush_hour_ok
-		and shop_closing_ok
-		and build_screen_ok
-		and build_purchase_ok
-		and day2_persisted_ok
-	)
-	print("SMOKE RESULT: ", "PASS" if ok else "FAIL")
-	get_tree().quit(0 if ok else 1)
+	var res: Dictionary = run_incremental_smoke_step()
+	print("INCREMENTAL SMOKE => ", res)
+	get_tree().quit(0)
 
 
-func _start_new_run() -> void:
-	for c: CustomerEntity in active_customers:
-		if is_instance_valid(c):
-			c.queue_free()
-	active_customers.clear()
-	for f: FamiliarEntity in active_familiars:
-		if is_instance_valid(f):
-			f.queue_free()
-	active_familiars.clear()
+func _process(delta: float) -> void:
+	_time += delta
+	_prev_mouse_pos = _mouse_pos
+	_mouse_pos = get_global_mouse_position()
+	_update_popups(delta)
 
-	acquired_upgrades.clear()
-	upgrade_levels.clear()
-	equipped_familiar_ids.clear()
-	equipped_passive_ids.clear()
-	equipped_active_ids.clear()
-	active_skill_cooldowns.clear()
-	seismic_mortar_boost = 0.25
-	build_levels = {
-		"move_speed": 0,
-		"brew_speed": 0,
-		"cauldron_grace": 0,
-		"gold_tips": 0,
-		"ability_cdr": 0,
-		"extra_heart": 0,
-	}
-	unlocked_witch_ids = [&"trixie"]
-	_selected_witch_idx = _find_witch_index(&"trixie")
-	mirror_clone_enabled = false
-	mirror_clone_chance = 0.0
-	witch.move_speed_mult = 1.0
-	witch.cooldown_reduction_mult = 1.0
-	witch.carry_bonus = 0
-	witch.instant_bottle_enabled = false
-	witch.seismic_mortar_enabled = false
+	if _toast_timer > 0.0:
+		_toast_timer = maxf(0.0, _toast_timer - delta)
+		if _toast_timer <= 0.0 and _toast_lbl != null:
+			_toast_lbl.visible = false
 
-	var active_w: WitchCharacterData = witches[_selected_witch_idx]
-	witch.setup_witch(active_w)
-	hud.configure_witches(witches, _selected_witch_idx)
-	max_hearts = active_w.max_stability_hearts
-	hearts = max_hearts
-	gold = 0
-	xp_level = 1
-	current_xp = 0
-	xp_to_next_level = 80
-	_pending_level_drafts = 0
-	combo = 0
-	combo_timer = 0.0
-	day_number = 1
-	reroll_cost = 35
-	_set_run_active(true)
-	hud.hide_overlays()
-	hud.hide_trixie_dialogue()
-	var enable_tut: bool = GameSettings.show_tutorial and not OS.get_cmdline_user_args().has("--smoke-test")
-	_first_potion_tutorial_done = not enable_tut
-	_restock_tutorial_done = not enable_tut
-	_tutorial_step = TutorialStep.NONE
-	_tutorial_restock_ing = &""
-	_tutorial_has_target = false
+	if _trixie_emotion_timer > 0.0:
+		_trixie_emotion_timer = maxf(0.0, _trixie_emotion_timer - delta)
+		if _trixie_emotion_timer <= 0.0:
+			_trixie_emotion = "sonrojada" if _frenzy_timer > 0.0 else ("confiada" if _combo >= 4 else "normal")
 
-	for st: KitchenStation in stations:
-		st.familiar_protected = false
-		st.has_mortar_bonus = false
-		st.held_ingredients.clear()
-		st.reset_ingredient_stock()
-		st.clear_display_slots()
-		st.clear_bottling_slots()
-		st.clear_crate_slots()
-		st.active_recipe = null
-		st.cauldron_state = KitchenStation.CauldronState.IDLE
-		st.queue_redraw()
+	if _customer_flash_timer > 0.0:
+		_customer_flash_timer = maxf(0.0, _customer_flash_timer - delta)
+	if _tube_flash_timer > 0.0:
+		_tube_flash_timer = maxf(0.0, _tube_flash_timer - delta)
+	if _customer_slide_t < 1.0:
+		_customer_slide_t = minf(1.0, _customer_slide_t + delta * 3.4)
 
-	_start_day(1)
-	EventBus.gold_changed.emit(gold, 0)
-	EventBus.xp_changed.emit(xp_level, current_xp, xp_to_next_level)
-	EventBus.combo_changed.emit(0, 1.0)
+	if view_mode == ViewMode.CAULDRON and not _is_modal_open():
+		_process_cauldron_gameplay(delta)
+	elif view_mode == ViewMode.UPGRADE_TREE and _tree_canvas != null:
+		_tree_canvas.queue_redraw()
+	elif view_mode == ViewMode.GALLERY and _gallery_portrait_canvas != null:
+		_gallery_portrait_canvas.queue_redraw()
+		if _lightbox_overlay != null and _lightbox_overlay.visible and _lightbox_canvas != null:
+			_lightbox_canvas.queue_redraw()
+
+	_refresh_hud_labels()
+	queue_redraw()
 
 
-func _find_witch_index(target_id: StringName) -> int:
-	for i: int in range(witches.size()):
-		if witches[i].witch_id == target_id:
-			return i
-	return 0
-
-
-func _restart_run() -> void:
-	_start_new_run()
-
-
-func _start_day(day: int) -> void:
-	day_number = day
-	day_time_left = DAY_DURATION_SEC
-	shop_closing = false
-	rush_hour_active = false
-	current_room = &"kitchen"
-	if camera != null:
-		camera.position = Vector2(960, 540)
-	if witch != null and witch.position.x < 0.0:
-		witch.position = Vector2(740, 640)
-	spawn_timer = 14.0
-	reroll_cost = 35
-	for aid: StringName in active_skill_cooldowns.keys():
-		active_skill_cooldowns[aid] = 0.0
-	var active_w: WitchCharacterData = witches[_selected_witch_idx]
-	witch.witch_data = active_w
-	hud.configure_witches(witches, _selected_witch_idx)
-	var brew_mult: float = active_w.brew_speed_mult + float(build_levels.get("brew_speed", 0)) * 0.10
-	var overheat_mult: float = 1.0 + float(build_levels.get("cauldron_grace", 0)) * 0.20
-	for st: KitchenStation in stations:
-		st.held_ingredients.clear()
-		st.active_recipe = null
-		st.cauldron_state = KitchenStation.CauldronState.IDLE
-		st.is_stirred_hot = false
-		st.has_mortar_bonus = false
-		st.configure_catalog(recipes_catalog, day_number, brew_mult, overheat_mult)
-		st.queue_redraw()
-	EventBus.day_started.emit(day_number, day_time_left, day_number == 3 or day_number == 8)
-	_spawn_customer()
+func _input(event: InputEvent) -> void:
+	if _is_dragging and event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			_resolve_drag_chain()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:
-		var key_ev: InputEventKey = event as InputEventKey
-		if key_ev.pressed and not key_ev.echo:
-			if key_ev.keycode == KEY_F11:
-				_toggle_fullscreen()
+		var kev: InputEventKey = event as InputEventKey
+		if kev.pressed and not kev.echo:
+			if kev.keycode == KEY_F11:
+				var gs: Node = _settings()
+				if gs != null:
+					gs.set("fullscreen", not bool(gs.get("fullscreen")))
+					gs.call("apply_video")
+					gs.call("save_settings")
+				get_viewport().set_input_as_handled()
 				return
-			if run_active:
-				if key_ev.keycode == KEY_1 or key_ev.keycode == KEY_KP_1:
-					trigger_equipped_active_skill(0)
-					return
-				if key_ev.keycode == KEY_2 or key_ev.keycode == KEY_KP_2:
-					trigger_equipped_active_skill(1)
-					return
-				if key_ev.keycode == KEY_3 or key_ev.keycode == KEY_KP_3:
-					trigger_equipped_active_skill(2)
-					return
-	if not run_active:
-		return
-	if event.is_action_pressed("ability_cutin_click"):
-		var cauldrons: Array[KitchenStation] = []
-		for s: KitchenStation in stations:
-			if s.station_type == KitchenStation.StationType.CAULDRON:
-				cauldrons.append(s)
-		witch.trigger_ability(cauldrons, active_customers, active_familiars)
-	elif event.is_action_pressed("cancel_queue"):
-		witch.clear_queue()
-
-
-func _process(delta: float) -> void:
-	_update_popups(delta)
-	_tutorial_pulse_time += delta
-	if _world_overlay != null:
-		_world_overlay.queue_redraw()
-	if not run_active:
+			if kev.keycode == KEY_ESCAPE:
+				if _lightbox_overlay != null and _lightbox_overlay.visible:
+					_lightbox_overlay.visible = false
+				elif _victory_overlay != null and _victory_overlay.visible:
+					_victory_overlay.visible = false
+				elif _pause_overlay != null:
+					_pause_overlay.visible = not _pause_overlay.visible
+				get_viewport().set_input_as_handled()
+				return
+			if _is_modal_open():
+				return
+			if kev.keycode == KEY_1:
+				_switch_view(ViewMode.CAULDRON)
+				get_viewport().set_input_as_handled()
+			elif kev.keycode == KEY_2 or kev.keycode == KEY_TAB:
+				_switch_view(ViewMode.UPGRADE_TREE if view_mode != ViewMode.UPGRADE_TREE else ViewMode.CAULDRON)
+				get_viewport().set_input_as_handled()
+			elif kev.keycode == KEY_3:
+				_switch_view(ViewMode.GALLERY)
+				get_viewport().set_input_as_handled()
+			elif kev.keycode == KEY_SPACE:
+				if view_mode == ViewMode.CAULDRON:
+					try_activate_frenzy()
+				else:
+					_start_next_round_from_tree()
+				get_viewport().set_input_as_handled()
 		return
 
-	_update_guided_tutorial()
-
-	if day_time_left > 0.0:
-		day_time_left = maxf(0.0, day_time_left - delta)
-		if day_time_left <= 0.0 and not shop_closing:
-			shop_closing = true
-			rush_hour_active = false
-			if not active_customers.is_empty():
-				_spawn_popup(Vector2(960, 260), "¡TIENDA CERRADA! Atiende a las últimas clientas", Color(1.0, 0.72, 0.25))
-		else:
-			var in_rush: bool = (day_time_left <= 195.0 and day_time_left > 140.0) or (day_time_left <= 75.0 and day_time_left > 15.0)
-			if in_rush != rush_hour_active:
-				rush_hour_active = in_rush
-				if rush_hour_active:
-					spawn_timer = minf(spawn_timer, 1.8)
-	for aid: StringName in active_skill_cooldowns.keys():
-		var cd_val: float = float(active_skill_cooldowns[aid])
-		if cd_val > 0.0:
-			active_skill_cooldowns[aid] = maxf(0.0, cd_val - delta)
-	if combo > 0:
-		combo_timer -= delta
-		if combo_timer <= 0.0:
-			combo = 0
-			EventBus.combo_changed.emit(0, 1.0)
-
-	if not shop_closing:
-		if active_customers.is_empty() and spawn_timer > 2.2:
-			spawn_timer = 2.2
-		spawn_timer -= delta
-		if spawn_timer <= 0.0:
-			_spawn_customer()
-			var base_interval: float = maxf(7.5, 16.5 - float(day_number - 1) * 1.3)
-			spawn_timer = maxf(4.2, base_interval * 0.50) if rush_hour_active else base_interval
-
-	# Check customer patience expirations
-	var i: int = 0
-	while i < active_customers.size():
-		var cust: CustomerEntity = active_customers[i]
-		if is_instance_valid(cust) and not cust.is_served and cust.patience_remaining <= 0.0:
-			_handle_customer_timeout(cust)
-			continue
-		i += 1
-
-	if shop_closing and active_customers.is_empty() and run_active:
-		_finish_day()
-
-	var relic_names: PackedStringArray = PackedStringArray()
-	for k: String in acquired_upgrades.keys():
-		relic_names.append("%s Nv.%d" % [k, int(acquired_upgrades[k])])
-	var slot_counts: Vector3i = Vector3i(equipped_familiar_ids.size(), equipped_passive_ids.size(), equipped_active_ids.size())
-	var active_slots_info: Array[Dictionary] = []
-	for aid: StringName in equipped_active_ids:
-		var upg: RogueliteUpgradeData = _find_upgrade_by_id(aid)
-		active_slots_info.append({
-			"id": aid,
-			"name": upg.display_name if upg != null else String(aid),
-			"level": int(upgrade_levels.get(aid, 1)),
-			"cd_left": float(active_skill_cooldowns.get(aid, 0.0)),
-		})
-	hud.update_runtime_stats(
-		day_number,
-		day_time_left,
-		hearts,
-		max_hearts,
-		active_customers.size(),
-		witch.get_ability_cooldown_ratio(),
-		relic_names,
-		witch.get_ability_cooldown_seconds_left(),
-		slot_counts,
-		active_slots_info,
-		rush_hour_active
-	)
-	queue_redraw()
-
-
-func _spawn_customer() -> void:
-	if not run_active or shop_closing:
-		return
-	if active_customers.size() >= MAX_CUSTOMERS_IN_QUEUE:
+	if view_mode != ViewMode.CAULDRON or _is_modal_open():
 		return
 
-	var valid_recipes: Array[PotionRecipeData] = []
-	for r: PotionRecipeData in recipes_catalog:
-		if r.unlock_day <= day_number:
-			valid_recipes.append(r)
-	if valid_recipes.is_empty():
-		return
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		var mpos: Vector2 = get_global_mouse_position()
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				var hit_idx: int = _find_orb_at(mpos, 10.0)
+				if hit_idx != -1 and not round_ending:
+					_begin_drag_chain(hit_idx)
+					get_viewport().set_input_as_handled()
+			else:
+				if _is_dragging:
+					_resolve_drag_chain()
+					get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed and not round_ending:
+			var r_idx: int = _find_orb_at(mpos, 10.0)
+			if r_idx != -1:
+				_purge_orb_at(r_idx)
+				get_viewport().set_input_as_handled()
 
-	var arch: CustomerArchetypeData = customers_catalog[randi() % customers_catalog.size()]
-	var recipe: PotionRecipeData = valid_recipes[randi() % valid_recipes.size()]
-	var slot_idx: int = active_customers.size()
-
-	var cust: CustomerEntity = CustomerEntity.new()
-	_customers_layer.add_child(cust)
-	cust.setup(arch, recipe, slot_idx, _queue_slots[slot_idx])
-	cust.customer_clicked.connect(_on_customer_clicked)
-	cust.order_decision_ready.connect(_on_customer_order_decision_ready)
-	active_customers.append(cust)
-
-
-func _on_customer_order_decision_ready(cust: CustomerEntity) -> void:
-	if not is_instance_valid(cust) or cust.is_served or cust.archetype == null:
-		return
-
-	var display_st: KitchenStation = _find_station(&"display_stand")
-	if display_st != null:
-		var available: Dictionary = {}
-		for rec_id: StringName in display_st.get_displayed_recipe_ids():
-			available[rec_id] = int(available.get(rec_id, 0)) + 1
-		for other: CustomerEntity in active_customers:
-			if other != cust and is_instance_valid(other) and not other.is_served and other.order_revealed and other.requested_recipe != null:
-				var r_id: StringName = other.requested_recipe.recipe_id
-				if int(available.get(r_id, 0)) > 0:
-					available[r_id] = int(available[r_id]) - 1
-		for rec_id: StringName in available.keys():
-			if int(available[rec_id]) > 0:
-				var disp_rec: PotionRecipeData = GameCatalog.find_recipe_by_id(rec_id, recipes_catalog)
-				if disp_rec != null:
-					cust.set_tempted_order(disp_rec)
-					_spawn_popup(cust.global_position + Vector2(-35, -108), "¡Quiere la de vitrina!", Color(1.0, 0.86, 0.30))
-					EventBus.customer_arrived.emit(cust.archetype.customer_id, cust.queue_slot, disp_rec.recipe_id)
-					if not cust.archetype.display_tempted_lines.is_empty():
-						var t_line: String = cust.archetype.display_tempted_lines[randi() % cust.archetype.display_tempted_lines.size()]
-						EventBus.customer_dialogue_requested.emit(
-							cust.archetype.customer_id,
-							cust.archetype.portrait_happy if cust.archetype.portrait_happy else cust.archetype.portrait_normal,
-							t_line,
-							false
-						)
-						hud.set_customer_affinity(cust.archetype.customer_id, int(customer_affinity.get(cust.archetype.customer_id, 0)))
-					return
-
-	EventBus.customer_arrived.emit(cust.archetype.customer_id, cust.queue_slot, cust.requested_recipe.recipe_id)
-	if cust.queue_slot == 0 and not cust.archetype.greeting_lines.is_empty():
-		var line: String = cust.archetype.greeting_lines[randi() % cust.archetype.greeting_lines.size()]
-		EventBus.customer_dialogue_requested.emit(cust.archetype.customer_id, cust.archetype.portrait_normal, line, false)
-		hud.set_customer_affinity(cust.archetype.customer_id, int(customer_affinity.get(cust.archetype.customer_id, 0)))
+	elif event is InputEventMouseMotion and _is_dragging and not round_ending:
+		var mpos: Vector2 = get_global_mouse_position()
+		_extend_drag_chain_along_segment(_prev_mouse_pos, mpos)
+		_prev_mouse_pos = mpos
+		get_viewport().set_input_as_handled()
 
 
-func _on_customer_clicked(cust: CustomerEntity) -> void:
-	if run_active and is_instance_valid(cust):
-		witch.enqueue_customer(cust)
+func _is_modal_open() -> bool:
+	var p_open: bool = _pause_overlay != null and _pause_overlay.visible
+	var l_open: bool = _lightbox_overlay != null and _lightbox_overlay.visible
+	var v_open: bool = _victory_overlay != null and _victory_overlay.visible
+	return p_open or l_open or v_open
 
 
-func _on_station_clicked(st: KitchenStation) -> void:
-	if run_active:
-		witch.enqueue_station(st)
+# ==============================================================================
+# COLOR CHEMISTRY & STATS
+# ==============================================================================
+
+func get_customer_chemistry() -> Dictionary:
+	if _active_customer != null and CUSTOMER_CHEMISTRY.has(_active_customer.customer_id):
+		return CUSTOMER_CHEMISTRY[_active_customer.customer_id] as Dictionary
+	return {"liked": BubbleKind.RED, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.BLUE}
 
 
-func _on_potion_delivered(cust: CustomerEntity, recipe_id: StringName, is_hot: bool, is_mortar: bool = false) -> void:
-	if not is_instance_valid(cust) or cust.is_served:
-		return
-	var recipe: PotionRecipeData = GameCatalog.find_recipe_by_id(recipe_id, recipes_catalog)
-	if recipe == null:
-		return
-
-	combo += 1
-	combo_timer = COMBO_WINDOW_SEC
-	var combo_mult: float = minf(3.0, 1.0 + float(combo - 1) * 0.15)
-	var hot_mult: float = recipe.hot_bonus_multiplier if is_hot else 1.0
-	var mortar_mult: float = 1.5 if is_mortar else 1.0
-	var cust_mult: float = cust.archetype.tip_generosity_mult if cust.archetype else 1.0
-	var tip_build_mult: float = 1.0 + 0.15 * float(build_levels.get("gold_tips", 0))
-	var earned: int = int(round(float(recipe.base_gold_value) * hot_mult * mortar_mult * combo_mult * cust_mult * tip_build_mult))
-	if witches[_selected_witch_idx].witch_id == &"morrigan":
-		earned = int(round(float(earned) * 1.4))
-
-	gold += earned
-	EventBus.gold_changed.emit(gold, earned)
-	EventBus.combo_changed.emit(combo, combo_mult)
-
-	var base_xp: int = 45 if is_mortar else 35
-	var speed_xp: int = int(round(cust.get_patience_ratio() * 25.0))
-	var hot_xp: int = 15 if is_hot else 0
-	var earned_xp: int = base_xp + speed_xp + hot_xp
-
-	var cid: StringName = cust.archetype.customer_id
-	var aff: int = mini(3, int(customer_affinity.get(cid, 0)) + (1 if is_hot or combo >= 3 else 0))
-	customer_affinity[cid] = aff
-
-	var is_spicy: bool = aff >= 2 and not cust.archetype.spicy_affinity_lines.is_empty()
-	var line: String = ""
-	if is_spicy:
-		line = cust.archetype.spicy_affinity_lines[randi() % cust.archetype.spicy_affinity_lines.size()]
-	elif not cust.archetype.satisfied_lines.is_empty():
-		line = cust.archetype.satisfied_lines[randi() % cust.archetype.satisfied_lines.size()]
-	var portrait: Texture2D = cust.archetype.portrait_spicy_blush if is_spicy else cust.archetype.portrait_happy
-
-	hud.set_customer_affinity(cid, aff)
-	EventBus.customer_dialogue_requested.emit(cid, portrait, line, is_spicy)
-	EventBus.customer_served.emit(cid, earned, hot_mult * combo_mult, aff)
-
-	var pop_txt: String = "+%dg  +%d XP%s%s" % [earned, earned_xp, " ¡CALIENTE!" if is_hot else "", " ¡MORTERO!" if is_mortar else ""]
-	_spawn_popup(cust.global_position + Vector2(-30, -80), pop_txt, Color(1.0, 0.86, 0.25))
-
-	_remove_customer_and_advance_queue(cust, true)
-
-	if not _first_potion_tutorial_done:
-		_first_potion_tutorial_done = true
-		_set_tutorial_step(TutorialStep.NONE, "¡Lo logré! ¡Mi primera venta real! ¡A seguir así hasta ser la tienda más famosa del pueblo!", "confiada")
-
-	if is_hot and mirror_clone_enabled and randf() <= mirror_clone_chance:
-		var disp_st: KitchenStation = _find_station(&"display_stand")
-		var cloned_to_vitrina: bool = false
-		if disp_st != null:
-			for s_idx: int in range(KitchenStation.MAX_DISPLAY_SLOTS):
-				if not disp_st.is_slot_occupied(s_idx):
-					disp_st.store_potion_in_slot(s_idx, "bot:%s:0:0" % String(recipe_id))
-					_spawn_popup(disp_st.global_position + Vector2(0, -64), "¡Clon en Vitrina!", Color(0.7, 0.45, 1.0))
-					cloned_to_vitrina = true
-					break
-		if not cloned_to_vitrina:
-			var mirror_gold: int = int(round(float(earned) * 0.5))
-			gold += mirror_gold
-			EventBus.gold_changed.emit(gold, mirror_gold)
-			_spawn_popup(cust.global_position + Vector2(-40, -110), "¡Espejo +%dg!" % mirror_gold, Color(0.7, 0.45, 1.0))
-
-	_gain_xp(earned_xp)
+func get_orb_relation(kind: int) -> StringName:
+	if kind == BubbleKind.GOLD or kind == BubbleKind.BOMB:
+		return &"special"
+	var chem: Dictionary = get_customer_chemistry()
+	if kind == int(chem["liked"]):
+		return &"liked"
+	if kind == int(chem["disliked"]):
+		return &"disliked"
+	return &"neutral"
 
 
-func _handle_customer_timeout(cust: CustomerEntity) -> void:
-	hearts -= 1
-	combo = 0
-	EventBus.combo_changed.emit(0, 1.0)
-	EventBus.customer_patience_expired.emit(cust.archetype.customer_id, hearts)
-	EventBus.witch_emotion_changed.emit(EventBus.WitchEmotion.NERVIOSA_SUDANDO, 2.0)
-	_spawn_popup(cust.global_position + Vector2(-40, -80), "¡Se marchó furiosa! -1 ♥", Color(1.0, 0.25, 0.3))
-	_remove_customer_and_advance_queue(cust, false)
-	if hearts <= 0:
-		_end_run(false, "Te quedaste sin Corazones de Estabilidad tras perder clientas.")
+static func get_element_name(kind: int) -> String:
+	match kind:
+		BubbleKind.RED: return "🔥 Fuego"
+		BubbleKind.BLUE: return "🌙 Luna"
+		BubbleKind.GREEN: return "🍃 Savia"
+		BubbleKind.GOLD: return "⭐ Estrella"
+		BubbleKind.BOMB: return "💣 Bomba"
+	return "Orbe"
 
 
-func _remove_customer_and_advance_queue(cust: CustomerEntity, happy: bool) -> void:
-	var idx: int = active_customers.find(cust)
-	if idx != -1:
-		active_customers.remove_at(idx)
-	cust.play_exit_anim(happy)
-	for i: int in range(active_customers.size()):
-		active_customers[i].move_to_slot(i, _queue_slots[i])
+static func get_element_color(kind: int) -> Color:
+	match kind:
+		BubbleKind.RED: return Color(0.98, 0.28, 0.34)
+		BubbleKind.BLUE: return Color(0.24, 0.64, 1.0)
+		BubbleKind.GREEN: return Color(0.24, 0.88, 0.46)
+		BubbleKind.GOLD: return Color(1.0, 0.86, 0.24)
+		BubbleKind.BOMB: return Color(0.78, 0.30, 0.98)
+	return Color.WHITE
 
 
-func _on_cauldron_exploded(cauldron_id: int, _unused: int) -> void:
-	hearts -= 1
-	combo = 0
-	EventBus.combo_changed.emit(0, 1.0)
-	EventBus.witch_emotion_changed.emit(EventBus.WitchEmotion.HOLLIN_DERROTA, 2.2)
-	var caul: KitchenStation = _find_station(StringName("cauldron_%d" % cauldron_id))
-	if caul:
-		_spawn_popup(caul.global_position + Vector2(0, -70), "¡EXPLOSIÓN DE CALDERO! -1 ♥", Color(1.0, 0.28, 0.25))
-	if hearts <= 0:
-		_end_run(false, "Tu caldero explotó con el último Corazón de Estabilidad.")
+func get_node_level(node_id: StringName) -> int:
+	return int(node_levels.get(node_id, 0))
 
 
-func _gain_xp(amount: int) -> void:
-	if amount <= 0:
-		return
-	current_xp += amount
-	while current_xp >= xp_to_next_level:
-		current_xp -= xp_to_next_level
-		xp_level += 1
-		xp_to_next_level = 80 + (xp_level - 1) * 40
-		_pending_level_drafts += 1
-	EventBus.xp_changed.emit(xp_level, current_xp, xp_to_next_level)
-	if _pending_level_drafts > 0 and run_active:
-		_pending_level_drafts -= 1
-		_open_upgrade_draft()
+func get_node_cost(node_id: StringName) -> int:
+	if not _node_by_id.has(node_id):
+		return 999999
+	var nd: Dictionary = _node_by_id[node_id] as Dictionary
+	var lvl: int = get_node_level(node_id)
+	var base_cost: int = int(nd.get("base_cost", 10))
+	var mult: float = float(nd.get("cost_mult", 1.5))
+	return int(roundf(float(base_cost) * pow(mult, float(lvl))))
 
 
-func _on_force_xp_level_requested() -> void:
-	_gain_xp(maxi(1, xp_to_next_level - current_xp))
-
-
-func _finish_day() -> void:
-	_set_run_active(false)
-	for cust: CustomerEntity in active_customers:
-		if is_instance_valid(cust):
-			cust.queue_free()
-	active_customers.clear()
-	witch.clear_queue()
-	EventBus.day_ended.emit(day_number)
-	if day_number >= 8:
-		_end_run(true, "¡Completaste los 8 días del Sabbat con éxito!")
-		return
-	_open_between_days_build_screen()
-
-
-func _find_upgrade_by_id(target_id: StringName) -> RogueliteUpgradeData:
-	for u: RogueliteUpgradeData in upgrades_catalog:
-		if u.upgrade_id == target_id:
-			return u
-	return null
-
-
-func can_acquire_or_upgrade_card(u: RogueliteUpgradeData) -> bool:
-	if u == null:
+func is_node_unlocked(node_id: StringName) -> bool:
+	if not _node_by_id.has(node_id):
 		return false
-	var cur_lvl: int = int(upgrade_levels.get(u.upgrade_id, 0))
-	if cur_lvl >= u.max_stacks:
-		return false
-	if cur_lvl > 0:
+	var nd: Dictionary = _node_by_id[node_id] as Dictionary
+	var parent_id: StringName = nd.get("parent_id", &"") as StringName
+	if parent_id == &"":
 		return true
-	match u.kind:
-		RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON:
-			return equipped_familiar_ids.size() < MAX_FAMILIAR_SLOTS
-		RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL:
-			return equipped_active_ids.size() < MAX_ACTIVE_SLOTS
-		_:
-			return equipped_passive_ids.size() < MAX_PASSIVE_SLOTS
+	return get_node_level(parent_id) > 0
 
 
-func _get_eligible_draft_upgrades() -> Array[RogueliteUpgradeData]:
-	var pool: Array[RogueliteUpgradeData] = []
-	for u: RogueliteUpgradeData in upgrades_catalog:
-		if can_acquire_or_upgrade_card(u):
-			pool.append(u)
-	return pool
-
-
-func _open_upgrade_draft() -> void:
-	var pool: Array[RogueliteUpgradeData] = _get_eligible_draft_upgrades()
-	pool.shuffle()
-	var picks: Array[RogueliteUpgradeData] = []
-	for i: int in range(mini(3, pool.size())):
-		picks.append(pool[i])
-	if picks.is_empty():
-		_pending_level_drafts = 0
-		_spawn_popup(witch.global_position + Vector2(0, -70), "¡Build completa al máximo!", Color(1.0, 0.85, 0.35))
-		_set_run_active(true)
-		return
-	_set_run_active(false)
-	var slot_counts: Vector3i = Vector3i(equipped_familiar_ids.size(), equipped_passive_ids.size(), equipped_active_ids.size())
-	hud.show_draft_modal(picks, reroll_cost, gold >= reroll_cost, upgrade_levels, xp_level, slot_counts)
-
-
-func _on_reroll_requested() -> void:
-	if gold < reroll_cost:
-		return
-	gold -= reroll_cost
-	reroll_cost += 20
-	EventBus.gold_changed.emit(gold, -reroll_cost)
-	_open_upgrade_draft()
-
-
-func _on_upgrade_chosen(upg: RogueliteUpgradeData) -> void:
-	if not can_acquire_or_upgrade_card(upg):
-		return
-	var prev_lvl: int = int(upgrade_levels.get(upg.upgrade_id, 0))
-	var new_lvl: int = mini(upg.max_stacks, prev_lvl + 1)
-	upgrade_levels[upg.upgrade_id] = new_lvl
-	acquired_upgrades[upg.display_name] = new_lvl
-	if prev_lvl == 0:
-		match upg.kind:
-			RogueliteUpgradeData.UpgradeKind.FAMILIAR_SUMMON:
-				equipped_familiar_ids.append(upg.upgrade_id)
-			RogueliteUpgradeData.UpgradeKind.ACTIVE_SKILL:
-				equipped_active_ids.append(upg.upgrade_id)
-				active_skill_cooldowns[upg.upgrade_id] = 0.0
-			_:
-				equipped_passive_ids.append(upg.upgrade_id)
-	EventBus.upgrade_selected.emit(upg.upgrade_id)
-
-	var params: Dictionary = upg.effect_params
-	if params.has("familiar_type"):
-		var ftype: String = String(params["familiar_type"])
-		if prev_lvl == 0:
-			spawn_familiar(ftype)
-		else:
-			for f: FamiliarEntity in active_familiars:
-				if is_instance_valid(f) and f.familiar_type == ftype:
-					f.speed_buff_mult += 0.35
-	if params.has("speed_bonus"):
-		witch.move_speed_mult += float(params["speed_bonus"])
-	if params.has("carry_bonus"):
-		witch.carry_bonus += int(params["carry_bonus"])
-	if params.has("instant_bottle"):
-		witch.instant_bottle_enabled = true
-	if params.has("seismic_mortar"):
-		witch.seismic_mortar_enabled = true
-		var boost_step: float = float(params.get("seismic_boost_per_level", 0.15))
-		seismic_mortar_boost = 0.25 + float(new_lvl - 1) * boost_step
-	if params.has("clone_on_hot"):
-		mirror_clone_enabled = true
-		if new_lvl >= 3:
-			mirror_clone_chance = 1.0
-		elif new_lvl == 2:
-			mirror_clone_chance = 0.65
-		else:
-			mirror_clone_chance = float(params.get("clone_chance_per_level", 0.35))
-
-	if _pending_level_drafts > 0:
-		_pending_level_drafts -= 1
-		_open_upgrade_draft()
-		return
-
-	_set_run_active(true)
-
-
-func trigger_equipped_active_skill(slot_idx: int) -> bool:
-	if not run_active or slot_idx < 0 or slot_idx >= equipped_active_ids.size():
+func can_buy_node(node_id: StringName) -> bool:
+	if not _node_by_id.has(node_id):
 		return false
-	var aid: StringName = equipped_active_ids[slot_idx]
-	if float(active_skill_cooldowns.get(aid, 0.0)) > 0.0:
-		_spawn_popup(witch.global_position + Vector2(0, -64), "¡Habilidad en recarga!", Color(0.95, 0.65, 0.35))
+	var nd: Dictionary = _node_by_id[node_id] as Dictionary
+	if get_node_level(node_id) >= int(nd.get("max_level", 1)):
 		return false
-	var upg: RogueliteUpgradeData = _find_upgrade_by_id(aid)
-	if upg == null:
+	if not is_node_unlocked(node_id):
 		return false
-	var lvl: int = maxi(1, int(upgrade_levels.get(aid, 1)))
-	var params: Dictionary = upg.effect_params
-	var base_cd: float = float(params.get("base_cd", 18.0))
-	var cd_per_lvl: float = float(params.get("cd_per_level", 2.0))
-	var final_cd: float = maxf(4.0, (base_cd - float(lvl - 1) * cd_per_lvl) * maxf(0.4, witch.cooldown_reduction_mult))
-	active_skill_cooldowns[aid] = final_cd
+	return essence_gold >= get_node_cost(node_id)
 
-	var active_type: String = String(params.get("active_type", ""))
-	match active_type:
-		"instant_brew":
-			for st: KitchenStation in stations:
-				if st.station_type == KitchenStation.StationType.CAULDRON:
-					st.finish_instant()
-			_spawn_popup(witch.global_position + Vector2(0, -76), "¡DESTELLO DE EBULLICIÓN!", Color(1.0, 0.48, 0.28))
-		"freeze_queue":
-			var freeze_sec: float = 6.0 + float(lvl - 1) * 2.0
-			for cust: CustomerEntity in active_customers:
-				if is_instance_valid(cust) and not cust.is_served:
-					cust.freeze_patience(freeze_sec)
-			_spawn_popup(witch.global_position + Vector2(0, -76), "¡PERFUME HIPNÓTICO (%.0fs)!" % freeze_sec, Color(0.82, 0.55, 1.0))
-		"astral_step":
-			var buff_sec: float = 5.0 + float(lvl - 1) * 2.0
-			witch.apply_astral_step_buff(buff_sec, 0.70)
-			_spawn_popup(witch.global_position + Vector2(0, -76), "¡PASO ASTRAL!", Color(0.42, 0.92, 1.0))
-		"gold_alchemy":
-			var bonus_gold: int = 25 + (lvl - 1) * 20
-			gold += bonus_gold
-			combo += 1
-			combo_timer = COMBO_WINDOW_SEC
-			var combo_mult: float = minf(3.0, 1.0 + float(combo - 1) * 0.15)
-			EventBus.gold_changed.emit(gold, bonus_gold)
-			EventBus.combo_changed.emit(combo, combo_mult)
-			_spawn_popup(witch.global_position + Vector2(0, -76), "¡ALQUIMIA DORADA +%dg!" % bonus_gold, Color(1.0, 0.85, 0.25))
 
-	AudioJuiceManager.play_pentatonic(5, 0.0)
-	AudioJuiceManager.trigger_screen_shake(6.0, 0.15)
-	EventBus.witch_emotion_changed.emit(EventBus.WitchEmotion.CONFIADA, 1.5)
+func count_affordable_nodes() -> int:
+	var count: int = 0
+	for nd: Dictionary in tree_nodes:
+		if can_buy_node(nd["id"] as StringName):
+			count += 1
+	return count
+
+
+func buy_incremental_node(node_id: StringName) -> bool:
+	if not can_buy_node(node_id):
+		return false
+	var cost: int = get_node_cost(node_id)
+	essence_gold -= cost
+	node_levels[node_id] = get_node_level(node_id) + 1
+	_emit_gold_changed(essence_gold, -cost)
+	_recalc_stats()
+	_play_pentatonic(clampi(get_node_level(node_id) + 2, 0, 7), -1.0)
+
+	var nd: Dictionary = _node_by_id[node_id] as Dictionary
+	var pos: Vector2 = nd.get("pos", VIEWPORT_SIZE * 0.5) as Vector2
+	_spawn_popup(pos + Vector2(0, -36), "¡%s Nv.%d!" % [String(nd["name"]), get_node_level(node_id)], Color(1.0, 0.90, 0.35))
+
+	if node_id == &"elixir_supremo" and not victory_achieved:
+		victory_achieved = true
+		_add_affinity(&"trixie", 12)
+		if not _victory_banner_shown:
+			_victory_banner_shown = true
+			if _victory_overlay != null:
+				_victory_overlay.visible = true
+
+	_refresh_tree_detail_panel()
+	if _tree_canvas != null:
+		_tree_canvas.queue_redraw()
 	return true
 
 
-func spawn_familiar(familiar_type: String) -> FamiliarEntity:
-	var fam: FamiliarEntity = FamiliarEntity.new()
-	fam.position = witch.position + Vector2(-70, -40)
-	_familiars_layer.add_child(fam)
-	fam.configure(
-		familiar_type,
-		stations,
-		func() -> Array: return active_customers,
-		recipes_catalog,
-		day_number,
-		func(cust: CustomerEntity, rec_id: StringName, hot: bool) -> void:
-			_on_potion_delivered(cust, rec_id, hot)
-	)
-	active_familiars.append(fam)
-	return fam
+func _recalc_stats() -> void:
+	var l_aroma: int = get_node_level(&"aroma_concentrado")
+	var l_link: int = get_node_level(&"enlace_arcano")
+	purge_recycle_lvl = get_node_level(&"espuma_veloz")
+	var l_frenzy: int = get_node_level(&"frenesi_escarlata")
+
+	var l_boil: int = get_node_level(&"hervor_creciente")
+	var l_spark: int = get_node_level(&"chispa_cadena")
+	var l_bomb: int = get_node_level(&"bomba_alquimica")
+	var l_star: int = get_node_level(&"orbe_estrella")
+
+	var l_time: int = get_node_level(&"reloj_arena")
+	fam_michi_lvl = get_node_level(&"michi_alado")
+	fam_imp_lvl = get_node_level(&"diablillo_purgador")
+	fam_bat_lvl = get_node_level(&"murcielago_alquimista")
+
+	var l_charm: int = get_node_level(&"encanto_mostrador")
+	vip_tier = get_node_level(&"vitrina_picante")
+	crit_potion_lvl = get_node_level(&"destilacion_doble")
+
+	aroma_essence_mult = 1.0 + float(l_aroma) * 0.25
+	aroma_tube_bonus = float(l_aroma) * 4.0
+	chain_link_range = 225.0 + float(l_link) * 45.0
+	chain_bonus_per_lvl = float(l_link) * 0.25
+	frenzy_gain_mult = 1.0 + float(l_frenzy) * 0.25
+	frenzy_duration_sec = 5.0 + float(l_frenzy) * 1.2
+
+	spawn_cap = 6 + l_boil * 2
+	spawn_interval = maxf(0.32, 1.15 - float(l_boil) * 0.10)
+	chain_spark_jumps = 0 if l_spark <= 0 else (1 + int(floor(float(l_spark) * 0.5)))
+	bomb_chance = 0.0 if l_bomb <= 0 else (0.09 + float(l_bomb - 1) * 0.03)
+	star_chance = 0.0 if l_star <= 0 else (0.07 + float(l_star - 1) * 0.03)
+
+	round_duration = BASE_ROUND_DURATION + float(l_time) * 4.0
+	order_bonus_mult = 1.0 + float(l_charm) * 0.25
 
 
-func _open_between_days_build_screen() -> void:
-	_set_run_active(false)
-	var active_w: WitchCharacterData = witches[_selected_witch_idx]
-	var xp_parts: PackedStringArray = PackedStringArray()
-	for k: String in acquired_upgrades.keys():
-		xp_parts.append("%s (Nv.%d)" % [k, int(acquired_upgrades[k])])
-	var summary_txt: String = "Habilidades de XP activas (Nv. %d — se conservan para el Día %d): %s" % [
-		xp_level,
-		day_number + 1,
-		", ".join(xp_parts) if not xp_parts.is_empty() else "Ninguna aún"
-	]
-	hud.show_between_days_screen(
-		day_number,
-		gold,
-		hearts,
-		max_hearts,
-		active_w,
-		witches,
-		unlocked_witch_ids,
-		_get_build_options(),
-		summary_txt
-	)
+# ==============================================================================
+# ROUND FLOW, SPAWNER & FAMILIARS
+# ==============================================================================
+
+func _start_round(num: int) -> void:
+	round_number = num
+	round_time_left = round_duration
+	round_ending = false
+	_round_end_timer = 0.0
+	_round_essence_gained = 0
+	_combo = 0
+	_combo_timer = 0.0
+	_frenzy_timer = 0.0
+	_spawn_accum = 0.0
+	_michi_timer = 1.6
+	_imp_timer = 2.0
+	_bat_timer = 2.2
+	_is_dragging = false
+	_drag_chain.clear()
+	_drag_base_color = -1
+
+	_orbs.clear()
+	_lightning_arcs.clear()
+	_shockwaves.clear()
+
+	# Slow, clean initial spawn: start with spawn_cap (6 in Round 1)
+	for _i: int in range(spawn_cap):
+		_spawn_orb(false)
+
+	_set_trixie_reaction("confiada" if round_number > 1 else "normal", 2.0,
+		"¡Ronda %d! Extrae o encadena orbes %s. Purga los ❌ con Clic Der." % [
+			round_number, get_element_name(int(get_customer_chemistry()["liked"]))
+		])
+	_switch_view(ViewMode.CAULDRON)
 
 
-func _get_build_options() -> Array[Dictionary]:
-	var defs: Array[Dictionary] = [
-		{"id": &"move_speed", "title": "Botas Ligeras", "desc": "+8% Velocidad al caminar por nivel", "max_level": 5, "base_cost": 40, "step": 25},
-		{"id": &"brew_speed", "title": "Llama del Caldero", "desc": "+10% Velocidad de cocción por nivel", "max_level": 5, "base_cost": 45, "step": 30},
-		{"id": &"cauldron_grace", "title": "Acero Templado", "desc": "+20% Tiempo antes de explotar por nivel", "max_level": 4, "base_cost": 40, "step": 25},
-		{"id": &"gold_tips", "title": "Encanto Comercial", "desc": "+15% Propinas de oro por nivel", "max_level": 5, "base_cost": 50, "step": 35},
-		{"id": &"ability_cdr", "title": "Reloj de Arena", "desc": "-12% Recarga de habilidad activa por nivel", "max_level": 4, "base_cost": 50, "step": 35},
-		{"id": &"extra_heart", "title": "Corazón de Fénix", "desc": "+1 Corazón máximo y cura 1 ♥", "max_level": 3, "base_cost": 70, "step": 45},
-	]
-	var out: Array[Dictionary] = []
-	for d: Dictionary in defs:
-		var bid: String = String(d["id"])
-		var lvl: int = int(build_levels.get(bid, 0))
-		var cost: int = int(d["base_cost"]) + lvl * int(d["step"])
-		out.append({
-			"id": d["id"],
-			"title": d["title"],
-			"desc": d["desc"],
-			"level": lvl,
-			"max_level": d["max_level"],
-			"cost": cost,
+func _start_next_round_from_tree() -> void:
+	_start_round(round_number + 1)
+
+
+func _finish_round_early() -> void:
+	if round_ending:
+		return
+	round_time_left = 0.0
+	_trigger_round_end()
+
+
+func _trigger_round_end() -> void:
+	if round_ending:
+		return
+	round_ending = true
+	_round_end_timer = 0.65
+	_is_dragging = false
+	_drag_chain.clear()
+	_play_pentatonic(6, -2.0)
+	_set_trixie_reaction("confiada", 2.0, "¡Fin de hervor! +%d✦ reunida. ¡Mejoremos el caldero!" % _round_essence_gained)
+
+
+func _process_cauldron_gameplay(delta: float) -> void:
+	if _cauldron_shake > 0.0:
+		_cauldron_shake = maxf(0.0, _cauldron_shake - delta * 26.0)
+
+	if _combo > 0:
+		_combo_timer -= delta
+		if _combo_timer <= 0.0:
+			_combo = 0
+
+	if _frenzy_timer > 0.0:
+		_frenzy_timer = maxf(0.0, _frenzy_timer - delta)
+
+	for st: Dictionary in _ambient_steam:
+		st["y"] = float(st["y"]) - float(st["spd"]) * delta
+		if float(st["y"]) < -CAULDRON_RADIUS * 0.72:
+			st["y"] = CAULDRON_RADIUS * 0.65
+			st["x"] = randf_range(-CAULDRON_RADIUS * 0.75, CAULDRON_RADIUS * 0.75)
+
+	if round_ending:
+		_round_end_timer -= delta
+		_update_vfx(delta)
+		if _round_end_timer <= 0.0:
+			_switch_view(ViewMode.UPGRADE_TREE)
+		return
+
+	round_time_left = maxf(0.0, round_time_left - delta)
+	if round_time_left <= 0.0:
+		_trigger_round_end()
+		return
+
+	_spawn_accum += delta
+	while _spawn_accum >= spawn_interval:
+		_spawn_accum -= spawn_interval
+		if _orbs.size() < spawn_cap:
+			_spawn_orb(false)
+
+	_update_orbs_motion(delta)
+	_hovered_orb_idx = _find_orb_at(_mouse_pos, 10.0) if not _is_dragging else -1
+	_update_familiars(delta)
+	_update_vfx(delta)
+
+
+func _count_orbs_of_kind(target_kind: int) -> int:
+	var c: int = 0
+	for o: Dictionary in _orbs:
+		if int(o["kind"]) == target_kind:
+			c += 1
+	return c
+
+
+func _spawn_orb(avoid_disliked: bool) -> void:
+	var chem: Dictionary = get_customer_chemistry()
+	var liked_k: int = int(chem["liked"])
+	var neutral_k: int = int(chem["neutral"])
+	var disliked_k: int = int(chem["disliked"])
+
+	var kind: int = liked_k
+	var roll: float = randf()
+	if roll < star_chance:
+		kind = BubbleKind.GOLD
+	elif roll < star_chance + bomb_chance:
+		kind = BubbleKind.BOMB
+	elif _count_orbs_of_kind(liked_k) < 2:
+		kind = liked_k
+	else:
+		var r_base: float = randf()
+		if avoid_disliked:
+			kind = liked_k if r_base < 0.62 else neutral_k
+		else:
+			if r_base < 0.44:
+				kind = liked_k
+			elif r_base < 0.74:
+				kind = neutral_k
+			else:
+				kind = disliked_k
+
+	# Pick well-spaced position inside cauldron
+	var pos: Vector2 = CAULDRON_CENTER
+	var max_r: float = CAULDRON_RADIUS - ORB_RADIUS - 22.0
+	for _attempt: int in range(12):
+		var ang: float = randf_range(0.0, TAU)
+		var dist: float = sqrt(randf()) * max_r
+		var cand: Vector2 = CAULDRON_CENTER + Vector2(cos(ang), sin(ang)) * dist
+		var clear: bool = true
+		for o: Dictionary in _orbs:
+			if cand.distance_to(o["pos"] as Vector2) < ORB_RADIUS * 2.25:
+				clear = false
+				break
+		pos = cand
+		if clear:
+			break
+
+	var vel_ang: float = randf_range(0.0, TAU)
+	var vel: Vector2 = Vector2(cos(vel_ang), sin(vel_ang)) * randf_range(12.0, 24.0)
+	_orbs.append({
+		"pos": pos,
+		"vel": vel,
+		"radius": ORB_RADIUS,
+		"kind": kind,
+		"scale_pop": 0.25,
+		"phase": randf_range(0.0, TAU),
+	})
+
+
+func _update_orbs_motion(delta: float) -> void:
+	var limit: float = CAULDRON_RADIUS - ORB_RADIUS - 14.0
+	for i: int in range(_orbs.size()):
+		var o: Dictionary = _orbs[i]
+		var pos: Vector2 = o["pos"] as Vector2
+		var vel: Vector2 = o["vel"] as Vector2
+		pos += vel * delta
+
+		var rel: Vector2 = pos - CAULDRON_CENTER
+		if rel.length() > limit:
+			var n: Vector2 = rel.normalized()
+			pos = CAULDRON_CENTER + n * limit
+			vel = vel.bounce(n)
+
+		o["pos"] = pos
+		o["vel"] = vel
+		o["scale_pop"] = lerpf(float(o["scale_pop"]), 1.0, clampf(delta * 10.0, 0.0, 1.0))
+
+	# Soft separation so orbs stay readable and don't stack on top of each other
+	for i: int in range(_orbs.size()):
+		for j: int in range(i + 1, _orbs.size()):
+			var pi: Vector2 = _orbs[i]["pos"] as Vector2
+			var pj: Vector2 = _orbs[j]["pos"] as Vector2
+			var diff: Vector2 = pj - pi
+			var d: float = diff.length()
+			var min_d: float = ORB_RADIUS * 2.15
+			if d > 0.01 and d < min_d:
+				var push: Vector2 = diff.normalized() * (min_d - d) * 0.5 * clampf(delta * 8.0, 0.0, 1.0)
+				_orbs[i]["pos"] = pi - push
+				_orbs[j]["pos"] = pj + push
+
+
+func _find_orb_at(pos: Vector2, extra_pad: float = 8.0) -> int:
+	for i: int in range(_orbs.size() - 1, -1, -1):
+		var opos: Vector2 = _orbs[i]["pos"] as Vector2
+		var orad: float = float(_orbs[i]["radius"])
+		if pos.distance_to(opos) <= orad + extra_pad:
+			return i
+	return -1
+
+
+# ==============================================================================
+# TACTICAL DRAG-CHAIN, SINGLE CLICK & RIGHT-CLICK PURGE
+# ==============================================================================
+
+func _begin_drag_chain(idx: int) -> void:
+	if idx < 0 or idx >= _orbs.size():
+		return
+	_is_dragging = true
+	_drag_chain = [idx]
+	var kind: int = int(_orbs[idx]["kind"])
+	_drag_base_color = kind if (kind != BubbleKind.GOLD and kind != BubbleKind.BOMB) else -1
+	_play_pentatonic(0, -6.0)
+
+
+func _extend_drag_chain_along_segment(p0: Vector2, p1: Vector2) -> void:
+	if not _is_dragging or _drag_chain.is_empty():
+		return
+	var last_idx: int = _drag_chain[_drag_chain.size() - 1]
+	var last_pos: Vector2 = _orbs[last_idx]["pos"] as Vector2
+
+	for i: int in range(_orbs.size()):
+		var opos: Vector2 = _orbs[i]["pos"] as Vector2
+		var orad: float = float(_orbs[i]["radius"])
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(opos, p0, p1)
+		if closest.distance_to(opos) > orad + 10.0:
+			continue
+
+		# Backtrack 1 step if hovering back over the penultimate orb
+		if _drag_chain.size() >= 2 and i == _drag_chain[_drag_chain.size() - 2]:
+			_drag_chain.pop_back()
+			_recompute_drag_base_color()
+			_play_pentatonic(maxi(0, _drag_chain.size() - 1), -8.0)
+			return
+
+		if _drag_chain.has(i):
+			continue
+		if opos.distance_to(last_pos) > chain_link_range:
+			continue
+		if _can_link_orb_kind(int(_orbs[i]["kind"])):
+			_drag_chain.append(i)
+			var k: int = int(_orbs[i]["kind"])
+			if _drag_base_color == -1 and k != BubbleKind.GOLD and k != BubbleKind.BOMB:
+				_drag_base_color = k
+			_play_pentatonic(clampi(_drag_chain.size() - 1, 0, 7), -5.0)
+			return
+
+
+func _recompute_drag_base_color() -> void:
+	_drag_base_color = -1
+	for idx: int in _drag_chain:
+		if idx >= 0 and idx < _orbs.size():
+			var k: int = int(_orbs[idx]["kind"])
+			if k != BubbleKind.GOLD and k != BubbleKind.BOMB:
+				_drag_base_color = k
+				return
+
+
+func _can_link_orb_kind(kind: int) -> bool:
+	if kind == BubbleKind.GOLD or kind == BubbleKind.BOMB:
+		return true
+	if _drag_base_color == -1:
+		return true
+	return kind == _drag_base_color
+
+
+func _calc_chain_multiplier(count: int) -> float:
+	if count <= 1:
+		return 1.0
+	var base: float = 2.4
+	if count == 3:
+		base = 4.2
+	elif count == 4:
+		base = 6.5
+	elif count > 4:
+		base = 6.5 + float(count - 4) * 2.5
+	return base + float(count - 1) * chain_bonus_per_lvl
+
+
+func _resolve_drag_chain() -> void:
+	_is_dragging = false
+	if _drag_chain.is_empty():
+		_drag_base_color = -1
+		return
+	var selected: Array[int] = _drag_chain.duplicate()
+	_drag_chain.clear()
+	_drag_base_color = -1
+	_resolve_orb_indices_as_chain(selected)
+
+
+func _resolve_orb_indices_as_chain(indices: Array[int]) -> void:
+	if indices.is_empty():
+		return
+	var chain_snaps: Array[Dictionary] = []
+	var seen: Dictionary = {}
+	for idx: int in indices:
+		if idx >= 0 and idx < _orbs.size() and not seen.has(idx):
+			seen[idx] = true
+			chain_snaps.append(_orbs[idx].duplicate())
+
+	if chain_snaps.is_empty():
+		return
+
+	# Remove from _orbs back-to-front cleanly
+	var sorted_idxs: Array[int] = []
+	for k: Variant in seen.keys():
+		sorted_idxs.append(int(k))
+	sorted_idxs.sort()
+	for r_i: int in range(sorted_idxs.size() - 1, -1, -1):
+		_orbs.remove_at(sorted_idxs[r_i])
+
+	var chain_len: int = chain_snaps.size()
+	var chain_mult: float = _calc_chain_multiplier(chain_len)
+	var frenzy_mult: float = 2.0 if _frenzy_timer > 0.0 else 1.0
+
+	var liked_count: int = 0
+	var neutral_count: int = 0
+	var disliked_count: int = 0
+	var star_count: int = 0
+	var bomb_positions: Array[Vector2] = []
+
+	for i: int in range(chain_snaps.size()):
+		var snap: Dictionary = chain_snaps[i]
+		var pos: Vector2 = snap["pos"] as Vector2
+		var kind: int = int(snap["kind"])
+		var rel: StringName = get_orb_relation(kind)
+
+		if i > 0:
+			_lightning_arcs.append({
+				"from": chain_snaps[i - 1]["pos"] as Vector2,
+				"to": pos,
+				"color": Color(0.45, 0.96, 1.0),
+				"life": 0.24,
+				"max_life": 0.24,
+			})
+
+		_shockwaves.append({
+			"pos": pos,
+			"radius": 12.0,
+			"max_radius": 78.0 if chain_len >= 2 else 58.0,
+			"color": get_element_color(kind),
+			"life": 0.28,
+			"max_life": 0.28,
 		})
-	return out
 
-
-func _on_build_upgrade_purchased(build_id: StringName) -> void:
-	for opt: Dictionary in _get_build_options():
-		if opt["id"] == build_id:
-			var lvl: int = int(opt["level"])
-			var max_lvl: int = int(opt["max_level"])
-			var cost: int = int(opt["cost"])
-			if lvl >= max_lvl or gold < cost:
-				return
-			gold -= cost
-			EventBus.gold_changed.emit(gold, -cost)
-			build_levels[String(build_id)] = lvl + 1
-			match build_id:
-				&"move_speed":
-					witch.move_speed_mult += 0.08
-				&"ability_cdr":
-					witch.cooldown_reduction_mult = maxf(0.4, witch.cooldown_reduction_mult - 0.12)
-				&"extra_heart":
-					max_hearts += 1
-					hearts = mini(max_hearts, hearts + 1)
-			_open_between_days_build_screen()
-			return
-
-
-func _on_witch_selected_between_days(witch_id: StringName) -> void:
-	if not unlocked_witch_ids.has(witch_id):
-		return
-	for i: int in range(witches.size()):
-		if witches[i].witch_id == witch_id:
-			_selected_witch_idx = i
-			_open_between_days_build_screen()
-			return
-
-
-func _on_next_day_requested() -> void:
-	hud.hide_overlays()
-	_set_run_active(true)
-	_start_day(day_number + 1)
-
-
-func _end_run(victory: bool, reason_text: String) -> void:
-	_set_run_active(false)
-	var essence: int = day_number * 25 + int(gold / 10)
-	EventBus.run_ended.emit(victory, StringName(reason_text), essence)
-	hud.show_end_screen(victory, reason_text, essence)
-
-
-func _return_to_menu() -> void:
-	if SceneFader.is_busy():
-		return
-	_set_run_active(false)
-	SceneFader.fade_to_scene("res://scenes/ui/MainMenu.tscn", 0.45, 0.45)
-
-
-func _set_run_active(active: bool) -> void:
-	run_active = active
-	EventBus.timers_paused = not active
-
-
-func _set_tutorial_step(new_step: TutorialStep, line: String, emotion: String = "normal") -> void:
-	if _tutorial_step == new_step:
-		return
-	_tutorial_step = new_step
-	if new_step == TutorialStep.NONE:
-		_tutorial_has_target = false
-		if line != "":
-			hud.show_trixie_dialogue(line, emotion, 4.8)
+		if kind == BubbleKind.GOLD:
+			star_count += 1
+		elif kind == BubbleKind.BOMB:
+			bomb_positions.append(pos)
+		elif rel == &"liked":
+			liked_count += 1
+		elif rel == &"neutral":
+			neutral_count += 1
 		else:
-			hud.hide_trixie_dialogue()
+			disliked_count += 1
+
+	var center_pos: Vector2 = chain_snaps[chain_snaps.size() - 1]["pos"] as Vector2
+
+	# 1) Disliked penalty takes effect cleanly if player clicked/linked ❌
+	if disliked_count > 0:
+		var penalty: float = 18.0 * float(disliked_count)
+		_potion_tube_pct = maxf(0.0, _potion_tube_pct - penalty)
+		_combo = 0
+		_tube_flash_timer = 0.55
+		_tube_flash_positive = false
+		_cauldron_shake = maxf(_cauldron_shake, 10.0)
+		_play_pentatonic(0, 0.0)
+		_spawn_popup(center_pos, "¡❌ -%d%% Poción! Combo 0" % int(penalty), Color(1.0, 0.32, 0.34))
+		_set_trixie_reaction("nerviosa", 1.8, "¡Cuidado! Ese elemento choca con el pedido.")
+		if _active_customer != null and not _active_customer.impatient_lines.is_empty():
+			_customer_line = _active_customer.impatient_lines[0]
+		return
+
+	# 2) Positive extraction (Liked / Neutral / Star / Bomb)
+	var tube_gain: float = 0.0
+	var ess_gain: int = 0
+	var frenzy_add: float = 0.0
+
+	if liked_count > 0:
+		tube_gain += (22.0 + aroma_tube_bonus) * chain_mult * frenzy_mult
+		ess_gain += int(roundf(6.0 * chain_mult * aroma_essence_mult * frenzy_mult))
+		_combo += liked_count
+		_combo_timer = 5.0
+		frenzy_add += 16.0 * float(liked_count) * frenzy_gain_mult
+
+	if neutral_count > 0:
+		tube_gain += 7.0 * chain_mult * frenzy_mult
+		ess_gain += int(roundf(3.0 * chain_mult * frenzy_mult))
+		_combo_timer = 5.0
+		if chain_len >= 2:
+			_combo += 1
+
+	if star_count > 0:
+		tube_gain += 16.0 * float(star_count) * frenzy_mult
+		ess_gain += int(roundf(15.0 * float(star_count) * chain_mult * aroma_essence_mult * frenzy_mult))
+		_combo += star_count
+		_combo_timer = 5.0
+		frenzy_add += 14.0 * float(star_count) * frenzy_gain_mult
+
+	if chain_len >= 2:
+		_play_pentatonic(clampi(chain_len + 1, 0, 7), -1.0)
 	else:
-		hud.show_trixie_dialogue(line, emotion, 0.0)
+		_play_pentatonic(clampi(_combo % 8, 0, 7), -4.0)
+
+	if ess_gain > 0:
+		_grant_essence(ess_gain)
+	if frenzy_add > 0.0 and _frenzy_timer <= 0.0:
+		_frenzy_charge = minf(100.0, _frenzy_charge + frenzy_add)
+
+	if liked_count > 0 or star_count > 0:
+		_set_trixie_reaction("confiada", 1.6,
+			"¡Cadena x%d perfecta!" % chain_len if chain_len >= 2 else "¡Buen toque! Sigue buscando los afines.")
+
+	# Popup summary
+	var pop_txt: String = "+%d%%  +%d✦" % [int(roundf(tube_gain)), ess_gain]
+	if chain_len >= 2:
+		pop_txt = "¡CADENA x%d! %s" % [chain_len, pop_txt]
+	_spawn_popup(center_pos, pop_txt, Color(1.0, 0.90, 0.40) if liked_count > 0 or star_count > 0 else Color(0.84, 0.92, 1.0))
+
+	if tube_gain > 0.0:
+		_add_tube_progress(tube_gain)
+
+	# 3) Chain Spark upgrade: zaps extra nearby Liked orbs when chaining 2+
+	if chain_spark_jumps > 0 and chain_len >= 2 and liked_count > 0:
+		_trigger_chain_spark_zaps(center_pos, chain_spark_jumps)
+
+	# 4) Bomb AoE: extracts nearby Liked/Neutral/Gold while skipping Disliked ❌
+	for bpos: Vector2 in bomb_positions:
+		_detonate_alchemy_bomb(bpos)
 
 
-func _update_guided_tutorial() -> void:
-	_tutorial_has_target = false
-
-	# Part 1: First potion guided walkthrough on Day 1
-	if not _first_potion_tutorial_done:
-		if not active_customers.is_empty() and is_instance_valid(active_customers[0]):
-			var c0: CustomerEntity = active_customers[0]
-			c0.patience_frozen_timer = maxf(c0.patience_frozen_timer, 1.0)
-			if spawn_timer < 6.0:
-				spawn_timer = 6.0
-			if not c0.order_revealed or c0.requested_recipe == null:
-				return
-			var req_ing: StringName = c0.requested_recipe.required_ingredients[0] if not c0.requested_recipe.required_ingredients.is_empty() else &"red"
-			var bin_st: KitchenStation = _find_station(StringName("bin_" + String(req_ing)))
-			var caul0: KitchenStation = _find_station(&"cauldron_0")
-			var bottle_st: KitchenStation = _find_station(&"bottling")
-
-			var has_bot: bool = false
-			var has_raw: bool = false
-			var has_ing: bool = false
-			for it: String in witch.held_items:
-				if it.begins_with("bot:"):
-					has_bot = true
-				elif it.begins_with("raw:"):
-					has_raw = true
-				elif it.begins_with("ing:"):
-					has_ing = true
-
-			var caul_busy: bool = caul0 != null and (caul0.cauldron_state == KitchenStation.CauldronState.BREWING or caul0.cauldron_state == KitchenStation.CauldronState.READY or caul0.cauldron_state == KitchenStation.CauldronState.OVERBOIL_WARNING)
-
-			if has_bot:
-				_set_tutorial_step(TutorialStep.DELIVER_CUSTOMER, "¡Quedó preciosa! Ahora haz clic en la clienta para entregársela.", "sonrojada")
-				_tutorial_target_pos = c0.global_position + Vector2(0, -108)
-				_tutorial_has_target = true
-			elif has_raw:
-				_set_tutorial_step(TutorialStep.BOTTLE_POTION, "¡Cuidado que quema! Llévala a la mesa de Embotellado para sellarla en un frasco.", "normal")
-				if bottle_st != null:
-					_tutorial_target_pos = bottle_st.global_position + Vector2(0, -102)
-					_tutorial_has_target = true
-			elif caul_busy:
-				var caul_msg: String = "¡Ya está lista! Haz clic en el caldero para recogerla antes de que se queme." if caul0.cauldron_state != KitchenStation.CauldronState.BREWING else "¡Mira cómo hierve! Haz clic en el caldero para revolverla (¡CALIENTE! = más oro) y recógela al terminar."
-				_set_tutorial_step(TutorialStep.STIR_OR_COLLECT, caul_msg, "confiada")
-				_tutorial_target_pos = caul0.global_position + Vector2(0, -108)
-				_tutorial_has_target = true
-			elif has_ing:
-				_set_tutorial_step(TutorialStep.ADD_TO_CAULDRON, "¡Bien! Ahora haz clic en el Caldero para empezar a cocinarla.", "normal")
-				if caul0 != null:
-					_tutorial_target_pos = caul0.global_position + Vector2(0, -108)
-					_tutorial_has_target = true
-			else:
-				_set_tutorial_step(TutorialStep.PICK_INGREDIENT, "¡Mi primera clienta! Mira qué color pide y haz clic en esa caja para tomar el ingrediente.", "nerviosa")
-				if bin_st != null:
-					_tutorial_target_pos = bin_st.global_position + Vector2(0, -100)
-					_tutorial_has_target = true
-		return
-
-	# Part 2: Reactive Storage Restock Tutorial (triggers the first time any ingredient bin reaches 0/10)
-	if not _restock_tutorial_done:
-		var empty_bin: KitchenStation = null
-		if _tutorial_restock_ing != &"":
-			empty_bin = _find_station(StringName("bin_" + String(_tutorial_restock_ing)))
-			if empty_bin != null and empty_bin.ingredient_stock > 0:
-				_restock_tutorial_done = true
-				_set_tutorial_step(TutorialStep.NONE, "¡Listo, caja llena otra vez! Si te sobran ingredientes en la caja, déjala en el Estante de Cajas abajo.", "confiada")
-				return
-		else:
-			for st: KitchenStation in stations:
-				if st.station_type == KitchenStation.StationType.INGREDIENT_BIN and st.ingredient_stock <= 0:
-					empty_bin = st
-					_tutorial_restock_ing = st.ingredient_id
+func _trigger_chain_spark_zaps(origin: Vector2, jumps: int) -> void:
+	var targets: Array[int] = []
+	for i: int in range(_orbs.size()):
+		if get_orb_relation(int(_orbs[i]["kind"])) == &"liked":
+			if (_orbs[i]["pos"] as Vector2).distance_to(origin) <= 270.0:
+				targets.append(i)
+				if targets.size() >= jumps:
 					break
-		if empty_bin == null:
-			return
-
-		var door_storage: KitchenStation = _find_station(&"door_to_storage")
-		var door_kitchen: KitchenStation = _find_station(&"door_to_kitchen")
-		var supply_st: KitchenStation = _find_station(StringName("supply_" + String(_tutorial_restock_ing)))
-
-		if witch.is_carrying_crate():
-			if current_room == &"storage":
-				_set_tutorial_step(TutorialStep.RESTOCK_RETURN, "¡Uf, sí que pesa! Vuelve rápido por la puerta de la Cocina.", "nerviosa")
-				if door_kitchen != null:
-					_tutorial_target_pos = door_kitchen.global_position + Vector2(0, -86)
-					_tutorial_has_target = true
-			else:
-				_set_tutorial_step(TutorialStep.RESTOCK_POUR, "¡Ahora haz clic en la caja vacía para rellenarla! Lo que sobre guárdalo en el Estante de Cajas.", "normal")
-				_tutorial_target_pos = empty_bin.global_position + Vector2(0, -100)
-				_tutorial_has_target = true
-		else:
-			if current_room == &"kitchen":
-				_set_tutorial_step(TutorialStep.RESTOCK_DOOR, "¡Ay no, se acabó esa caja! Haz clic en la puerta del Almacén a la izquierda para reponer.", "sorprendida")
-				if door_storage != null:
-					_tutorial_target_pos = door_storage.global_position + Vector2(0, -155)
-					_tutorial_has_target = true
-			else:
-				_set_tutorial_step(TutorialStep.RESTOCK_PICK_CRATE, "Aquí están las cajas grandes de x20. ¡Con las manos vacías, haz clic en la caja del color que falta!", "normal")
-				if supply_st != null:
-					_tutorial_target_pos = supply_st.global_position + Vector2(0, -62)
-					_tutorial_has_target = true
-
-
-func _toggle_fullscreen() -> void:
-	var mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
-	if mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-
-
-func _on_seismic_mortar() -> void:
-	for st: KitchenStation in stations:
-		if st.station_type == KitchenStation.StationType.CAULDRON and st.cauldron_state == KitchenStation.CauldronState.BREWING:
-			st.brew_elapsed += st.brew_duration * seismic_mortar_boost
-
-
-func _on_room_transition_requested(door_id: StringName) -> void:
-	if door_id == &"door_to_storage":
-		current_room = &"storage"
-		witch.global_position = Vector2(-245, 540)
-		_pan_camera_to(Vector2(-960, 540))
-	elif door_id == &"door_to_kitchen":
-		current_room = &"kitchen"
-		witch.global_position = Vector2(290, 585)
-		_pan_camera_to(Vector2(960, 540))
-
-
-func _pan_camera_to(target_pos: Vector2) -> void:
-	if camera == null:
+	if targets.is_empty():
 		return
-	if _camera_tween != null and _camera_tween.is_valid():
-		_camera_tween.kill()
-	_camera_tween = create_tween()
-	_camera_tween.tween_property(camera, "position", target_pos, 0.22).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	for idx: int in targets:
+		_lightning_arcs.append({
+			"from": origin,
+			"to": _orbs[idx]["pos"] as Vector2,
+			"color": Color(0.36, 0.96, 1.0),
+			"life": 0.25,
+			"max_life": 0.25,
+		})
+	_resolve_orb_indices_as_chain(targets)
 
 
-func _build_kitchen_stations() -> void:
-	# Doorway from Kitchen to Storage Room (painted arch on left wall)
-	_add_station(&"door_to_storage", KitchenStation.StationType.ROOM_DOOR, &"", "Almacén", Vector2(200, 515), -1, Color(0.86, 0.68, 0.36), true)
-
-	# Separate Storage Room (x = -1920..0): Door back to Kitchen + 3 infinite x20 crate supplies
-	_add_station(&"door_to_kitchen", KitchenStation.StationType.ROOM_DOOR, &"", "Cocina", Vector2(-155, 540), -1, Color(0.86, 0.68, 0.36))
-	_add_station(&"supply_red", KitchenStation.StationType.SUPPLY_SOURCE, &"red", "Cajas Rojo", Vector2(-1280, 540), -1, Color(0.95, 0.24, 0.30))
-	_add_station(&"supply_blue", KitchenStation.StationType.SUPPLY_SOURCE, &"blue", "Cajas Azul", Vector2(-960, 540), -1, Color(0.24, 0.65, 1.0))
-	_add_station(&"supply_green", KitchenStation.StationType.SUPPLY_SOURCE, &"green", "Cajas Verde", Vector2(-640, 540), -1, Color(0.22, 0.88, 0.45))
-
-	# Kitchen Layout aligned to 1920x1080 painted kitchen_bg.jpg (v02) + exact 1:1 station sprites:
-	# 3 Ingredient Bins aligned to the unified 3-bin wooden table at BINS_TABLE_POS
-	_add_station(&"bin_red", KitchenStation.StationType.INGREDIENT_BIN, &"red", "Hierba Ignis", Vector2(221, 905), -1, Color(0.95, 0.24, 0.30))
-	_add_station(&"bin_blue", KitchenStation.StationType.INGREDIENT_BIN, &"blue", "Cristal Cryo", Vector2(363, 905), -1, Color(0.24, 0.65, 1.0))
-	_add_station(&"bin_green", KitchenStation.StationType.INGREDIENT_BIN, &"green", "Savia Silvestre", Vector2(500, 905), -1, Color(0.22, 0.88, 0.45))
-	_add_station(&"crate_rack", KitchenStation.StationType.CRATE_RACK, &"", "Estante Cajas", Vector2(765, 905), -1, Color(0.76, 0.56, 0.32))
-	_add_station(&"mortar", KitchenStation.StationType.MORTAR, &"", "Mortero", Vector2(800, 395), -1, Color(0.85, 0.78, 0.7))
-	_add_station(&"cauldron_0", KitchenStation.StationType.CAULDRON, &"", "Caldero 1", Vector2(415, 405), 0, Color(0.6, 0.3, 0.9))
-	_add_station(&"cauldron_1", KitchenStation.StationType.CAULDRON, &"", "Caldero 2", Vector2(605, 395), 1, Color(0.6, 0.3, 0.9))
-	_add_station(&"bottling", KitchenStation.StationType.BOTTLING, &"", "Embotellado", Vector2(1010, 395), -1, Color(0.55, 0.9, 1.0))
-	_add_station(&"display_stand", KitchenStation.StationType.DISPLAY_STAND, &"", "Vitrina", Vector2(1242, 434), -1, Color(0.95, 0.80, 0.35))
-	_add_station(&"trash", KitchenStation.StationType.TRASH, &"", "Basura", Vector2(1155, 865), -1, Color(0.45, 0.4, 0.5))
+func _detonate_alchemy_bomb(bpos: Vector2) -> void:
+	_cauldron_shake = maxf(_cauldron_shake, 11.0)
+	_shockwaves.append({
+		"pos": bpos,
+		"radius": 18.0,
+		"max_radius": 175.0,
+		"color": Color(0.88, 0.42, 1.0),
+		"life": 0.38,
+		"max_life": 0.38,
+	})
+	var hits: Array[int] = []
+	for i: int in range(_orbs.size()):
+		var o: Dictionary = _orbs[i]
+		if (o["pos"] as Vector2).distance_to(bpos) <= 175.0:
+			if get_orb_relation(int(o["kind"])) != &"disliked":
+				hits.append(i)
+	if not hits.is_empty():
+		_spawn_popup(bpos + Vector2(0, -28), "¡BOOM ALQUÍMICO!", Color(0.92, 0.56, 1.0))
+		_resolve_orb_indices_as_chain(hits)
 
 
-func _get_wanted_recipes() -> Array[StringName]:
-	var list: Array[StringName] = []
-	for cust: CustomerEntity in active_customers:
-		if is_instance_valid(cust) and not cust.is_served and cust.order_revealed and cust.requested_recipe != null:
-			list.append(cust.requested_recipe.recipe_id)
-	return list
+func _purge_orb_at(idx: int) -> void:
+	if idx < 0 or idx >= _orbs.size():
+		return
+	var o: Dictionary = _orbs[idx]
+	var pos: Vector2 = o["pos"] as Vector2
+	var rel: StringName = get_orb_relation(int(o["kind"]))
+	_orbs.remove_at(idx)
 
+	var a: Node = _audio()
+	if a != null:
+		a.call("play_stir")
+	_shockwaves.append({
+		"pos": pos,
+		"radius": 10.0,
+		"max_radius": 52.0,
+		"color": Color(0.75, 0.78, 0.90),
+		"life": 0.22,
+		"max_life": 0.22,
+	})
 
-func _add_station(st_id: StringName, st_type: KitchenStation.StationType, ing: StringName, label_txt: String, pos: Vector2, c_idx: int, col: Color, use_bg_art: bool = false) -> void:
-	var st: KitchenStation = KitchenStation.new()
-	st.station_id = st_id
-	st.station_type = st_type
-	st.ingredient_id = ing
-	st.display_label = label_txt
-	st.cauldron_index = c_idx
-	st.accent_color = col
-	st.use_background_art = use_bg_art
-	st.position = pos
-	st.station_clicked.connect(_on_station_clicked)
-	if use_bg_art:
-		st.z_index = 1
-		add_child(st)
+	if purge_recycle_lvl > 0:
+		var rec_ess: int = (6 if rel == &"disliked" else 3) * purge_recycle_lvl
+		_grant_essence(rec_ess)
+		_spawn_popup(pos, "Purgado +%d✦" % rec_ess, Color(0.72, 0.92, 1.0))
+		if _orbs.size() < spawn_cap:
+			_spawn_orb(true)
 	else:
-		_kitchen_layer.add_child(st)
-	stations.append(st)
+		_spawn_popup(pos, "Purgado", Color(0.80, 0.84, 0.94))
 
 
-func _find_station(st_id: StringName) -> KitchenStation:
-	for st: KitchenStation in stations:
-		if st.station_id == st_id:
-			return st
-	return null
+func try_activate_frenzy() -> bool:
+	if _frenzy_charge < 100.0 or _frenzy_timer > 0.0 or round_ending:
+		return false
+	_frenzy_charge = 0.0
+	_frenzy_timer = frenzy_duration_sec
+	_cauldron_shake = maxf(_cauldron_shake, 12.0)
+	var a: Node = _audio()
+	if a != null:
+		a.call("trigger_screen_shake", 9.0, 0.25)
+	var b: Node = _bus()
+	if b != null:
+		b.emit_signal("witch_ability_triggered", &"trixie", null)
+
+	# Transmute all DISLIKED orbs in the cauldron into LIKED orbs!
+	var liked_k: int = int(get_customer_chemistry()["liked"])
+	var transmuted: int = 0
+	for o: Dictionary in _orbs:
+		if get_orb_relation(int(o["kind"])) == &"disliked":
+			o["kind"] = liked_k
+			o["scale_pop"] = 0.3
+			transmuted += 1
+			_shockwaves.append({
+				"pos": o["pos"] as Vector2,
+				"radius": 10.0,
+				"max_radius": 68.0,
+				"color": Color(1.0, 0.86, 0.34),
+				"life": 0.35,
+				"max_life": 0.35,
+			})
+
+	_set_trixie_reaction("sonrojada", _frenzy_timer,
+		"¡FRENESÍ ESCARLATA! %d orbes negativos transmutados y 2x TODO!" % transmuted)
+	_spawn_popup(CAULDRON_CENTER, "¡FRENESÍ ESCARLATA x2!", Color(1.0, 0.42, 0.74))
+	return true
+
+
+func _update_familiars(delta: float) -> void:
+	if fam_michi_lvl > 0 and not _orbs.is_empty():
+		_michi_timer -= delta
+		if _michi_timer <= 0.0:
+			_michi_timer = maxf(1.05, 2.5 - float(fam_michi_lvl - 1) * 0.32)
+			for i: int in range(_orbs.size()):
+				var rel: StringName = get_orb_relation(int(_orbs[i]["kind"]))
+				if rel == &"liked" or int(_orbs[i]["kind"]) == BubbleKind.GOLD:
+					_lightning_arcs.append({
+						"from": _get_michi_pos(),
+						"to": _orbs[i]["pos"] as Vector2,
+						"color": Color(1.0, 0.72, 0.92),
+						"life": 0.20,
+						"max_life": 0.20,
+					})
+					_resolve_orb_indices_as_chain([i])
+					break
+
+	if fam_imp_lvl > 0 and not _orbs.is_empty():
+		_imp_timer -= delta
+		if _imp_timer <= 0.0:
+			_imp_timer = maxf(1.2, 2.9 - float(fam_imp_lvl - 1) * 0.35)
+			for i: int in range(_orbs.size()):
+				if get_orb_relation(int(_orbs[i]["kind"])) == &"disliked":
+					_lightning_arcs.append({
+						"from": _get_imp_pos(),
+						"to": _orbs[i]["pos"] as Vector2,
+						"color": Color(1.0, 0.45, 0.28),
+						"life": 0.20,
+						"max_life": 0.20,
+					})
+					_purge_orb_at(i)
+					break
+
+	if fam_bat_lvl > 0:
+		_bat_timer -= delta
+		if _bat_timer <= 0.0:
+			_bat_timer = maxf(1.0, 2.4 - float(fam_bat_lvl - 1) * 0.30)
+			var ess: int = 4 + fam_bat_lvl * 3
+			var pct: float = 3.0 + float(fam_bat_lvl) * 1.5
+			_grant_essence(ess)
+			_add_tube_progress(pct)
+			_spawn_popup(_get_bat_pos(), "🦇 +%d%% +%d✦" % [int(pct), ess], Color(0.84, 0.68, 1.0))
+
+
+func _get_michi_pos() -> Vector2:
+	return CAULDRON_CENTER + Vector2(cos(_time * 1.2) * 235.0, sin(_time * 1.2) * 185.0)
+
+
+func _get_imp_pos() -> Vector2:
+	return CAULDRON_CENTER + Vector2(cos(-_time * 1.05 + 2.2) * 245.0, sin(-_time * 1.05 + 2.2) * 195.0)
+
+
+func _get_bat_pos() -> Vector2:
+	return CAULDRON_CENTER + Vector2(cos(_time * 1.5 + 4.1) * 290.0, -255.0 + sin(_time * 3.0) * 18.0)
+
+
+func _grant_essence(amount: int) -> void:
+	essence_gold += amount
+	total_essence_earned += amount
+	_round_essence_gained += amount
+	_emit_gold_changed(essence_gold, amount)
+
+
+func _add_tube_progress(pct: float) -> void:
+	_potion_tube_pct += pct
+	_tube_flash_timer = 0.4
+	_tube_flash_positive = true
+	if _potion_tube_pct >= 100.0:
+		_complete_customer_order()
+
+
+func _update_vfx(delta: float) -> void:
+	var l_idx: int = 0
+	while l_idx < _lightning_arcs.size():
+		_lightning_arcs[l_idx]["life"] = float(_lightning_arcs[l_idx]["life"]) - delta
+		if float(_lightning_arcs[l_idx]["life"]) <= 0.0:
+			_lightning_arcs.remove_at(l_idx)
+			continue
+		l_idx += 1
+
+	var s_idx: int = 0
+	while s_idx < _shockwaves.size():
+		var sw: Dictionary = _shockwaves[s_idx]
+		sw["life"] = float(sw["life"]) - delta
+		var t: float = 1.0 - clampf(float(sw["life"]) / maxf(0.01, float(sw["max_life"])), 0.0, 1.0)
+		sw["radius"] = lerpf(12.0, float(sw["max_radius"]), t)
+		if float(sw["life"]) <= 0.0:
+			_shockwaves.remove_at(s_idx)
+			continue
+		s_idx += 1
+
+
+# ==============================================================================
+# CUSTOMERS & SPICY AFFINITY
+# ==============================================================================
+
+func get_affinity_points(char_id: StringName) -> int:
+	return int(customer_affinity_pts.get(char_id, 0))
+
+
+func get_affinity_level(char_id: StringName) -> int:
+	var pts: int = get_affinity_points(char_id)
+	var lvl: int = 0
+	for th: int in AFFINITY_THRESHOLDS:
+		if pts >= th:
+			lvl += 1
+	return lvl
+
+
+func _add_affinity(char_id: StringName, pts: int) -> bool:
+	var prev_lvl: int = get_affinity_level(char_id)
+	customer_affinity_pts[char_id] = get_affinity_points(char_id) + pts
+	return get_affinity_level(char_id) > prev_lvl
+
+
+func _pick_next_customer(first_order: bool = false) -> void:
+	if customers_catalog.is_empty():
+		return
+	var max_pool: int = mini(customers_catalog.size(), 1 + vip_tier)
+	if vip_tier == 0 and orders_completed >= 2:
+		max_pool = mini(customers_catalog.size(), 2)
+	var pool: Array[CustomerArchetypeData] = []
+	for i: int in range(max_pool):
+		pool.append(customers_catalog[i])
+
+	var next_c: CustomerArchetypeData = pool[0]
+	if pool.size() > 1 and not first_order:
+		var cands: Array[CustomerArchetypeData] = []
+		for c: CustomerArchetypeData in pool:
+			if _active_customer == null or c.customer_id != _active_customer.customer_id:
+				cands.append(c)
+		if not cands.is_empty():
+			next_c = cands[randi() % cands.size()]
+	elif not pool.is_empty():
+		next_c = pool[0]
+
+	_active_customer = next_c
+	_potion_tube_pct = 0.0
+	_customer_slide_t = 0.0
+	_customer_spicy_mode = false
+	_customer_order_reward = int(roundf(float(24 + orders_completed * 14) * next_c.tip_generosity_mult * order_bonus_mult))
+
+	if not next_c.greeting_lines.is_empty():
+		_customer_line = next_c.greeting_lines[randi() % next_c.greeting_lines.size()]
+	else:
+		_customer_line = "¡Prepara mi elixir favorito, brujita!"
+
+
+func _complete_customer_order() -> void:
+	if _active_customer == null:
+		return
+	var c: CustomerArchetypeData = _active_customer
+	var overflow: float = maxf(0.0, _potion_tube_pct - 100.0)
+	var crit: bool = crit_potion_lvl > 0 and _combo >= 5
+	var bonus_gold: int = _customer_order_reward * (2 if crit else 1) + int(roundf(overflow * 0.4))
+	_grant_essence(bonus_gold)
+	orders_completed += 1
+
+	var b: Node = _bus()
+	if b != null:
+		b.emit_signal("customer_served", c.customer_id, bonus_gold, 1.5 if crit else 1.1, 1)
+
+	var aff_gain: int = 1 + (1 if get_node_level(&"encanto_mostrador") >= 3 else 0) + (1 if crit else 0)
+	var leveled_up: bool = _add_affinity(c.customer_id, aff_gain)
+	var new_aff_lvl: int = get_affinity_level(c.customer_id)
+	_customer_spicy_mode = new_aff_lvl >= 1
+	_customer_flash_timer = 1.2
+
+	if leveled_up:
+		_show_toast("💋 ¡Afinidad Nv.%d con %s! Escena de Galería desbloqueada." % [new_aff_lvl, c.display_name], 4.0)
+		_set_trixie_reaction("sonrojada", 2.4, "¡A %s le encantó! Mira cómo se sonroja..." % c.display_name)
+	elif crit:
+		_show_toast("💎 ¡POCIÓN CRÍTICA! +%d✦  +%d❤ Afinidad" % [bonus_gold, aff_gain], 2.5)
+
+	_spawn_popup(Vector2(1620, 440), "¡ELIXIR LISTO! +%d✦  +%d❤" % [bonus_gold, aff_gain], Color(1.0, 0.78, 0.92))
+	_pick_next_customer(false)
+
+
+func _show_toast(txt: String, duration: float = 3.5) -> void:
+	_toast_timer = duration
+	if _toast_lbl != null:
+		_toast_lbl.text = txt
+		_toast_lbl.visible = true
+
+
+func _set_trixie_reaction(emotion: String, dur: float, line: String) -> void:
+	_trixie_emotion = emotion
+	_trixie_emotion_timer = dur
+	_trixie_line = line
+
+
+# ==============================================================================
+# VIEW SWITCHING & UI BUILD
+# ==============================================================================
+
+func _switch_view(mode: ViewMode) -> void:
+	view_mode = mode
+	_is_dragging = false
+	_drag_chain.clear()
+	if _cauldron_hud_root != null:
+		_cauldron_hud_root.visible = (mode == ViewMode.CAULDRON)
+	if _tree_view_root != null:
+		_tree_view_root.visible = (mode == ViewMode.UPGRADE_TREE)
+	if _gallery_view_root != null:
+		_gallery_view_root.visible = (mode == ViewMode.GALLERY)
+	if mode == ViewMode.UPGRADE_TREE:
+		_refresh_tree_detail_panel()
+		if _tree_canvas != null:
+			_tree_canvas.queue_redraw()
+	elif mode == ViewMode.GALLERY:
+		_refresh_gallery_panel()
+	_refresh_hud_labels()
+
+
+func _build_ui() -> void:
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.layer = 10
+	add_child(_ui_layer)
+
+	# Top Bar
+	var top_bar: PanelContainer = PanelContainer.new()
+	top_bar.position = Vector2.ZERO
+	top_bar.size = Vector2(1920, 76)
+	var tb_sb: StyleBoxFlat = StyleBoxFlat.new()
+	tb_sb.bg_color = Color(0.08, 0.05, 0.13, 0.95)
+	tb_sb.border_color = Color(0.76, 0.58, 0.28)
+	tb_sb.border_width_bottom = 3
+	top_bar.add_theme_stylebox_override("panel", tb_sb)
+	_ui_layer.add_child(top_bar)
+
+	var tb_pad: MarginContainer = MarginContainer.new()
+	tb_pad.add_theme_constant_override("margin_left", 24)
+	tb_pad.add_theme_constant_override("margin_right", 24)
+	tb_pad.add_theme_constant_override("margin_top", 10)
+	tb_pad.add_theme_constant_override("margin_bottom", 10)
+	top_bar.add_child(tb_pad)
+
+	var tb_hbox: HBoxContainer = HBoxContainer.new()
+	tb_hbox.add_theme_constant_override("separation", 18)
+	tb_pad.add_child(tb_hbox)
+
+	_top_essence_lbl = _make_label("✦ 0", 26, Color(1.0, 0.88, 0.36))
+	_top_essence_lbl.custom_minimum_size = Vector2(260, 0)
+	_top_round_lbl = _make_label("Ronda 1  ·  Pedidos: 0", 20, Color(0.92, 0.88, 0.98))
+	_top_round_lbl.custom_minimum_size = Vector2(260, 0)
+	tb_hbox.add_child(_top_essence_lbl)
+	tb_hbox.add_child(_top_round_lbl)
+
+	var sp1: Control = Control.new()
+	sp1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tb_hbox.add_child(sp1)
+
+	_top_timer_lbl = _make_label("0:25", 28, Color(1.0, 0.94, 0.78))
+	_top_timer_lbl.custom_minimum_size = Vector2(130, 0)
+	_top_timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tb_hbox.add_child(_top_timer_lbl)
+
+	var sp2: Control = Control.new()
+	sp2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tb_hbox.add_child(sp2)
+
+	_tab_cauldron_btn = _make_pill_button("🔥 CALDERO [1]", Color(0.56, 0.16, 0.32), Color(1.0, 0.78, 0.36))
+	_tab_cauldron_btn.pressed.connect(func() -> void: _switch_view(ViewMode.CAULDRON))
+	_tab_tree_btn = _make_pill_button("🌿 ÁRBOL [TAB]", Color(0.18, 0.28, 0.44), Color(0.45, 0.86, 1.0))
+	_tab_tree_btn.pressed.connect(func() -> void: _switch_view(ViewMode.UPGRADE_TREE))
+	_tab_gallery_btn = _make_pill_button("💋 GALERÍA [3]", Color(0.36, 0.16, 0.42), Color(1.0, 0.62, 0.84))
+	_tab_gallery_btn.pressed.connect(func() -> void: _switch_view(ViewMode.GALLERY))
+
+	tb_hbox.add_child(_tab_cauldron_btn)
+	tb_hbox.add_child(_tab_tree_btn)
+	tb_hbox.add_child(_tab_gallery_btn)
+
+	_tree_badge_panel = PanelContainer.new()
+	_tree_badge_panel.position = Vector2(1656, 4)
+	_tree_badge_panel.size = Vector2(28, 28)
+	var b_sb: StyleBoxFlat = StyleBoxFlat.new()
+	b_sb.bg_color = Color(1.0, 0.84, 0.20)
+	b_sb.set_corner_radius_all(14)
+	_tree_badge_panel.add_theme_stylebox_override("panel", b_sb)
+	var b_lbl: Label = _make_label("!", 18, Color(0.12, 0.04, 0.10))
+	b_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tree_badge_panel.add_child(b_lbl)
+	_tree_badge_panel.visible = false
+	_ui_layer.add_child(_tree_badge_panel)
+
+	_build_cauldron_hud()
+	_build_upgrade_tree_ui()
+	_build_gallery_ui()
+	_build_modals()
+
+
+func _build_cauldron_hud() -> void:
+	_cauldron_hud_root = Control.new()
+	_cauldron_hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_cauldron_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(_cauldron_hud_root)
+
+	# Left Panel below Trixie's big portrait (FRENZY + Button + Control tip)
+	var left_card: PanelContainer = _make_card_panel(Vector2(24, 650), Vector2(402, 404), Color(0.12, 0.07, 0.18, 0.94), Color(0.92, 0.56, 0.40))
+	_cauldron_hud_root.add_child(left_card)
+	var lv: VBoxContainer = VBoxContainer.new()
+	lv.add_theme_constant_override("separation", 10)
+	left_card.get_child(0).add_child(lv)
+
+	var f_hdr: Label = _make_label("🔥 FRENESÍ ESCARLATA", 20, Color(1.0, 0.78, 0.36))
+	lv.add_child(f_hdr)
+
+	_frenzy_bar = ProgressBar.new()
+	_frenzy_bar.custom_minimum_size = Vector2(360, 24)
+	_frenzy_bar.max_value = 100.0
+	_frenzy_bar.show_percentage = false
+	var fbg: StyleBoxFlat = StyleBoxFlat.new()
+	fbg.bg_color = Color(0.08, 0.04, 0.12)
+	fbg.set_corner_radius_all(8)
+	var ffg: StyleBoxFlat = StyleBoxFlat.new()
+	ffg.bg_color = Color(1.0, 0.32, 0.44)
+	ffg.set_corner_radius_all(8)
+	_frenzy_bar.add_theme_stylebox_override("background", fbg)
+	_frenzy_bar.add_theme_stylebox_override("fill", ffg)
+	lv.add_child(_frenzy_bar)
+
+	_frenzy_btn = _make_pill_button("💥 ACTIVAR FRENESÍ [ESPACIO]", Color(0.68, 0.14, 0.24), Color(1.0, 0.84, 0.38))
+	_frenzy_btn.custom_minimum_size = Vector2(360, 56)
+	_frenzy_btn.pressed.connect(try_activate_frenzy)
+	lv.add_child(_frenzy_btn)
+
+	_trixie_speech_lbl = _make_label(_trixie_line, 17, Color(0.96, 0.92, 0.98))
+	_trixie_speech_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_trixie_speech_lbl.custom_minimum_size = Vector2(360, 128)
+	lv.add_child(_trixie_speech_lbl)
+
+	var ctrl_hint: Label = _make_label("Clic Izq / Arrastrar: Extraer · Clic Der: Purgar ❌", 15, Color(0.74, 0.84, 0.98))
+	ctrl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lv.add_child(ctrl_hint)
+
+	# Right Chemistry Legend + Customer Parchment Box (x=1408..1894)
+	var chem_card: PanelContainer = _make_card_panel(Vector2(1408, 568), Vector2(486, 86), Color(0.11, 0.07, 0.17, 0.95), Color(0.76, 0.60, 0.92))
+	_cauldron_hud_root.add_child(chem_card)
+	var chem_hbox: HBoxContainer = HBoxContainer.new()
+	chem_hbox.add_theme_constant_override("separation", 10)
+	chem_card.get_child(0).add_child(chem_hbox)
+
+	_cust_liked_lbl = _make_label("✨ AFÍN:\n🔥 Fuego", 16, Color(0.45, 1.0, 0.62))
+	_cust_liked_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cust_liked_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cust_neutral_lbl = _make_label("⚪ NEUTRO:\n🍃 Savia", 16, Color(0.88, 0.90, 0.96))
+	_cust_neutral_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cust_neutral_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cust_disliked_lbl = _make_label("❌ RESTA:\n🌙 Luna", 16, Color(1.0, 0.42, 0.48))
+	_cust_disliked_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cust_disliked_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chem_hbox.add_child(_cust_liked_lbl)
+	chem_hbox.add_child(_cust_neutral_lbl)
+	chem_hbox.add_child(_cust_disliked_lbl)
+
+	var cust_card: PanelContainer = _make_card_panel(Vector2(1408, 666), Vector2(486, 314), Color(0.90, 0.80, 0.64, 0.96), Color(0.36, 0.22, 0.14))
+	_cauldron_hud_root.add_child(cust_card)
+	var cv: VBoxContainer = VBoxContainer.new()
+	cv.add_theme_constant_override("separation", 10)
+	cust_card.get_child(0).add_child(cv)
+
+	var chdr: HBoxContainer = HBoxContainer.new()
+	_cust_name_lbl = _make_label("Sylvi", 24, Color(0.36, 0.12, 0.22))
+	_cust_name_lbl.add_theme_constant_override("outline_size", 0)
+	_cust_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_cust_aff_lbl = _make_label("❤ Nv.0", 20, Color(0.68, 0.14, 0.36))
+	_cust_aff_lbl.add_theme_constant_override("outline_size", 0)
+	chdr.add_child(_cust_name_lbl)
+	chdr.add_child(_cust_aff_lbl)
+	cv.add_child(chdr)
+
+	_cust_speech_lbl = _make_label(_customer_line, 20, Color(0.18, 0.10, 0.08))
+	_cust_speech_lbl.add_theme_constant_override("outline_size", 0)
+	_cust_speech_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cust_speech_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cv.add_child(_cust_speech_lbl)
+
+	_end_round_btn = _make_pill_button("🌿 TERMINAR HERVOR / IR AL ÁRBOL [TAB]", Color(0.20, 0.30, 0.48), Color(0.55, 0.88, 1.0))
+	_end_round_btn.position = Vector2(1408, 994)
+	_end_round_btn.size = Vector2(486, 56)
+	_end_round_btn.pressed.connect(_finish_round_early)
+	_cauldron_hud_root.add_child(_end_round_btn)
+
+	_toast_lbl = _make_label("", 22, Color(1.0, 0.90, 0.42))
+	_toast_lbl.position = Vector2(450, 92)
+	_toast_lbl.size = Vector2(880, 42)
+	_toast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast_lbl.visible = false
+	_cauldron_hud_root.add_child(_toast_lbl)
+
+
+func _build_upgrade_tree_ui() -> void:
+	_tree_view_root = Control.new()
+	_tree_view_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_tree_view_root.visible = false
+	_ui_layer.add_child(_tree_view_root)
+
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.06, 0.04, 0.11, 0.98)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tree_view_root.add_child(bg)
+
+	_tree_canvas = Control.new()
+	_tree_canvas.position = Vector2.ZERO
+	_tree_canvas.size = VIEWPORT_SIZE
+	_tree_canvas.draw.connect(_draw_upgrade_tree)
+	_tree_canvas.gui_input.connect(_on_tree_gui_input)
+	_tree_view_root.add_child(_tree_canvas)
+
+	var lbl_l: Label = _make_label("✨ RAMA ALQUIMIA Y CADENAS", 18, Color(1.0, 0.46, 0.56))
+	lbl_l.position = Vector2(54, 102)
+	_tree_view_root.add_child(lbl_l)
+	var lbl_n: Label = _make_label("⚡ RAMA CALDERO Y REACCIONES", 18, Color(0.38, 0.92, 1.0))
+	lbl_n.position = Vector2(815, 92)
+	_tree_view_root.add_child(lbl_n)
+	var lbl_r: Label = _make_label("🐱 RAMA FAMILIARES Y TIEMPO", 18, Color(0.82, 0.54, 1.0))
+	lbl_r.position = Vector2(1500, 102)
+	_tree_view_root.add_child(lbl_r)
+	var lbl_s: Label = _make_label("💋 RAMA CLIENTAS Y VICTORIA", 18, Color(1.0, 0.62, 0.84))
+	lbl_s.position = Vector2(54, 836)
+	_tree_view_root.add_child(lbl_s)
+
+	var bottom_bar: PanelContainer = _make_card_panel(Vector2(40, 882), Vector2(1840, 174), Color(0.11, 0.07, 0.18, 0.98), Color(0.82, 0.64, 0.32))
+	_tree_view_root.add_child(bottom_bar)
+	var hbox: HBoxContainer = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 24)
+	bottom_bar.get_child(0).add_child(hbox)
+
+	var info_col: VBoxContainer = VBoxContainer.new()
+	info_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_col.add_theme_constant_override("separation", 6)
+	hbox.add_child(info_col)
+
+	_tree_info_title = _make_label("Selecciona un nodo del árbol", 26, Color(1.0, 0.88, 0.42))
+	_tree_info_desc = _make_label("", 20, Color(0.95, 0.92, 0.98))
+	_tree_info_stats = _make_label("", 18, Color(0.68, 0.88, 1.0))
+	info_col.add_child(_tree_info_title)
+	info_col.add_child(_tree_info_desc)
+	info_col.add_child(_tree_info_stats)
+
+	_tree_buy_btn = _make_pill_button("COMPRAR MEJORA", Color(0.58, 0.22, 0.40), Color(1.0, 0.84, 0.36))
+	_tree_buy_btn.custom_minimum_size = Vector2(290, 92)
+	_tree_buy_btn.pressed.connect(func() -> void: buy_incremental_node(_tree_selected_id))
+	hbox.add_child(_tree_buy_btn)
+
+	_tree_boil_btn = _make_pill_button("🔥 ¡HERVIR CALDERO!\n[ESPACIO]", Color(0.16, 0.48, 0.26), Color(0.54, 1.0, 0.58))
+	_tree_boil_btn.custom_minimum_size = Vector2(310, 92)
+	_tree_boil_btn.pressed.connect(_start_next_round_from_tree)
+	hbox.add_child(_tree_boil_btn)
+
+
+func _build_gallery_ui() -> void:
+	_gallery_view_root = Control.new()
+	_gallery_view_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_gallery_view_root.visible = false
+	_ui_layer.add_child(_gallery_view_root)
+
+	var bg: ColorRect = ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.07, 0.04, 0.12, 0.98)
+	_gallery_view_root.add_child(bg)
+
+	var selector_row: HBoxContainer = HBoxContainer.new()
+	selector_row.position = Vector2(56, 98)
+	selector_row.size = Vector2(1808, 56)
+	selector_row.add_theme_constant_override("separation", 14)
+	_gallery_view_root.add_child(selector_row)
+
+	var roster_ids: Array[StringName] = [&"sylvi", &"velvet", &"seraphina", &"mona", &"roxy", &"trixie"]
+	var roster_labels: Dictionary = {
+		&"sylvi": "🌿 Sylvi", &"velvet": "🦇 Velvet", &"seraphina": "🛡 Seraphina",
+		&"mona": "🌙 Mona", &"roxy": "🐺 Roxy", &"trixie": "🔥 Trixie",
+	}
+	for cid: StringName in roster_ids:
+		var btn: Button = _make_pill_button(String(roster_labels[cid]), Color(0.22, 0.14, 0.32), Color(0.92, 0.62, 0.82))
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.pressed.connect(func() -> void:
+			_gallery_selected_char_id = cid
+			_refresh_gallery_panel()
+		)
+		selector_row.add_child(btn)
+		_gallery_char_buttons[cid] = btn
+
+	var left_card: PanelContainer = _make_card_panel(Vector2(56, 174), Vector2(580, 860), Color(0.12, 0.07, 0.18, 0.96), Color(0.96, 0.62, 0.84))
+	_gallery_view_root.add_child(left_card)
+	var lvbox: VBoxContainer = VBoxContainer.new()
+	lvbox.add_theme_constant_override("separation", 12)
+	left_card.get_child(0).add_child(lvbox)
+
+	_gallery_portrait_canvas = Control.new()
+	_gallery_portrait_canvas.custom_minimum_size = Vector2(520, 440)
+	_gallery_portrait_canvas.draw.connect(_draw_gallery_portrait)
+	lvbox.add_child(_gallery_portrait_canvas)
+
+	_gallery_title_lbl = _make_label("Sylvi", 28, Color(1.0, 0.88, 0.44))
+	_gallery_aff_lbl = _make_label("❤ Afinidad Nv.0 (0/3)", 20, Color(1.0, 0.56, 0.82))
+	_gallery_lines_lbl = _make_label("", 18, Color(0.94, 0.90, 0.96))
+	_gallery_lines_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_gallery_lines_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lvbox.add_child(_gallery_title_lbl)
+	lvbox.add_child(_gallery_aff_lbl)
+	lvbox.add_child(_gallery_lines_lbl)
+
+	_gallery_gift_btn = _make_pill_button("🎁 REGALAR ELIXIR (40✦ -> +2❤)", Color(0.54, 0.16, 0.36), Color(1.0, 0.82, 0.42))
+	_gallery_gift_btn.custom_minimum_size = Vector2(0, 56)
+	_gallery_gift_btn.pressed.connect(_on_gallery_gift_pressed)
+	lvbox.add_child(_gallery_gift_btn)
+
+	var right_card: PanelContainer = _make_card_panel(Vector2(660, 174), Vector2(1204, 860), Color(0.11, 0.07, 0.17, 0.96), Color(0.84, 0.66, 0.36))
+	_gallery_view_root.add_child(right_card)
+	var rvbox: VBoxContainer = VBoxContainer.new()
+	rvbox.add_theme_constant_override("separation", 20)
+	right_card.get_child(0).add_child(rvbox)
+
+	rvbox.add_child(_make_label("GALERÍA DE ILUSTRACIONES Y ESCENAS PICANTES", 28, Color(1.0, 0.88, 0.44)))
+
+	_gallery_cards_box = HBoxContainer.new()
+	_gallery_cards_box.add_theme_constant_override("separation", 24)
+	_gallery_cards_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rvbox.add_child(_gallery_cards_box)
+
+	var back_btn: Button = _make_pill_button("🔥 VOLVER A HERVIR [ESPACIO]", Color(0.16, 0.48, 0.26), Color(0.54, 1.0, 0.58))
+	back_btn.custom_minimum_size = Vector2(0, 66)
+	back_btn.pressed.connect(_start_next_round_from_tree)
+	rvbox.add_child(back_btn)
+
+
+func _build_modals() -> void:
+	_lightbox_overlay = ColorRect.new()
+	_lightbox_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_lightbox_overlay.color = Color(0.03, 0.02, 0.06, 0.92)
+	_lightbox_overlay.visible = false
+	_ui_layer.add_child(_lightbox_overlay)
+
+	var lb_center: CenterContainer = CenterContainer.new()
+	lb_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_lightbox_overlay.add_child(lb_center)
+	var lb_panel: PanelContainer = _make_card_panel(Vector2.ZERO, Vector2(1140, 840), Color(0.12, 0.07, 0.18, 0.98), Color(1.0, 0.82, 0.40))
+	lb_panel.custom_minimum_size = Vector2(1140, 840)
+	lb_center.add_child(lb_panel)
+
+	var lb_vbox: VBoxContainer = VBoxContainer.new()
+	lb_vbox.add_theme_constant_override("separation", 14)
+	lb_panel.get_child(0).add_child(lb_vbox)
+
+	_lightbox_title_lbl = _make_label("", 28, Color(1.0, 0.88, 0.44))
+	_lightbox_title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lb_vbox.add_child(_lightbox_title_lbl)
+
+	_lightbox_canvas = Control.new()
+	_lightbox_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_lightbox_canvas.draw.connect(_draw_lightbox_scene)
+	lb_vbox.add_child(_lightbox_canvas)
+
+	_lightbox_caption_lbl = _make_label("", 20, Color(0.96, 0.88, 0.94))
+	_lightbox_caption_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lightbox_caption_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lb_vbox.add_child(_lightbox_caption_lbl)
+
+	var lb_close: Button = _make_pill_button("CERRAR VISOR [ESC]", Color(0.46, 0.18, 0.30), Color(1.0, 0.72, 0.42))
+	lb_close.custom_minimum_size = Vector2(260, 50)
+	lb_close.pressed.connect(func() -> void: _lightbox_overlay.visible = false)
+	var cc: CenterContainer = CenterContainer.new()
+	cc.add_child(lb_close)
+	lb_vbox.add_child(cc)
+
+	_pause_overlay = ColorRect.new()
+	_pause_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_overlay.color = Color(0.04, 0.02, 0.08, 0.84)
+	_pause_overlay.visible = false
+	_ui_layer.add_child(_pause_overlay)
+
+	var p_center: CenterContainer = CenterContainer.new()
+	p_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_overlay.add_child(p_center)
+	var p_panel: PanelContainer = _make_card_panel(Vector2.ZERO, Vector2(460, 380), Color(0.12, 0.08, 0.19, 0.98), Color(0.88, 0.68, 0.36))
+	p_panel.custom_minimum_size = Vector2(460, 380)
+	p_center.add_child(p_panel)
+
+	var p_vbox: VBoxContainer = VBoxContainer.new()
+	p_vbox.add_theme_constant_override("separation", 18)
+	p_panel.get_child(0).add_child(p_vbox)
+	var p_hdr: Label = _make_label("PAUSA", 34, Color(1.0, 0.88, 0.44))
+	p_hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	p_vbox.add_child(p_hdr)
+
+	var res_btn: Button = _make_pill_button("REANUDAR", Color(0.18, 0.46, 0.28), Color(0.56, 1.0, 0.60))
+	res_btn.custom_minimum_size = Vector2(0, 56)
+	res_btn.pressed.connect(func() -> void: _pause_overlay.visible = false)
+	var rst_btn: Button = _make_pill_button("REINICIAR PROTOTIPO", Color(0.46, 0.24, 0.16), Color(1.0, 0.72, 0.40))
+	rst_btn.custom_minimum_size = Vector2(0, 56)
+	rst_btn.pressed.connect(func() -> void:
+		_pause_overlay.visible = false
+		get_tree().reload_current_scene()
+	)
+	var menu_btn: Button = _make_pill_button("MENÚ PRINCIPAL", Color(0.28, 0.16, 0.38), Color(0.88, 0.66, 0.98))
+	menu_btn.custom_minimum_size = Vector2(0, 56)
+	menu_btn.pressed.connect(func() -> void:
+		_pause_overlay.visible = false
+		var fader: Node = _fader()
+		if fader != null:
+			fader.call("fade_to_scene", "res://scenes/ui/MainMenu.tscn", 0.4, 0.4)
+		else:
+			get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn")
+	)
+	p_vbox.add_child(res_btn)
+	p_vbox.add_child(rst_btn)
+	p_vbox.add_child(menu_btn)
+
+	_victory_overlay = ColorRect.new()
+	_victory_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_victory_overlay.color = Color(0.05, 0.02, 0.08, 0.88)
+	_victory_overlay.visible = false
+	_ui_layer.add_child(_victory_overlay)
+
+	var v_center: CenterContainer = CenterContainer.new()
+	v_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_victory_overlay.add_child(v_center)
+	var v_panel: PanelContainer = _make_card_panel(Vector2.ZERO, Vector2(680, 440), Color(0.15, 0.08, 0.20, 0.98), Color(1.0, 0.88, 0.36))
+	v_panel.custom_minimum_size = Vector2(680, 440)
+	v_center.add_child(v_panel)
+
+	var v_vbox: VBoxContainer = VBoxContainer.new()
+	v_vbox.add_theme_constant_override("separation", 18)
+	v_panel.get_child(0).add_child(v_vbox)
+	var v_hdr: Label = _make_label("🏆 ¡BOTICA CONSAGRADA! 🏆", 36, Color(1.0, 0.90, 0.38))
+	v_hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var v_body: Label = _make_label(
+		"¡Has destilado el Elixir Supremo de Trixie!\nLa botica es ahora la más famosa (y picante) del reino.\nPuedes seguir jugando para desbloquear el 100% de la Galería.",
+		21, Color(0.96, 0.92, 0.98)
+	)
+	v_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var v_cont: Button = _make_pill_button("✨ SEGUIR JUGANDO Y VER GALERÍA", Color(0.56, 0.18, 0.38), Color(1.0, 0.84, 0.38))
+	v_cont.custom_minimum_size = Vector2(0, 58)
+	v_cont.pressed.connect(func() -> void:
+		_victory_overlay.visible = false
+		_switch_view(ViewMode.GALLERY)
+	)
+	v_vbox.add_child(v_hdr)
+	v_vbox.add_child(v_body)
+	v_vbox.add_child(v_cont)
+
+
+# ==============================================================================
+# UPGRADE TREE INTERACTION & DRAWING
+# ==============================================================================
+
+func _on_tree_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var mm: InputEventMouseMotion = event as InputEventMouseMotion
+		var hit: StringName = _hit_test_tree_node(mm.position)
+		if hit != _tree_hovered_id:
+			_tree_hovered_id = hit
+			if hit != &"":
+				_tree_selected_id = hit
+				_refresh_tree_detail_panel()
+			_tree_canvas.queue_redraw()
+	elif event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			var hit: StringName = _hit_test_tree_node(mb.position)
+			if hit != &"":
+				_tree_selected_id = hit
+				if not buy_incremental_node(hit):
+					_play_pentatonic(0, -8.0)
+				_refresh_tree_detail_panel()
+				_tree_canvas.queue_redraw()
+
+
+func _hit_test_tree_node(pos: Vector2) -> StringName:
+	for nd: Dictionary in tree_nodes:
+		if pos.distance_to(nd["pos"] as Vector2) <= 46.0:
+			return nd["id"] as StringName
+	return &""
+
+
+func _refresh_tree_detail_panel() -> void:
+	if _tree_info_title == null or not _node_by_id.has(_tree_selected_id):
+		return
+	var nd: Dictionary = _node_by_id[_tree_selected_id] as Dictionary
+	var lvl: int = get_node_level(_tree_selected_id)
+	var max_lvl: int = int(nd["max_level"])
+	var cost: int = get_node_cost(_tree_selected_id)
+	var unlocked: bool = is_node_unlocked(_tree_selected_id)
+
+	_tree_info_title.text = "%s %s  (Nv. %d / %d)" % [String(nd["icon"]), String(nd["name"]), lvl, max_lvl]
+	_tree_info_desc.text = String(nd["short_desc"])
+	if lvl >= max_lvl:
+		_tree_info_stats.text = "Estado: ¡MÁXIMO ALCANZADO!"
+		_tree_buy_btn.text = "NIVEL MÁXIMO"
+		_tree_buy_btn.disabled = true
+	elif not unlocked:
+		var p_id: StringName = nd.get("parent_id", &"") as StringName
+		var p_name: String = String((_node_by_id[p_id] as Dictionary)["name"]) if _node_by_id.has(p_id) else "Anterior"
+		_tree_info_stats.text = "Bloqueado — Desbloquea primero: %s" % p_name
+		_tree_buy_btn.text = "BLOQUEADO"
+		_tree_buy_btn.disabled = true
+	else:
+		_tree_info_stats.text = "Siguiente nivel cuesta: %d✦ Esencia  (Tienes: %d✦)" % [cost, essence_gold]
+		_tree_buy_btn.text = "MEJORAR (%d✦)" % cost
+		_tree_buy_btn.disabled = essence_gold < cost
+
+
+func _draw_upgrade_tree() -> void:
+	if _tree_canvas == null:
+		return
+	var font: Font = ThemeDB.fallback_font
+	for gx: int in range(80, 1920, 120):
+		_tree_canvas.draw_line(Vector2(gx, 76), Vector2(gx, 882), Color(1, 1, 1, 0.03), 1.0)
+	for gy: int in range(120, 880, 120):
+		_tree_canvas.draw_line(Vector2(0, gy), Vector2(1920, gy), Color(1, 1, 1, 0.03), 1.0)
+
+	for nd: Dictionary in tree_nodes:
+		var nid: StringName = nd["id"] as StringName
+		var p_id: StringName = nd.get("parent_id", &"") as StringName
+		if p_id == &"" or not _node_by_id.has(p_id):
+			continue
+		var p_pos: Vector2 = (_node_by_id[p_id] as Dictionary)["pos"] as Vector2
+		var n_pos: Vector2 = nd["pos"] as Vector2
+		var col: Color = nd["color"] as Color
+		var unlocked: bool = is_node_unlocked(nid)
+		var owned: bool = get_node_level(nid) > 0
+		var line_col: Color = col if owned else (Color(col.r, col.g, col.b, 0.45) if unlocked else Color(0.28, 0.24, 0.34, 0.45))
+		_tree_canvas.draw_line(p_pos, n_pos, line_col, 5.5 if owned else (3.5 if unlocked else 2.0), true)
+
+	for nd: Dictionary in tree_nodes:
+		var nid: StringName = nd["id"] as StringName
+		var pos: Vector2 = nd["pos"] as Vector2
+		var col: Color = nd["color"] as Color
+		var lvl: int = get_node_level(nid)
+		var max_lvl: int = int(nd["max_level"])
+		var unlocked: bool = is_node_unlocked(nid)
+		var affordable: bool = can_buy_node(nid)
+		var pulse: float = 0.5 + 0.5 * sin(_time * 5.0)
+
+		if affordable:
+			_tree_canvas.draw_circle(pos, 47.0 + pulse * 5.0, Color(1.0, 0.88, 0.36, 0.22 + pulse * 0.16))
+		if nid == _tree_selected_id or nid == _tree_hovered_id:
+			_tree_canvas.draw_arc(pos, 48.0, 0.0, TAU, 32, Color(1.0, 0.94, 0.55), 3.5)
+
+		var fill_col: Color = Color(0.18, 0.12, 0.26)
+		if lvl >= max_lvl:
+			fill_col = col.darkened(0.32)
+		elif lvl > 0:
+			fill_col = col.darkened(0.55)
+		elif not unlocked:
+			fill_col = Color(0.10, 0.08, 0.14)
+
+		var border_col: Color = Color(1.0, 0.90, 0.36) if affordable else (col if unlocked else Color(0.30, 0.26, 0.38))
+		_tree_canvas.draw_circle(pos, 38.0, fill_col)
+		_tree_canvas.draw_arc(pos, 38.0, 0.0, TAU, 32, border_col, 4.0 if affordable or lvl > 0 else 2.5)
+		_tree_canvas.draw_string(font, pos + Vector2(-14, 10), String(nd["icon"]), HORIZONTAL_ALIGNMENT_CENTER, 28, 26, Color.WHITE if unlocked else Color(0.5, 0.5, 0.55))
+
+		var name_col: Color = Color(1.0, 0.96, 0.88) if unlocked else Color(0.56, 0.52, 0.64)
+		_tree_canvas.draw_string(font, pos + Vector2(-95, 56), String(nd["name"]), HORIZONTAL_ALIGNMENT_CENTER, 190, 15, name_col)
+		var sub_txt: String = "MAX" if lvl >= max_lvl else ("%d/%d · %d✦" % [lvl, max_lvl, get_node_cost(nid)] if unlocked else "🔒")
+		var sub_col: Color = Color(1.0, 0.88, 0.36) if affordable else (Color(0.55, 0.96, 0.68) if lvl >= max_lvl else Color(0.75, 0.72, 0.84))
+		_tree_canvas.draw_string(font, pos + Vector2(-65, 74), sub_txt, HORIZONTAL_ALIGNMENT_CENTER, 130, 13, sub_col)
+
+
+# ==============================================================================
+# GALLERY VIEW
+# ==============================================================================
+
+func _refresh_gallery_panel() -> void:
+	if _gallery_title_lbl == null:
+		return
+	for cid: StringName in _gallery_char_buttons.keys():
+		(_gallery_char_buttons[cid] as Button).modulate = Color(1.0, 0.92, 0.55) if cid == _gallery_selected_char_id else Color(0.82, 0.78, 0.90)
+
+	var pts: int = get_affinity_points(_gallery_selected_char_id)
+	var lvl: int = get_affinity_level(_gallery_selected_char_id)
+	var next_req: int = AFFINITY_THRESHOLDS[mini(lvl, AFFINITY_THRESHOLDS.size() - 1)]
+
+	var char_name: String = "Trixie"
+	var role_txt: String = "Bruja del Caldero"
+	var quotes: PackedStringArray = PackedStringArray([
+		"¡El caldero apenas comienza a calentarse!",
+		"¡Encadena el color afín y mira cómo llueve el oro!",
+	])
+	if _gallery_selected_char_id != &"trixie":
+		for c: CustomerArchetypeData in customers_catalog:
+			if c.customer_id == _gallery_selected_char_id:
+				char_name = c.display_name
+				role_txt = c.species_archetype
+				var all_q: Array[String] = []
+				for s: String in c.greeting_lines:
+					all_q.append("• " + s)
+				if lvl >= 1:
+					for s: String in c.satisfied_lines:
+						all_q.append("★ " + s)
+				if lvl >= 2:
+					for s: String in c.spicy_affinity_lines:
+						all_q.append("💋 " + s)
+				else:
+					all_q.append("🔒 Frases picantes bloqueadas (Requiere Afinidad Nv.2)")
+				quotes = PackedStringArray(all_q)
+				break
+
+	_gallery_title_lbl.text = "%s — %s" % [char_name, role_txt]
+	_gallery_aff_lbl.text = "❤ Afinidad Nv.%d / 3  (%d / %d pts)" % [lvl, pts, next_req]
+	_gallery_lines_lbl.text = "\n".join(quotes)
+
+	var gift_cost: int = 40 * (lvl + 1)
+	_gallery_gift_btn.text = "🎁 REGALAR ELIXIR (%d✦ -> +2❤)" % gift_cost
+	_gallery_gift_btn.disabled = (essence_gold < gift_cost) or (lvl >= 3)
+
+	for child: Node in _gallery_cards_box.get_children():
+		child.queue_free()
+
+	var titles: Array = GALLERY_TITLES.get(_gallery_selected_char_id, ["Escena I", "Escena II", "Escena III"]) as Array
+	for idx: int in range(3):
+		var req_lvl: int = idx + 1
+		var unlocked: bool = lvl >= req_lvl
+		var card_panel: PanelContainer = _make_card_panel(Vector2.ZERO, Vector2(360, 560),
+			Color(0.18, 0.10, 0.24) if unlocked else Color(0.09, 0.07, 0.13),
+			Color(1.0, 0.80, 0.42) if unlocked else Color(0.32, 0.28, 0.42)
+		)
+		card_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_gallery_cards_box.add_child(card_panel)
+
+		var cv: VBoxContainer = VBoxContainer.new()
+		cv.add_theme_constant_override("separation", 12)
+		card_panel.get_child(0).add_child(cv)
+		var c_hdr: Label = _make_label("Escena %d · Nv.%d" % [req_lvl, req_lvl], 20, Color(1.0, 0.68, 0.86) if unlocked else Color(0.55, 0.52, 0.65))
+		c_hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cv.add_child(c_hdr)
+
+		var preview: Control = Control.new()
+		preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var cap_cid: StringName = _gallery_selected_char_id
+		var cap_idx: int = idx
+		var cap_unl: bool = unlocked
+		preview.draw.connect(func() -> void: _draw_gallery_card_preview(preview, cap_cid, cap_idx, cap_unl))
+		cv.add_child(preview)
+
+		var c_title: Label = _make_label(String(titles[idx]) if unlocked else "🔒 Afinidad Nv.%d" % req_lvl, 19, Color(1.0, 0.90, 0.48) if unlocked else Color(0.60, 0.56, 0.70))
+		c_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		c_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cv.add_child(c_title)
+
+		var open_btn: Button = _make_pill_button("🔍 VER ESCENA" if unlocked else "BLOQUEADA",
+			Color(0.58, 0.18, 0.38) if unlocked else Color(0.20, 0.18, 0.25),
+			Color(1.0, 0.84, 0.38) if unlocked else Color(0.40, 0.36, 0.48)
+		)
+		open_btn.custom_minimum_size = Vector2(0, 48)
+		open_btn.disabled = not unlocked
+		open_btn.pressed.connect(func() -> void: _open_gallery_lightbox(cap_cid, cap_idx, String(titles[cap_idx])))
+		cv.add_child(open_btn)
+
+	_gallery_portrait_canvas.queue_redraw()
+
+
+func _on_gallery_gift_pressed() -> void:
+	var lvl: int = get_affinity_level(_gallery_selected_char_id)
+	var cost: int = 40 * (lvl + 1)
+	if essence_gold < cost or lvl >= 3:
+		return
+	essence_gold -= cost
+	_emit_gold_changed(essence_gold, -cost)
+	var leveled: bool = _add_affinity(_gallery_selected_char_id, 2)
+	_play_pentatonic(6 if leveled else 4, -1.0)
+	_refresh_gallery_panel()
+
+
+func _open_gallery_lightbox(cid: StringName, scene_idx: int, title_txt: String) -> void:
+	_gallery_selected_char_id = cid
+	_lightbox_scene_idx = scene_idx
+	_lightbox_title_lbl.text = "💋 %s — %s" % [cid.capitalize(), title_txt]
+	var captions: Array[String] = [
+		"Un momento íntimo junto al mostrador mientras el caldero chisporrotea suavemente.",
+		"El aroma dulce del elixir llena la botica y sube el rubor de la noche.",
+		"Escena especial de afinidad máxima. ¡Lista para reemplazar con tu ilustración final de Krita!",
+	]
+	_lightbox_caption_lbl.text = captions[clampi(scene_idx, 0, captions.size() - 1)]
+	_lightbox_overlay.visible = true
+	_lightbox_canvas.queue_redraw()
+
+
+# ==============================================================================
+# WORLD DRAWING (16:9 MOCKUP LAYOUT, CAULDRON, VERTICAL TUBE, WAIFUS)
+# ==============================================================================
+
+func _draw() -> void:
+	draw_rect(Rect2(0, 0, 1920, 1080), Color(0.08, 0.05, 0.13))
+	draw_circle(CAULDRON_CENTER, 450.0, Color(0.56, 0.18, 0.42, 0.14) if _frenzy_timer > 0.0 else Color(0.26, 0.14, 0.42, 0.12))
+
+	if view_mode != ViewMode.CAULDRON:
+		return
+
+	_draw_trixie_stage_left()
+	_draw_customer_stage_right()
+	_draw_vertical_potion_tube()
+
+	var shake_v: Vector2 = Vector2(randf_range(-_cauldron_shake, _cauldron_shake), randf_range(-_cauldron_shake, _cauldron_shake)) if _cauldron_shake > 0.2 else Vector2.ZERO
+	var c_pos: Vector2 = CAULDRON_CENTER + shake_v
+
+	if _cauldron_tex != null:
+		draw_texture_rect(_cauldron_tex, Rect2(c_pos - Vector2(385, 360), Vector2(770, 745)), false, Color(0.75, 0.68, 0.85, 0.30))
+
+	# Outer rim & rotating rune glow
+	draw_circle(c_pos, CAULDRON_RADIUS + 20.0, Color(0.16, 0.12, 0.22))
+	draw_arc(c_pos, CAULDRON_RADIUS + 20.0, 0.0, TAU, 64, Color(0.88, 0.68, 0.34, 0.88), 6.0)
+	draw_arc(c_pos, CAULDRON_RADIUS + 8.0, _time * 0.28, _time * 0.28 + TAU * 0.80, 48,
+		Color(1.0, 0.40, 0.72, 0.65) if _frenzy_timer > 0.0 else Color(0.42, 0.84, 1.0, 0.35), 3.0)
+
+	# Potion liquid inside cauldron
+	var liq_col: Color = Color(0.24, 0.09, 0.28) if _frenzy_timer > 0.0 else Color(0.11, 0.09, 0.22)
+	draw_circle(c_pos, CAULDRON_RADIUS, liq_col)
+	draw_circle(c_pos, CAULDRON_RADIUS * 0.76, liq_col.lightened(0.08))
+
+	for st: Dictionary in _ambient_steam:
+		var spos: Vector2 = c_pos + Vector2(float(st["x"]), float(st["y"]))
+		if spos.distance_to(c_pos) < CAULDRON_RADIUS - 16.0:
+			var a: float = 0.08 + 0.08 * sin(_time * 2.0 + float(st["phase"]))
+			draw_circle(spos, float(st["r"]), Color(0.72, 0.58, 0.98, a))
+
+	# Draw drag chain preview line underneath orbs
+	if _is_dragging and not _drag_chain.is_empty():
+		var pts: PackedVector2Array = PackedVector2Array()
+		for idx: int in _drag_chain:
+			if idx >= 0 and idx < _orbs.size():
+				pts.append((_orbs[idx]["pos"] as Vector2) + shake_v)
+		pts.append(_mouse_pos)
+		if pts.size() >= 2:
+			draw_polyline(pts, Color(0.45, 0.96, 1.0, 0.88), 6.5, true)
+
+	# Draw orbs with unmistakable AFÍN / NEUTRO / ❌ RESTA readability
+	for i: int in range(_orbs.size()):
+		_draw_alchemy_orb(i, _orbs[i], shake_v)
+
+	# Shockwaves & lightning arcs
+	for sw: Dictionary in _shockwaves:
+		var alpha: float = clampf(float(sw["life"]) / maxf(0.01, float(sw["max_life"])), 0.0, 1.0)
+		var scol: Color = sw["color"] as Color
+		draw_arc((sw["pos"] as Vector2) + shake_v, float(sw["radius"]), 0.0, TAU, 36, Color(scol.r, scol.g, scol.b, alpha * 0.85), 4.5 * alpha)
+
+	for arc: Dictionary in _lightning_arcs:
+		var alpha: float = clampf(float(arc["life"]) / maxf(0.01, float(arc["max_life"])), 0.0, 1.0)
+		var acol: Color = arc["color"] as Color
+		var p0: Vector2 = (arc["from"] as Vector2) + shake_v
+		var p1: Vector2 = (arc["to"] as Vector2) + shake_v
+		var mid: Vector2 = (p0 + p1) * 0.5 + Vector2(randf_range(-14, 14), randf_range(-14, 14))
+		draw_polyline(PackedVector2Array([p0, mid, p1]), Color(acol.r, acol.g, acol.b, alpha), 3.8)
+
+	# Smart Familiars around the cauldron
+	if fam_michi_lvl > 0:
+		var mp: Vector2 = _get_michi_pos() + shake_v
+		draw_circle(mp, 21.0, Color(1.0, 0.72, 0.92, 0.28))
+		draw_circle(mp, 14.0, Color(1.0, 0.86, 0.95))
+		draw_colored_polygon(PackedVector2Array([mp + Vector2(-10, -8), mp + Vector2(-14, -20), mp + Vector2(-3, -12)]), Color(0.95, 0.62, 0.85))
+		draw_colored_polygon(PackedVector2Array([mp + Vector2(10, -8), mp + Vector2(14, -20), mp + Vector2(3, -12)]), Color(0.95, 0.62, 0.85))
+	if fam_imp_lvl > 0:
+		var ip: Vector2 = _get_imp_pos() + shake_v
+		draw_circle(ip, 21.0, Color(1.0, 0.36, 0.24, 0.30))
+		draw_circle(ip, 14.0, Color(0.92, 0.24, 0.36))
+		draw_colored_polygon(PackedVector2Array([ip + Vector2(-9, -9), ip + Vector2(-15, -22), ip + Vector2(-2, -12)]), Color(0.28, 0.08, 0.14))
+		draw_colored_polygon(PackedVector2Array([ip + Vector2(9, -9), ip + Vector2(15, -22), ip + Vector2(2, -12)]), Color(0.28, 0.08, 0.14))
+	if fam_bat_lvl > 0:
+		var bp: Vector2 = _get_bat_pos() + shake_v
+		draw_circle(bp, 18.0, Color(0.70, 0.50, 1.0, 0.30))
+		draw_circle(bp, 12.0, Color(0.42, 0.24, 0.66))
+
+	# COMBO badge above top-right of cauldron (just like the 16:9 mockup!)
+	var font: Font = ThemeDB.fallback_font
+	if _combo > 0:
+		draw_string(font, Vector2(1110, 148), "COMBO", HORIZONTAL_ALIGNMENT_CENTER, 170, 26, Color(1.0, 0.88, 0.36))
+		draw_string(font, Vector2(1110, 194), "x%d!" % _combo, HORIZONTAL_ALIGNMENT_CENTER, 170, 44, Color(1.0, 0.56, 0.28))
+
+	if _is_dragging and _drag_chain.size() >= 2:
+		var mult_preview: float = _calc_chain_multiplier(_drag_chain.size())
+		draw_string(font, _mouse_pos + Vector2(-70, -42), "CADENA x%d (%.1fx)" % [_drag_chain.size(), mult_preview], HORIZONTAL_ALIGNMENT_CENTER, 180, 18, Color(0.45, 0.96, 1.0))
+
+	# Floating popups
+	for p: Dictionary in _popups:
+		var pos: Vector2 = p["pos"] as Vector2
+		var txt: String = p["text"] as String
+		var pcol: Color = p["color"] as Color
+		var alpha: float = clampf(float(p["life"]), 0.0, 1.0)
+		draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(0.04, 0.02, 0.08, alpha))
+		draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(pcol.r, pcol.g, pcol.b, alpha))
+
+
+func _draw_alchemy_orb(idx: int, o: Dictionary, shake_v: Vector2) -> void:
+	var pos: Vector2 = (o["pos"] as Vector2) + shake_v
+	var r: float = float(o["radius"]) * float(o["scale_pop"])
+	var kind: int = int(o["kind"])
+	var rel: StringName = get_orb_relation(kind)
+	var col: Color = get_element_color(kind)
+	var in_chain: bool = _drag_chain.has(idx)
+	var hovered: bool = (idx == _hovered_orb_idx)
+
+	# Relation outer ring: LIKED gets bright golden halo; DISLIKED gets dark warning ring
+	if rel == &"liked":
+		var p: float = 0.65 + 0.35 * sin(_time * 4.5 + float(o["phase"]))
+		draw_circle(pos, r + 9.0, Color(1.0, 0.88, 0.34, 0.22 * p))
+		draw_arc(pos, r + 5.0, 0.0, TAU, 28, Color(1.0, 0.90, 0.38, 0.88), 2.8)
+	elif rel == &"disliked":
+		draw_arc(pos, r + 4.0, 0.0, TAU, 28, Color(0.14, 0.04, 0.08, 0.92), 4.0)
+
+	if in_chain or hovered:
+		draw_arc(pos, r + 9.0, 0.0, TAU, 28, Color(0.45, 0.96, 1.0) if in_chain else Color.WHITE, 3.5)
+
+	draw_circle(pos, r, col.darkened(0.22) if rel == &"disliked" else col)
+	draw_arc(pos, r, 0.0, TAU, 28, col.lightened(0.45), 2.5)
+	draw_circle(pos + Vector2(-r * 0.32, -r * 0.32), r * 0.26, Color(1, 1, 1, 0.58))
+
+	# Crisp symbol in center so colorblind or fast-glancing players read elements & ❌ at 1 glance
+	var font: Font = ThemeDB.fallback_font
+	var glyph: String = "🔥" if kind == BubbleKind.RED else ("🌙" if kind == BubbleKind.BLUE else ("🍃" if kind == BubbleKind.GREEN else ("⭐" if kind == BubbleKind.GOLD else "💣")))
+	draw_string(font, pos + Vector2(-14, 9), glyph, HORIZONTAL_ALIGNMENT_CENTER, 28, 22, Color.WHITE)
+
+	if rel == &"disliked":
+		draw_circle(pos + Vector2(r * 0.62, -r * 0.62), 11.0, Color(0.86, 0.14, 0.20))
+		draw_string(font, pos + Vector2(r * 0.62 - 6, -r * 0.62 + 5), "✕", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+
+
+func _draw_vertical_potion_tube() -> void:
+	var r: Rect2 = TUBE_RECT
+	var liked_col: Color = get_element_color(int(get_customer_chemistry()["liked"]))
+	var pct: float = clampf(_potion_tube_pct / 100.0, 0.0, 1.0)
+
+	# Glass tube body
+	draw_rect(r, Color(0.08, 0.06, 0.14, 0.90))
+	if pct > 0.0:
+		var fill_h: float = r.size.y * pct
+		var fill_rect: Rect2 = Rect2(r.position.x + 5, r.position.y + r.size.y - fill_h, r.size.x - 10, fill_h)
+		var fill_col: Color = liked_col.lightened(0.18) if (_tube_flash_timer > 0.0 and _tube_flash_positive) else (Color(1.0, 0.24, 0.28) if (_tube_flash_timer > 0.0 and not _tube_flash_positive) else liked_col)
+		draw_rect(fill_rect, fill_col)
+		# Meniscus glow
+		draw_rect(Rect2(fill_rect.position.x, fill_rect.position.y, fill_rect.size.x, 6.0), Color(1, 1, 1, 0.65))
+
+	# Tick marks & glass rim
+	for mark: float in [0.25, 0.50, 0.75]:
+		var my: float = r.position.y + r.size.y * (1.0 - mark)
+		draw_line(Vector2(r.position.x + 4, my), Vector2(r.position.x + 20, my), Color(1, 1, 1, 0.45), 2.0)
+
+	draw_rect(r, Color(0.78, 0.84, 0.96, 0.85), false, 3.5)
+	# Cork stopper at top
+	draw_rect(Rect2(r.position.x + 8, r.position.y - 16, r.size.x - 16, 16), Color(0.68, 0.46, 0.26))
+	# Percentage badge below tube
+	draw_string(ThemeDB.fallback_font, Vector2(r.position.x - 12, r.position.y + r.size.y + 34), "%d%%" % int(roundf(_potion_tube_pct)), HORIZONTAL_ALIGNMENT_CENTER, 78, 24, Color(1.0, 0.94, 0.78))
+
+
+func _draw_trixie_stage_left() -> void:
+	var frame: Rect2 = Rect2(24, 96, 402, 540)
+	draw_rect(frame, Color(0.14, 0.08, 0.22, 0.88))
+	draw_rect(frame, Color(0.92, 0.56, 0.40, 0.78), false, 3.0)
+	draw_circle(Vector2(225, 430), 165.0, Color(0.84, 0.28, 0.48, 0.18 if _frenzy_timer <= 0.0 else 0.36))
+	CharacterArt.draw_trixie_bust(self, Rect2(32, 108, 386, 520), _trixie_emotion, _time, 1.0, "cutscene")
+
+
+func _draw_customer_stage_right() -> void:
+	var slide_off: float = (1.0 - _customer_slide_t) * 140.0
+	var frame: Rect2 = Rect2(1408 + slide_off, 96, 486, 460)
+	var border_col: Color = Color(1.0, 0.45, 0.78) if _customer_flash_timer > 0.0 else Color(0.84, 0.62, 0.92, 0.78)
+	draw_rect(frame, Color(0.13, 0.08, 0.21, 0.88))
+	draw_rect(frame, border_col, false, 3.5)
+	if _active_customer != null:
+		_draw_expressive_waifu_bust(self, frame.grow(-8), _active_customer.customer_id, _customer_spicy_mode or _customer_flash_timer > 0.0, _time)
+
+
+func _draw_gallery_portrait() -> void:
+	if _gallery_portrait_canvas == null:
+		return
+	var r: Rect2 = Rect2(Vector2.ZERO, _gallery_portrait_canvas.size)
+	_gallery_portrait_canvas.draw_rect(r, Color(0.14, 0.09, 0.22))
+	_gallery_portrait_canvas.draw_rect(r, Color(0.94, 0.64, 0.82, 0.6), false, 2.0)
+	if _gallery_selected_char_id == &"trixie":
+		CharacterArt.draw_trixie_full(_gallery_portrait_canvas, Vector2(r.size.x * 0.5, r.size.y - 22.0), 1.02, "sonrojada", _time, 1.0)
+	else:
+		_draw_expressive_waifu_bust(_gallery_portrait_canvas, r.grow(-12), _gallery_selected_char_id, get_affinity_level(_gallery_selected_char_id) >= 2, _time)
+
+
+func _draw_gallery_card_preview(ci: CanvasItem, cid: StringName, scene_idx: int, unlocked: bool) -> void:
+	var r: Rect2 = Rect2(Vector2.ZERO, ci.size)
+	ci.draw_rect(r, Color(0.18, 0.10, 0.24) if unlocked else Color(0.08, 0.06, 0.12))
+	if not unlocked:
+		ci.draw_circle(r.size * 0.5, 42.0, Color(0.22, 0.16, 0.30))
+		ci.draw_string(ThemeDB.fallback_font, r.size * 0.5 + Vector2(-14, 10), "🔒", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0.75, 0.70, 0.85))
+		return
+	var glow_col: Color = Color(1.0, 0.48, 0.72, 0.24) if scene_idx == 2 else (Color(0.98, 0.72, 0.36, 0.20) if scene_idx == 1 else Color(0.45, 0.80, 1.0, 0.16))
+	ci.draw_circle(r.size * 0.5, minf(r.size.x, r.size.y) * 0.42, glow_col)
+	if cid == &"trixie":
+		CharacterArt.draw_trixie_bust(ci, r.grow(-8), "sonrojada" if scene_idx == 2 else ("confiada" if scene_idx == 1 else "normal"), _time, 1.0, "dialogue")
+	else:
+		_draw_expressive_waifu_bust(ci, r.grow(-10), cid, scene_idx >= 1, _time)
+
+
+func _draw_lightbox_scene() -> void:
+	if _lightbox_canvas == null:
+		return
+	var r: Rect2 = Rect2(Vector2.ZERO, _lightbox_canvas.size)
+	_lightbox_canvas.draw_rect(r, Color(0.14, 0.07, 0.20))
+	_lightbox_canvas.draw_circle(r.size * 0.5, 250.0, Color(1.0, 0.42, 0.74, 0.20))
+	if _gallery_selected_char_id == &"trixie":
+		CharacterArt.draw_trixie_bust(_lightbox_canvas, Rect2(r.size.x * 0.5 - 295.0, r.size.y - 520.0, 590.0, 510.0), "sonrojada" if _lightbox_scene_idx == 2 else ("confiada" if _lightbox_scene_idx == 1 else "normal"), _time, 1.0, "cutscene")
+	else:
+		_draw_expressive_waifu_bust(_lightbox_canvas, Rect2(r.size.x * 0.5 - 240.0, 20.0, 480.0, r.size.y - 30.0), _gallery_selected_char_id, _lightbox_scene_idx >= 1, _time)
+
+
+func _draw_expressive_waifu_bust(ci: CanvasItem, rect: Rect2, cid: StringName, spicy: bool, t: float) -> void:
+	var s: float = minf(rect.size.x / 360.0, rect.size.y / 440.0)
+	var center: Vector2 = rect.position + Vector2(rect.size.x * 0.5, rect.size.y * 0.56 + sin(t * 2.1) * 3.0)
+	var skin: Color = Color(1.0, 0.87, 0.79)
+	var outline: Color = Color(0.09, 0.05, 0.14)
+	var hair_col: Color = Color(0.72, 0.42, 0.26)
+	var outfit_col: Color = Color(0.28, 0.62, 0.42)
+	var eye_col: Color = Color(0.24, 0.68, 0.42)
+	match cid:
+		&"velvet":
+			hair_col = Color(0.56, 0.12, 0.28); outfit_col = Color(0.22, 0.08, 0.20); eye_col = Color(0.95, 0.28, 0.54)
+		&"seraphina":
+			hair_col = Color(0.96, 0.84, 0.48); outfit_col = Color(0.84, 0.86, 0.94); eye_col = Color(0.26, 0.62, 0.96)
+		&"mona":
+			hair_col = Color(0.22, 0.20, 0.44); outfit_col = Color(0.32, 0.20, 0.52); eye_col = Color(0.74, 0.36, 0.98)
+		&"roxy":
+			hair_col = Color(0.52, 0.34, 0.24); outfit_col = Color(0.62, 0.24, 0.22); eye_col = Color(0.96, 0.68, 0.20)
+
+	ci.draw_colored_polygon(PackedVector2Array([
+		center + Vector2(-88, -110) * s, center + Vector2(88, -110) * s,
+		center + Vector2(115, 110) * s, center + Vector2(-115, 110) * s,
+	]), hair_col.darkened(0.15))
+	ci.draw_colored_polygon(PackedVector2Array([
+		center + Vector2(-112, 165) * s, center + Vector2(112, 165) * s,
+		center + Vector2(78, 32) * s, center + Vector2(-78, 32) * s,
+	]), outfit_col)
+	ci.draw_colored_polygon(PackedVector2Array([
+		center + Vector2(-38, 32) * s, center + Vector2(38, 32) * s, center + Vector2(0, 86) * s,
+	]), skin)
+	ci.draw_rect(Rect2(center + Vector2(-14, -14) * s, Vector2(28, 48) * s), skin)
+	ci.draw_circle(center + Vector2(0, -68) * s, 68.0 * s, skin)
+	ci.draw_circle(center + Vector2(0, -68) * s, 68.0 * s, outline, false, 3.5 * s)
+
+	match cid:
+		&"sylvi":
+			ci.draw_arc(center + Vector2(-56, -112) * s, 28.0 * s, 0.2, PI * 1.3, 14, Color(0.72, 0.52, 0.34), 10.0 * s)
+			ci.draw_arc(center + Vector2(56, -112) * s, 28.0 * s, -PI * 0.3, PI * 0.8, 14, Color(0.72, 0.52, 0.34), 10.0 * s)
+		&"velvet":
+			ci.draw_colored_polygon(PackedVector2Array([center + Vector2(-34, -124) * s, center + Vector2(-68, -182) * s, center + Vector2(-12, -130) * s]), Color(0.18, 0.06, 0.14))
+			ci.draw_colored_polygon(PackedVector2Array([center + Vector2(34, -124) * s, center + Vector2(68, -182) * s, center + Vector2(12, -130) * s]), Color(0.18, 0.06, 0.14))
+		&"seraphina":
+			ci.draw_arc(center + Vector2(0, -158) * s, 44.0 * s, 0.0, TAU, 24, Color(1.0, 0.88, 0.32), 6.0 * s)
+		&"mona":
+			ci.draw_colored_polygon(PackedVector2Array([center + Vector2(-84, -114) * s, center + Vector2(84, -114) * s, center + Vector2(0, -206) * s]), Color(0.18, 0.16, 0.36))
+		&"roxy":
+			ci.draw_colored_polygon(PackedVector2Array([center + Vector2(-52, -114) * s, center + Vector2(-74, -178) * s, center + Vector2(-18, -128) * s]), hair_col)
+			ci.draw_colored_polygon(PackedVector2Array([center + Vector2(52, -114) * s, center + Vector2(74, -178) * s, center + Vector2(18, -128) * s]), hair_col)
+
+	ci.draw_colored_polygon(PackedVector2Array([
+		center + Vector2(-66, -114) * s, center + Vector2(66, -114) * s,
+		center + Vector2(52, -82) * s, center + Vector2(14, -96) * s,
+		center + Vector2(0, -78) * s, center + Vector2(-14, -96) * s, center + Vector2(-52, -82) * s,
+	]), hair_col)
+
+	for ex: float in [-24.0, 24.0]:
+		var ep: Vector2 = center + Vector2(ex, -68) * s
+		ci.draw_circle(ep, 11.0 * s, Color.WHITE)
+		ci.draw_circle(ep, 8.0 * s, eye_col)
+		ci.draw_circle(ep, 4.0 * s, outline)
+		ci.draw_circle(ep + Vector2(-3.0, -3.0) * s, 2.8 * s, Color.WHITE)
+
+	var blush_a: float = 0.72 if spicy else 0.34
+	ci.draw_circle(center + Vector2(-34, -46) * s, 14.0 * s, Color(1.0, 0.38, 0.54, blush_a))
+	ci.draw_circle(center + Vector2(34, -46) * s, 14.0 * s, Color(1.0, 0.38, 0.54, blush_a))
+	ci.draw_arc(center + Vector2(0, -40) * s, 12.0 * s, 0.15, PI - 0.15, 10, Color(0.66, 0.16, 0.24), 3.0 * s)
+	if spicy:
+		var heart_y: float = -126.0 * s - absf(sin(t * 4.0)) * 10.0 * s
+		ci.draw_string(ThemeDB.fallback_font, center + Vector2(56 * s, heart_y), "♥", HORIZONTAL_ALIGNMENT_LEFT, -1, int(26.0 * s), Color(1.0, 0.42, 0.70))
+
+
+# ==============================================================================
+# HUD REFRESH & HELPERS
+# ==============================================================================
+
+func _refresh_hud_labels() -> void:
+	if _top_essence_lbl == null:
+		return
+	_top_essence_lbl.text = "✦ %d" % essence_gold
+	_top_round_lbl.text = "Ronda %d  ·  Pedidos: %d" % [round_number, orders_completed]
+	var secs_int: int = ceili(round_time_left)
+	_top_timer_lbl.text = "0:%02d" % secs_int
+	_top_timer_lbl.modulate = Color(1.0, 0.42, 0.42) if secs_int <= 5 else Color(1.0, 0.94, 0.78)
+
+	var affordable: int = count_affordable_nodes()
+	if _tree_badge_panel != null:
+		_tree_badge_panel.visible = affordable > 0
+		if _tab_tree_btn != null and _tree_badge_panel.visible:
+			_tree_badge_panel.position = _tab_tree_btn.global_position + Vector2(_tab_tree_btn.size.x - 16.0, -4.0)
+
+	if _trixie_speech_lbl != null:
+		_trixie_speech_lbl.text = _trixie_line
+	if _frenzy_bar != null:
+		_frenzy_bar.value = 100.0 if _frenzy_timer > 0.0 else _frenzy_charge
+	if _frenzy_btn != null:
+		if _frenzy_timer > 0.0:
+			_frenzy_btn.text = "🔥 ¡FRENESÍ x2 ACTIVO! (%.1fs)" % _frenzy_timer
+			_frenzy_btn.disabled = true
+		elif _frenzy_charge >= 100.0:
+			_frenzy_btn.text = "💥 ¡ACTIVAR FRENESÍ x2! [ESPACIO]"
+			_frenzy_btn.disabled = false
+		else:
+			_frenzy_btn.text = "FRENESÍ (%d%%)" % int(_frenzy_charge)
+			_frenzy_btn.disabled = true
+
+	if _active_customer != null and _cust_name_lbl != null:
+		var cid: StringName = _active_customer.customer_id
+		var chem: Dictionary = get_customer_chemistry()
+		_cust_name_lbl.text = "%s (%s)" % [_active_customer.display_name, _active_customer.species_archetype]
+		_cust_aff_lbl.text = "❤ Nv.%d · +%d✦" % [get_affinity_level(cid), _customer_order_reward]
+		_cust_liked_lbl.text = "✨ AFÍN (+22%)\n" + get_element_name(int(chem["liked"]))
+		_cust_neutral_lbl.text = "⚪ NEUTRO (+7%)\n" + get_element_name(int(chem["neutral"]))
+		_cust_disliked_lbl.text = "❌ RESTA (-18%)\n" + get_element_name(int(chem["disliked"]))
+		_cust_speech_lbl.text = _customer_line
 
 
 func _spawn_popup(world_pos: Vector2, txt: String, col: Color) -> void:
-	_popups.append({
-		"pos": world_pos,
-		"text": txt,
-		"color": col,
-		"life": 1.15,
-	})
+	_popups.append({"pos": world_pos, "text": txt, "color": col, "life": 0.95})
 
 
 func _update_popups(delta: float) -> void:
@@ -1507,66 +2284,153 @@ func _update_popups(delta: float) -> void:
 		idx += 1
 
 
-func _draw() -> void:
-	var font: Font = ThemeDB.fallback_font
-
-	# Separate Storage Room (x = -1920..0)
-	draw_rect(Rect2(-1920, 0, 1920, 1080), Color(0.14, 0.10, 0.12))
-	draw_rect(Rect2(-1920, 0, 1920, 240), Color(0.24, 0.16, 0.13))
-	draw_rect(Rect2(-1780, 240, 1660, 740), Color(0.32, 0.25, 0.22))
-	for sgy: int in range(240, 980, 74):
-		draw_line(Vector2(-1780, sgy), Vector2(-120, sgy), Color(0.24, 0.18, 0.16, 0.55), 2.0)
-	draw_string(font, Vector2(-1150, 165), "ALMACÉN DE INGREDIENTES", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(0.95, 0.84, 0.58, 0.85))
-
-	# Painted 1:1 1920x1080 Kitchen Background (with fallback placeholder geometry)
-	if _kitchen_bg_tex != null:
-		draw_texture_rect(_kitchen_bg_tex, Rect2(0.0, 0.0, 1920.0, 1080.0), false)
-	else:
-		# Cozy dark wooden walls + stone flagstone 2.5D floor (Kitchen: x = 0..1920)
-		draw_rect(Rect2(0, 0, 1920, 1080), Color(0.20, 0.14, 0.16))
-		draw_rect(Rect2(0, 0, 1920, 220), Color(0.32, 0.21, 0.17))
-		draw_rect(Rect2(120, 220, 1680, 780), Color(0.43, 0.37, 0.36))
-		# Stone tiles grid hint
-		for gx: int in range(120, 1800, 120):
-			draw_line(Vector2(gx, 220), Vector2(gx, 1000), Color(0.33, 0.28, 0.29, 0.5), 2.0)
-		for gy: int in range(220, 1000, 90):
-			draw_line(Vector2(120, gy), Vector2(1800, gy), Color(0.33, 0.28, 0.29, 0.5), 2.0)
-
-		# Service Counter separating kitchen & customer line (Right)
-		var counter_rect: Rect2 = Rect2(1250, 240, 72, 460)
-		draw_rect(Rect2(1258, 248, 72, 464), Color(0, 0, 0, 0.3))
-		draw_rect(counter_rect, Color(0.48, 0.30, 0.20))
-		draw_rect(counter_rect, Color(0.11, 0.08, 0.14), false, 3.5)
+static func _make_label(txt: String, fsize: int, col: Color) -> Label:
+	var lbl: Label = Label.new()
+	lbl.text = txt
+	lbl.add_theme_font_size_override("font_size", fsize)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.09))
+	lbl.add_theme_constant_override("outline_size", 3)
+	return lbl
 
 
-func _draw_world_overlay() -> void:
-	if _world_overlay == null:
-		return
-	var font: Font = ThemeDB.fallback_font
+static func _make_pill_button(txt: String, bg: Color, border: Color) -> Button:
+	var btn: Button = Button.new()
+	btn.text = txt
+	btn.add_theme_font_size_override("font_size", 17)
+	btn.add_theme_color_override("font_color", Color(1.0, 0.96, 0.92))
+	var normal: StyleBoxFlat = StyleBoxFlat.new()
+	normal.bg_color = bg
+	normal.border_color = border
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(10)
+	normal.content_margin_left = 14
+	normal.content_margin_right = 14
+	normal.content_margin_top = 6
+	normal.content_margin_bottom = 6
+	var hover: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
+	hover.bg_color = bg.lightened(0.16)
+	hover.border_color = border.lightened(0.20)
+	var disabled: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
+	disabled.bg_color = Color(0.16, 0.14, 0.22)
+	disabled.border_color = Color(0.35, 0.32, 0.45)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("disabled", disabled)
+	return btn
 
-	# Floating juice popups
-	for p: Dictionary in _popups:
-		var pos: Vector2 = p["pos"] as Vector2
-		var txt: String = p["text"] as String
-		var col: Color = p["color"] as Color
-		var alpha: float = clampf(float(p["life"]), 0.0, 1.0)
-		_world_overlay.draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(0.05, 0.03, 0.08, alpha))
-		_world_overlay.draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 20, Color(col.r, col.g, col.b, alpha))
 
-	# Guided tutorial pulsing golden ring & bouncing arrow over target station/customer
-	if _tutorial_has_target and run_active:
-		var bob_a: float = sin(_tutorial_pulse_time * 7.0) * 10.0
-		var ring_r: float = 34.0 + sin(_tutorial_pulse_time * 5.0) * 5.0
-		var tip: Vector2 = _tutorial_target_pos + Vector2(0.0, bob_a)
-		_world_overlay.draw_arc(_tutorial_target_pos + Vector2(0.0, 56.0), ring_r, 0.0, TAU, 32, Color(1.0, 0.88, 0.30, 0.92), 4.5)
-		var arrow: PackedVector2Array = PackedVector2Array([
-			tip + Vector2(0, 18),
-			tip + Vector2(-20, -10),
-			tip + Vector2(-8, -10),
-			tip + Vector2(-8, -32),
-			tip + Vector2(8, -32),
-			tip + Vector2(8, -10),
-			tip + Vector2(20, -10),
-		])
-		_world_overlay.draw_colored_polygon(arrow, Color(1.0, 0.86, 0.28))
-		_world_overlay.draw_polyline(arrow + PackedVector2Array([arrow[0]]), Color(0.10, 0.06, 0.14), 3.0)
+static func _make_card_panel(pos: Vector2, sz: Vector2, bg: Color, border: Color) -> PanelContainer:
+	var panel: PanelContainer = PanelContainer.new()
+	panel.position = pos
+	panel.size = sz
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(12)
+	panel.add_theme_stylebox_override("panel", sb)
+	var pad: MarginContainer = MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 16)
+	pad.add_theme_constant_override("margin_right", 16)
+	pad.add_theme_constant_override("margin_top", 12)
+	pad.add_theme_constant_override("margin_bottom", 12)
+	panel.add_child(pad)
+	return panel
+
+
+# ==============================================================================
+# AUTOLOAD SAFE HELPERS & SMOKE TEST API
+# ==============================================================================
+
+func _bus() -> Node:
+	return get_node_or_null("/root/EventBus")
+
+
+func _audio() -> Node:
+	return get_node_or_null("/root/AudioJuiceManager")
+
+
+func _settings() -> Node:
+	return get_node_or_null("/root/GameSettings")
+
+
+func _fader() -> Node:
+	return get_node_or_null("/root/SceneFader")
+
+
+func _play_pentatonic(step_index: int, vol_db: float = 0.0) -> void:
+	var a: Node = _audio()
+	if a != null:
+		a.call("play_pentatonic", step_index, vol_db)
+
+
+func _emit_gold_changed(new_total: int, delta_val: int) -> void:
+	var b: Node = _bus()
+	if b != null:
+		b.emit_signal("gold_changed", new_total, delta_val)
+
+
+## Exercises zero-autoclicker tactical chemistry, purge, chains, Frenzy, and tree buys.
+func run_incremental_smoke_step() -> Dictionary:
+	var initial_cap_ok: bool = (spawn_cap == 6 and _orbs.size() == 6)
+
+	# 1) Verify mouse movement alone causes zero passive extraction
+	var tube_before: float = _potion_tube_pct
+	var ess_before: int = essence_gold
+	_process_cauldron_gameplay(0.1)
+	var no_autoclicker_ok: bool = (_potion_tube_pct == tube_before and essence_gold == ess_before)
+
+	# 2) Ensure deterministic orbs for Liked, Disliked, and Chain tests
+	var chem: Dictionary = get_customer_chemistry()
+	var liked_k: int = int(chem["liked"])
+	var disliked_k: int = int(chem["disliked"])
+
+	_orbs.clear()
+	_orbs.append({"pos": CAULDRON_CENTER, "vel": Vector2.ZERO, "radius": ORB_RADIUS, "kind": liked_k, "scale_pop": 1.0, "phase": 0.0})
+	_orbs.append({"pos": CAULDRON_CENTER + Vector2(90, 0), "vel": Vector2.ZERO, "radius": ORB_RADIUS, "kind": disliked_k, "scale_pop": 1.0, "phase": 0.0})
+	_orbs.append({"pos": CAULDRON_CENTER + Vector2(0, 90), "vel": Vector2.ZERO, "radius": ORB_RADIUS, "kind": disliked_k, "scale_pop": 1.0, "phase": 0.0})
+
+	# Extract single Liked orb -> raises tube & combo
+	_resolve_orb_indices_as_chain([0])
+	var liked_raised_tube: bool = _potion_tube_pct > 15.0 and _combo == 1
+
+	# Purge one Disliked orb with Right-click helper -> preserves combo
+	_purge_orb_at(1)
+	var purge_kept_combo: bool = (_combo == 1 and _potion_tube_pct > 15.0)
+
+	# Extract remaining Disliked orb -> lowers tube & resets combo to 0
+	var tube_pre_bad: float = _potion_tube_pct
+	_resolve_orb_indices_as_chain([0])
+	var disliked_lowered_tube: bool = _potion_tube_pct < tube_pre_bad
+	var disliked_reset_combo: bool = (_combo == 0)
+
+	# 3) Chain 2+ Liked orbs to complete customer order & charge Frenzy
+	_orbs.clear()
+	for idx_l: int in range(6):
+		_orbs.append({"pos": CAULDRON_CENTER + Vector2(float(idx_l) * 50.0 - 125.0, 0.0), "vel": Vector2.ZERO, "radius": ORB_RADIUS, "kind": liked_k, "scale_pop": 1.0, "phase": 0.0})
+	_resolve_orb_indices_as_chain([0, 1, 2, 3])
+	_resolve_orb_indices_as_chain([0, 1])
+
+	# Trigger Frenzy when full (or top up if needed)
+	if _frenzy_charge < 100.0:
+		_frenzy_charge = 100.0
+	var frenzy_triggered: bool = try_activate_frenzy()
+
+	# 4) Buy upgrades in the tree
+	var bought_aroma: bool = buy_incremental_node(&"aroma_concentrado")
+	var bought_boil: bool = buy_incremental_node(&"hervor_creciente")
+
+	return {
+		"initial_cap_ok": initial_cap_ok,
+		"no_autoclicker_ok": no_autoclicker_ok,
+		"liked_raised_tube": liked_raised_tube,
+		"purge_kept_combo": purge_kept_combo,
+		"disliked_lowered_tube": disliked_lowered_tube,
+		"disliked_reset_combo": disliked_reset_combo,
+		"orders_completed": orders_completed,
+		"frenzy_triggered": frenzy_triggered,
+		"bought_aroma": bought_aroma,
+		"bought_boil": bought_boil,
+		"nodes_count": tree_nodes.size(),
+	}
