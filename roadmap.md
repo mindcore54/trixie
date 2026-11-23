@@ -82,10 +82,29 @@
     2. **Química de Colores por Clienta (`AFÍN` / `NEUTRO` / `RESTA`):** Cada una de las 5 clientas (`Sylvi`, `Velvet`, `Seraphina`, `Mona`, `Roxy`) tiene gustos propios que cambian en vivo al entrar la siguiente: el color **Afín** llena `+22%+` del Tubo Vertical, da `2x` Esencia y carga **Frenesí**; el **Neutro** aporta `+7%` y mantiene el Combo; el color que **Resta (`❌`)** baja `-18%` del tubo y reinicia el Combo a `0`.
     3. **Frenesí Escarlata + Árbol de 17 Nodos + Galería:** Al llegar al `100%` de Frenesí (`Espacio` o botón rojo bajo Trixie), todos los orbes `❌` del caldero se transmutan en **Afines** y se duplica la producción. El Árbol de 17 nodos escala la química, cadenas, bombas/estrellas, duración y familiares inteligentes (**Michi Alado** caza Afines, **Diablillo Purgador** expulsa `❌`, **Murciélago Alquimista** apoya el tubo).
   * **Validación:** `tools/smoke_test_slice.gd` actualizado verificando ausencia de autoclicker, arranque lento de 6 orbes, química `Afín / Neutro / Resta`, purga con clic derecho, completado de pedidos, Frenesí y compra de nodos.
+* **2026-11-23 — Redefinición de Tipos de Arte, Galerías como Cinemáticas Secretas y Regla de Ahorro de Tokens:**
+  * **Nuevos Tipos de Imágenes por Personaje (actualizados en `trixie-art-pipeline/SKILL.md`, `tools/generate_prompts.py`, `tools/export_character_sizes.py` y `docs/prompts_catalog.md`):**
+    * Se eliminan los semi-chibis y los 3 tamaños de retrato (`cutscene/dialogue/hud`).
+    * Cada personaje usa ahora **3 tipos de ilustración**:
+      1. **Retrato (`portrait` — Hoja `16:9`)**: Un único tamaño estándar (rostro/hombros) con las 6 expresiones juntas.
+      2. **Medio Cuerpo (`halfbody` — 2 Hojas `4:3`, 3 por imagen)**: Ilustraciones **verticales sin marco** divididas en **Hoja 1 Core Gameplay** (`normal`, `confiada`, `nerviosa_sudando`) para blindar la consistencia de estilo en las 3 más vistas en partida, y **Hoja 2 Secundarias** (`sonrojada_picante`, `hollin_derrota`, `sorprendida`).
+      3. **Full Size (`fullbody` — Vertical `9:16`)**: Ilustración dedicada de cuerpo completo en `9:16`, más pensada para el juego — **no vale reutilizar ni recortar el Concept Art** (el Concept Art queda únicamente como hoja de referencia).
+    * **Dirección estética para próximos conceptos:** Estilo súper sexy con opciones de vestuario atrevido (escotes muy pronunciados, *underboob*, *sideboob*, transparencias) para diferenciar a los próximos personajes.
+  * **Layout Vertical Sin Marcos + Medio Cuerpo Core de Trixie Integrado (`MainGame.gd` + `CharacterArt.gd`):**
+    * Procesada e integrada la **Hoja 1 Core (`16:9`)** de Trixie (`trixie_halfbody_normal`, `trixie_halfbody_confiada` y `trixie_halfbody_nerviosa_sudando`, todas mirando `>>` en `res://assets/characters/playable/trixie/halfbody/`).
+    * Eliminados los marcos rectangulares alrededor de Trixie y de la clienta; Trixie ocupa ahora espacio vertical amplio y libre a la izquierda (`520×816`), y el dock de **Frenesí + diálogo** se compactó a `174px` solapado sobre su borde inferior (recuperando ~`230px` verticales para lucir a la brujita).
+  * **Perspectiva Ligera del Caldero + Y-Sort (pendiente para futuro):** Se documenta el enfoque para dar una ligera inclinación hacia atrás al caldero (referencia `imagen4`), proyectando los orbes en elipse con escala por profundidad `Y` y Y-sort entre orbes/borde delantero del caldero.
+  * **Galerías = Cinemáticas Secretas Desbloqueables (Matriz Bruja × Clienta):**
+    * La Galería no son solo imágenes sueltas, sino **historias cortas y cómicas/picantes desbloqueables** de encuentros entre cada brujita jugable y cada clienta (cada par Brujita × Clienta tiene su propia mini-historia).
+    * *Ejemplos documentados por el desarrollador:*
+      - Una brujita se va al bar con **Sylvi**, terminan borrachas, acaban en un motel y tienen "final feliz".
+      - Otra brujita con la misma **Sylvi** termina enredada con unos moteros, las agarran a ambas y les hacen... cosas (y a ellas les gusta).
+  * **Regla de Placeholders / Ahorro de Tokens:** Reutilizar los gráficos que ya existen en el proyecto sin costo extra; para cualquier gráfico nuevo temporal que el desarrollador vaya a reemplazar luego, usar **formas simples ("huevos"/cápsulas de colores)** y **no gastar tokens generando gráficos complejos desechables**.
 * **Siguiente Foco Inmediato:**
   1. **Playtest del nuevo bucle táctico en `proto/incremental`:** Comprobar en partida real si enlazar cadenas afines, purgar los `❌` y activar el Frenesí se siente lógico, entretenido y adictivo.
-  2. **Ajuste de balance y *Game Juice*:** Calibrar tiempos de ronda (`25s`), multiplicadores de cadena y costes del árbol según tu feedback tras jugarlo.
-  3. **Arte Final en Krita (0 chibis 2.5D):** En cuanto la mecánica quede aprobada, sustituir el caldero, los 5 iconos de orbe, el tubo vertical, el pergamino y los retratos/galería de las 5 clientas siguiendo exactamente la composición 16:9 validada.
+  2. **Discutir y aplicar el nuevo Layout vertical sin marcos** (para Retratos / Medio Cuerpo / Full Size) y, más adelante, la perspectiva ligera del caldero con Y-sort.
+  3. **Ajuste de balance y *Game Juice*:** Calibrar tiempos de ronda (`25s`), multiplicadores de cadena y costes del árbol según tu feedback tras jugarlo.
+  4. **Arte Final en Krita (0 chibis 2.5D):** Sustituir el caldero, los 5 iconos de orbe, el tubo vertical y las ilustraciones (`portrait`, `halfbody`, `fullbody` dedicado) + cinemáticas secretas de la Galería.
 
 ---
 

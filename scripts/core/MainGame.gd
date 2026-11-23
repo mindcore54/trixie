@@ -1348,43 +1348,36 @@ func _build_cauldron_hud() -> void:
 	_cauldron_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui_layer.add_child(_cauldron_hud_root)
 
-	# Left Panel below Trixie's big portrait (FRENZY + Button + Control tip)
-	var left_card: PanelContainer = _make_card_panel(Vector2(24, 650), Vector2(402, 404), Color(0.12, 0.07, 0.18, 0.94), Color(0.92, 0.56, 0.40))
+	# Compact Overlaid Frenzy & Speech Dock overlapping Trixie's bottom edge (maximizes vertical space for her half-body)
+	var left_card: PanelContainer = _make_card_panel(Vector2(20, 886), Vector2(448, 174), Color(0.10, 0.06, 0.16, 0.86), Color(0.92, 0.56, 0.40, 0.85))
 	_cauldron_hud_root.add_child(left_card)
 	var lv: VBoxContainer = VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 10)
+	lv.add_theme_constant_override("separation", 6)
 	left_card.get_child(0).add_child(lv)
 
-	var f_hdr: Label = _make_label("🔥 FRENESÍ ESCARLATA", 20, Color(1.0, 0.78, 0.36))
-	lv.add_child(f_hdr)
-
 	_frenzy_bar = ProgressBar.new()
-	_frenzy_bar.custom_minimum_size = Vector2(360, 24)
+	_frenzy_bar.custom_minimum_size = Vector2(416, 16)
 	_frenzy_bar.max_value = 100.0
 	_frenzy_bar.show_percentage = false
 	var fbg: StyleBoxFlat = StyleBoxFlat.new()
-	fbg.bg_color = Color(0.08, 0.04, 0.12)
-	fbg.set_corner_radius_all(8)
+	fbg.bg_color = Color(0.08, 0.04, 0.12, 0.92)
+	fbg.set_corner_radius_all(6)
 	var ffg: StyleBoxFlat = StyleBoxFlat.new()
 	ffg.bg_color = Color(1.0, 0.32, 0.44)
-	ffg.set_corner_radius_all(8)
+	ffg.set_corner_radius_all(6)
 	_frenzy_bar.add_theme_stylebox_override("background", fbg)
 	_frenzy_bar.add_theme_stylebox_override("fill", ffg)
 	lv.add_child(_frenzy_bar)
 
-	_frenzy_btn = _make_pill_button("💥 ACTIVAR FRENESÍ [ESPACIO]", Color(0.68, 0.14, 0.24), Color(1.0, 0.84, 0.38))
-	_frenzy_btn.custom_minimum_size = Vector2(360, 56)
+	_frenzy_btn = _make_pill_button("🔥 FRENESÍ (0%) [ESPACIO]", Color(0.68, 0.14, 0.24), Color(1.0, 0.84, 0.38))
+	_frenzy_btn.custom_minimum_size = Vector2(416, 46)
 	_frenzy_btn.pressed.connect(try_activate_frenzy)
 	lv.add_child(_frenzy_btn)
 
-	_trixie_speech_lbl = _make_label(_trixie_line, 17, Color(0.96, 0.92, 0.98))
+	_trixie_speech_lbl = _make_label(_trixie_line, 15, Color(0.96, 0.92, 0.98))
 	_trixie_speech_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_trixie_speech_lbl.custom_minimum_size = Vector2(360, 128)
+	_trixie_speech_lbl.custom_minimum_size = Vector2(416, 56)
 	lv.add_child(_trixie_speech_lbl)
-
-	var ctrl_hint: Label = _make_label("Clic Izq / Arrastrar: Extraer · Clic Der: Purgar ❌", 15, Color(0.74, 0.84, 0.98))
-	ctrl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lv.add_child(ctrl_hint)
 
 	# Right Chemistry Legend + Customer Parchment Box (x=1408..1894)
 	var chem_card: PanelContainer = _make_card_panel(Vector2(1408, 568), Vector2(486, 86), Color(0.11, 0.07, 0.17, 0.95), Color(0.76, 0.60, 0.92))
@@ -2098,21 +2091,20 @@ func _draw_vertical_potion_tube() -> void:
 
 
 func _draw_trixie_stage_left() -> void:
-	var frame: Rect2 = Rect2(24, 96, 402, 540)
-	draw_rect(frame, Color(0.14, 0.08, 0.22, 0.88))
-	draw_rect(frame, Color(0.92, 0.56, 0.40, 0.78), false, 3.0)
-	draw_circle(Vector2(225, 430), 165.0, Color(0.84, 0.28, 0.48, 0.18 if _frenzy_timer <= 0.0 else 0.36))
-	CharacterArt.draw_trixie_bust(self, Rect2(32, 108, 386, 520), _trixie_emotion, _time, 1.0, "cutscene")
+	# Frameless tall vertical stage for Trixie's half-body (bottom sits cleanly behind the compact Frenzy dock)
+	var aura_col: Color = Color(0.96, 0.30, 0.52, 0.32) if _frenzy_timer > 0.0 else Color(0.84, 0.28, 0.48, 0.16)
+	draw_circle(Vector2(252, 540), 215.0, aura_col)
+	CharacterArt.draw_trixie_halfbody(self, Rect2(-8, 124, 520, 816), _trixie_emotion, _time, 1.0)
 
 
 func _draw_customer_stage_right() -> void:
+	# Frameless vertical stage for the active customer
 	var slide_off: float = (1.0 - _customer_slide_t) * 140.0
-	var frame: Rect2 = Rect2(1408 + slide_off, 96, 486, 460)
-	var border_col: Color = Color(1.0, 0.45, 0.78) if _customer_flash_timer > 0.0 else Color(0.84, 0.62, 0.92, 0.78)
-	draw_rect(frame, Color(0.13, 0.08, 0.21, 0.88))
-	draw_rect(frame, border_col, false, 3.5)
+	var stage: Rect2 = Rect2(1408 + slide_off, 96, 486, 480)
+	var aura_col: Color = Color(1.0, 0.45, 0.78, 0.28) if _customer_flash_timer > 0.0 else Color(0.68, 0.44, 0.90, 0.15)
+	draw_circle(stage.position + Vector2(stage.size.x * 0.5, stage.size.y * 0.55), 185.0, aura_col)
 	if _active_customer != null:
-		_draw_expressive_waifu_bust(self, frame.grow(-8), _active_customer.customer_id, _customer_spicy_mode or _customer_flash_timer > 0.0, _time)
+		_draw_expressive_waifu_bust(self, stage, _active_customer.customer_id, _customer_spicy_mode or _customer_flash_timer > 0.0, _time)
 
 
 func _draw_gallery_portrait() -> void:

@@ -45,6 +45,55 @@ static func get_trixie_expression(emotion: String, size_tier: String = "dialogue
 	return _get_cached_tex("%s/portraits/%s/%s" % [TRIXIE_ART_DIR, tier, fname])
 
 
+static func get_trixie_halfbody(emotion: String) -> Texture2D:
+	var emo_key: String = "normal"
+	match emotion:
+		"confiada":
+			emo_key = "confiada"
+		"nerviosa", "nerviosa_sudando":
+			emo_key = "nerviosa_sudando"
+		"sonrojada", "sonrojada_picante":
+			emo_key = "sonrojada_picante"
+		"hollin", "hollin_derrota":
+			emo_key = "hollin_derrota"
+		"sorprendida":
+			emo_key = "sorprendida"
+	var tex: Texture2D = _get_cached_tex("%s/halfbody/trixie_halfbody_%s.png" % [TRIXIE_ART_DIR, emo_key])
+	if tex != null:
+		return tex
+	# Graceful fallback to core half-body expressions until Sheet 2 is exported
+	if emo_key == "sonrojada_picante":
+		var conf: Texture2D = _get_cached_tex("%s/halfbody/trixie_halfbody_confiada.png" % TRIXIE_ART_DIR)
+		if conf != null:
+			return conf
+	elif emo_key in ["hollin_derrota", "sorprendida"]:
+		var nerv: Texture2D = _get_cached_tex("%s/halfbody/trixie_halfbody_nerviosa_sudando.png" % TRIXIE_ART_DIR)
+		if nerv != null:
+			return nerv
+	return _get_cached_tex("%s/halfbody/trixie_halfbody_normal.png" % TRIXIE_ART_DIR)
+
+
+## Frameless tall vertical half-body Trixie fitted inside `rect` (bottom-aligned, crisp 1:1 or gently fitted).
+static func draw_trixie_halfbody(ci: CanvasItem, rect: Rect2, emotion: String, t: float, dim: float = 1.0) -> void:
+	var tex: Texture2D = get_trixie_halfbody(emotion)
+	if tex != null:
+		var tw: float = float(tex.get_width())
+		var th: float = float(tex.get_height())
+		var scale_f: float = minf(rect.size.x / maxf(1.0, tw), rect.size.y / maxf(1.0, th))
+		var dw: float = roundf(tw * scale_f)
+		var dh: float = roundf(th * scale_f)
+		var bob: float = roundf(sin(t * 2.1) * 3.0)
+		var dst: Rect2 = Rect2(
+			roundf(rect.position.x + (rect.size.x - dw) * 0.5),
+			roundf(rect.position.y + (rect.size.y - dh)) + bob,
+			dw,
+			dh
+		)
+		ci.draw_texture_rect(tex, dst, false, Color(dim, dim, dim, 1.0))
+		return
+	draw_trixie_bust(ci, rect, emotion, t, dim, "cutscene")
+
+
 static func dim_color(c: Color, dim: float) -> Color:
 	return Color(c.r * dim, c.g * dim, c.b * dim, c.a)
 
