@@ -114,3 +114,56 @@ EXACT 2x2 LAYOUT (ONLY 4 SPRITES TOTAL):
 - BOTTOM-LEFT: Facing straight UP away from the viewer (back view from slightly above, showing hair, back wine bow, and hat back with dangling mushroom charm).
 - BOTTOM-RIGHT: Facing 45-degree DIAGONAL UP-RIGHT (3/4 back-right view from slightly above).
 ```
+
+---
+
+## Sylvi (Clienta #1 — Fauno Bohemia Seductora)
+
+### 1. Concept Art (`16:9` — Solo Referencia · Aprobado en `sylvi_concept_v02.jpg` / `v01`)
+```text
+2D anime character concept art sheet in high-end Chinese gacha character design style, 16:9 widescreen layout on a completely pure solid white #FFFFFF background, zero background scenery, crisp closed dark ink outlines, vibrant cel-shading with warm rim lighting. Clean stylized header text at top-left reading exactly: "Sylvi - Concept Art".
+
+Character: Sylvi, a tall, slender, long-legged, alluring young female faun with a warm, shamelessly seductive, bohemian party-loving personality. Confident, unhurried, sultry nocturnal charm. Stream-friendly super sexy ecchi aesthetic (strictly no nudity, no explicit NSFW) with ONE clean upper-body focal point: an ultra-deep plunging vertical corset neckline running all the way down between her very large, full breasts to her mid-abdomen (clean, elegant, NO sideboob cutouts, NO underboob cutouts).
+
+Anatomy & faun features:
+- Tall, slender, bombshell hourglass figure with a very large, abundant, voluptuous bust, slim waist, shapely curvy hips, and long sleek legs.
+- Large sculpted dark walnut-brown curved spiral ram horns draped with delicate antique-gold bohemian chains and tiny hanging emerald beads; soft fluffy pointed faun ears poking out horizontally from her hair, adorned with stacked small gold hoop earrings.
+- STRICTLY NO animal tail (clean human lower back and hips).
+- Lush, voluminous wavy champagne-blonde / warm honey-ash hair cascading past her shoulders with loose face-framing locks and a tiny golden filigree hair charm.
+- Face & expression: Sultry half-lidded warm hazel-amber eyes with long dark lashes, soft rosy blush, and a calm, knowing, closed-lip seductive half-smile (NO open-mouth grin, NO teeth showing).
+
+Bohemian / Gypsy Nocturnal Outfit (forest-emerald green, warm champagne-cream, cognac leather, antique gold):
+- Top: Tightly structured plunging bohemian corset bodice in deep forest-emerald velvet and warm champagne-cream panels with ornate antique-gold embroidery; its single bold focal point is the ultra-deep vertical V-cleavage running from her collarbone all the way down to her mid-abdomen, framing her very large, full, lifted bust cleanly in gold trim with tiny delicate dangling gold teardrop charms. Airy lightweight sheer cream off-shoulder draped sleeves gathered loosely at the wrists, accented with stacked golden gypsy bangles and a delicate gold pendant necklace resting deep in her cleavage.
+- Shorts & hip chains (CONSISTENT SHORT CUT — NO skirt, NO potion belt): Very short, snug, cheeky high-cut deep-emerald velvet micro-hotpants trimmed in gold embroidery, sculpted closely to her hips with a subtle cheeky under-curve of her lower glutes peeking out cleanly underneath the hem on the back view. Around her low hips hang delicate layered antique-gold coin chains, plus a narrow sheer emerald-and-gold silk sash knotted strictly on ONE hip and draping lightly down the side only (leaving both the front and back of the micro-hotpants completely uncovered).
+- Bohemian thigh straps (integrated gypsy motif, NO stockings): On her left upper thigh, a stylish double slim cognac-leather thigh strap embossed in gold filigree with tiny dangling gold coin chains and emerald bead charms (matching her horns and hip chains), and a single slim ornate gold-trimmed leather band around her right thigh to frame her long bare legs elegantly.
+- Boots (KNEE-HIGH / JUST BELOW THE KNEE — NOT ankle-short, NOT over-the-knee/thigh-high): Sleek fitted knee-high cognac-leather lace-up heeled bohemian boots stopping cleanly just below the knee, trimmed with antique-gold filigree, brass eyelets, and soft warm-cream cuffed trim, keeping her knees and long upper thighs completely bare.
+
+Sheet composition (all cleanly separated on pure #FFFFFF white):
+1. Left (labeled "FRONT"): Full-body FRONT view showing her tall, slender, bombshell hourglass posture in a relaxed seductive pose — hands empty (NO goblet, NO potions), one hand resting naturally on her hip over the gold-coin hip chains and the other fingers playfully twirling a wavy lock of her blonde hair near her cheek, gazing coyly at the viewer with a closed-lip seductive smirk.
+2. Center (labeled "BACK"): Full-body BACK view clearly showing her long wavy champagne-blonde hair, curved ram horns with dangling gold chains, open crisscrossed corset back lacing, the snug cheeky emerald micro-hotpants with a subtle alluring peek of her lower glutes beneath the hem (uncovered by the side-knotted sheer sash), clean back with NO tail, bohemian gold-chained thigh straps, and fitted knee-high lace-up heeled boots.
+3. Right (labeled "BUST" + isolated callouts below): Large expressive close-up bust portrait capturing her sultry half-lidded hazel-amber eyes, closed-lip seductive smile, gold-chained ram horns, fluffy pierced faun ears, and the lush top of her deep plunging gold-trimmed neckline; below it, clean isolated accessory callouts (a curved ram horn with draped gold gypsy chains & emerald bead charms, a small embroidered emerald-and-gold velvet evening coin clutch with layered gold coin chains, and a classy engraved antique-gold pocket hip-flask).
+```
+
+---
+
+### 2. Medio Cuerpo — Hoja 1 Core Clienta (`16:9` · 3 Figuras · Mirando Izquierda `<<`)
+*(Adjuntar `sylvi_concept_v02.jpg` —o `v01`— como referencia SOLO de diseño/ropa/facciones, NO de pose ni composición)*
+
+```text
+16:9 2D anime character half-body sprite sheet in high-end Chinese gacha character design style, featuring 3 distinct waist-up / hip-up illustrations of Sylvi arranged side-by-side in 3 columns x 1 row.
+
+CRITICAL REFERENCE & FRAMING RULES:
+- Use the attached "Sylvi - Concept Art" ONLY as a strict visual reference for her face, wavy champagne-blonde hair, dark walnut curved spiral ram horns with draped gold chains & emerald beads, fluffy pierced faun ears, very large voluptuous bust, ultra-deep plunging vertical V-corset neckline down to her mid-abdomen (emerald velvet & champagne-cream with gold embroidery, gold pendant necklace, sheer cream off-shoulder sleeves, golden bangles), and emerald silk hip sash with layered gold coin chains. DO NOT copy the poses or turnaround layout from the concept sheet.
+- HORN ANATOMY FIX (IMPORTANT): Do NOT copy the awkward pinched/lumpy horn bends from the reference sheet — draw clean, smooth, symmetrical, organically proportioned spiral ram horns growing naturally from her head (sweeping cleanly upward, curving outward, and spiraling smoothly down-and-around behind her faun ears to a natural tapered tip, with even ridges and draped delicate gold chains + emerald beads; NO kinks, NO pinched bulges, NO broken geometry).
+- STRICTLY HALF-BODY (WAIST/HIP CUT ONLY — NO LEGS, NO THIGHS, NO BOOTS): every figure must end cleanly right below her emerald silk hip sash and gold-coin hip chains with a CLEAN STRAIGHT FLAT HORIZONTAL BOTTOM EDGE.
+- FACING DIRECTION: All 3 figures must face slightly toward the LEFT (front-3/4 facing left, toward the viewer's left side) so she faces Trixie and the cauldron on screen.
+- NO frames, NO borders, NO boxes, NO grid lines, NO text labels, NO vignette, NO potion flasks or goblets.
+- Completely pure solid white #FFFFFF background everywhere with generous white space separating all 3 figures so they never touch or overlap.
+- Crisp closed dark ink outlines, vibrant cel-shading with warm rim lighting, exact same art style, line weight, voluptuous proportions, and scale across all 3 figures.
+- All 3 figures must have clearly DIFFERENT silhouettes, head tilts, and arm positions, maintaining her tall slender bombshell silhouette and sultry closed-lip / parted-lip charm (NO goofy open-toothed grin).
+
+EXACT 3-COLUMN LAYOUT (LEFT TO RIGHT — CORE CUSTOMER GAMEPLAY):
+- LEFT (normal): Relaxed, poised seductive greeting leaning slightly forward toward the left, calm half-lidded hazel-amber eyes, knowing closed-lip seductive half-smile (NO teeth showing), one hand resting lightly on her curvy hip over the gold-coin chains while the other fingers play lazily with a wavy lock of her blonde hair near her shoulder.
+- CENTER (sonrojada_picante): Intoxicated, deeply flattered flirty reaction — heavy rosy blush across cheeks, glowing half-lidded sultry bedroom eyes gazing warmly toward the left, soft parted-lip teasing smile, one delicate fingertip resting lightly against her lower lip or collarbone while her other hand tilts playfully toward her cheek/hair with tiny subtle golden-rose sparkles around her.
+- RIGHT (impaciente): Unimpressed, pouty annoyed reaction (when a wrong ingredient hits her order) — slightly turned back with arms crossed neatly beneath her large bust (or one hand on hip and the other hand raised in a dismissive wave), one sculpted eyebrow raised, sharp unamused half-lidded glare looking left and a sultry closed-lip pout.
+```

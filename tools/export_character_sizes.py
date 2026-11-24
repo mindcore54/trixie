@@ -23,6 +23,7 @@ EXPRESSIONS = [
     "sonrojada_picante",
     "hollin_derrota",
     "sorprendida",
+    "impaciente",
 ]
 
 PORTRAIT_BOX: tuple[int, int] = (420, 420)
@@ -42,6 +43,7 @@ def export_character(
     char_id: str,
     category: str,
     flip_horizontal: bool,
+    only: str = "all",
 ) -> None:
     root = Path(__file__).resolve().parent.parent
     asset_dir = root / "assets" / "characters" / category / char_id
@@ -57,61 +59,80 @@ def export_character(
                 print(f"[backup HD] {backup.relative_to(root)}")
 
     # 2. Export single-size Portraits (head & shoulders)
-    portrait_out_dir = asset_dir / "portraits"
-    for emo in EXPRESSIONS:
-        src = hd_dir / f"{char_id}_portrait_{emo}.png"
-        if not src.exists():
-            src = hd_dir / f"{char_id}_{emo}.png"
-        if not src.exists():
-            continue
-        im = Image.open(src).convert("RGBA")
-        if flip_horizontal:
-            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        portrait_out_dir.mkdir(parents=True, exist_ok=True)
-        out_img = fit_lanczos(im, PORTRAIT_BOX[0], PORTRAIT_BOX[1])
-        out_path = portrait_out_dir / f"{char_id}_{emo}.png"
-        out_img.save(out_path, "PNG", optimize=True)
-        print(f"[portrait] {out_path.name} -> {out_img.size}")
+    if only in ("all", "portraits"):
+        portrait_out_dir = asset_dir / "portraits"
+        for emo in EXPRESSIONS:
+            src = hd_dir / f"{char_id}_portrait_{emo}.png"
+            if not src.exists():
+                src = hd_dir / f"{char_id}_{emo}.png"
+            if not src.exists():
+                continue
+            im = Image.open(src).convert("RGBA")
+            if flip_horizontal:
+                im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            portrait_out_dir.mkdir(parents=True, exist_ok=True)
+            out_img = fit_lanczos(im, PORTRAIT_BOX[0], PORTRAIT_BOX[1])
+            out_path = portrait_out_dir / f"{char_id}_{emo}.png"
+            out_img.save(out_path, "PNG", optimize=True)
+            print(f"[portrait] {out_path.name} -> {out_img.size}")
 
-    # 3. Export vertical frameless Half-Body illustrations
-    halfbody_out_dir = asset_dir / "halfbody"
-    for emo in EXPRESSIONS:
-        src = hd_dir / f"{char_id}_halfbody_{emo}.png"
-        if not src.exists():
-            continue
-        im = Image.open(src).convert("RGBA")
-        if flip_horizontal:
-            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        halfbody_out_dir.mkdir(parents=True, exist_ok=True)
-        out_img = fit_lanczos(im, HALFBODY_BOX[0], HALFBODY_BOX[1])
-        out_path = halfbody_out_dir / f"{char_id}_halfbody_{emo}.png"
-        out_img.save(out_path, "PNG", optimize=True)
-        print(f"[halfbody] {out_path.name} -> {out_img.size}")
+    # 3. Export vertical frameless Half-Body illustrations at uniform scale on a 560w canvas
+    if only in ("all", "halfbody"):
+        halfbody_out_dir = asset_dir / "halfbody"
+        hb_items: list[tuple[str, Image.Image]] = []
+        for emo in EXPRESSIONS:
+            src = hd_dir / f"{char_id}_halfbody_{emo}.png"
+            if not src.exists():
+                continue
+            im = Image.open(src).convert("RGBA")
+            if flip_horizontal:
+                im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            hb_items.append((emo, im))
 
-    # Also support a single base halfbody file if expressions aren't split yet
-    hb_base = hd_dir / f"{char_id}_halfbody.png"
-    if hb_base.exists():
-        im = Image.open(hb_base).convert("RGBA")
-        if flip_horizontal:
-            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        halfbody_out_dir.mkdir(parents=True, exist_ok=True)
-        out_img = fit_lanczos(im, HALFBODY_BOX[0], HALFBODY_BOX[1])
-        out_path = halfbody_out_dir / f"{char_id}_halfbody.png"
-        out_img.save(out_path, "PNG", optimize=True)
-        print(f"[halfbody] {out_path.name} -> {out_img.size}")
+        if hb_items:
+            max_w = max(im.width for _, im in hb_items)
+            max_h = max(im.height for _, im in hb_items)
+            uniform_scale = min(HALFBODY_BOX[0] / max(1, max_w), HALFBODY_BOX[1] / max(1, max_h))
+            halfbody_out_dir.mkdir(parents=True, exist_ok=True)
+            for emo, im in hb_items:
+                nw = max(1, int(round(im.width * uniform_scale)))
+                nh = max(1, int(round(im.height * uniform_scale)))
+                resized = im.resize((nw, nh), Image.Resampling.LANCZOS)
+                if nw < HALFBODY_BOX[0]:
+                    canvas = Image.new("RGBA", (HALFBODY_BOX[0], nh), (0, 0, 0, 0))
+                    canvas.paste(resized, ((HALFBODY_BOX[0] - nw) // 2, 0))
+                    out_img = canvas
+                else:
+                    out_img = resized
+                out_path = halfbody_out_dir / f"{char_id}_halfbody_{emo}.png"
+                out_img.save(out_path, "PNG", optimize=True)
+                print(f"[halfbody] {out_path.name} -> {out_img.size} (scale={uniform_scale:.4f})")
+
+        # Also support a single base halfbody file if expressions aren't split yet
+        hb_base = hd_dir / f"{char_id}_halfbody.png"
+        if hb_base.exists():
+            im = Image.open(hb_base).convert("RGBA")
+            if flip_horizontal:
+                im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            halfbody_out_dir.mkdir(parents=True, exist_ok=True)
+            out_img = fit_lanczos(im, HALFBODY_BOX[0], HALFBODY_BOX[1])
+            out_path = halfbody_out_dir / f"{char_id}_halfbody.png"
+            out_img.save(out_path, "PNG", optimize=True)
+            print(f"[halfbody] {out_path.name} -> {out_img.size}")
 
     # 4. Export dedicated Full-Size illustration (NOT concept art)
-    fb_src = hd_dir / f"{char_id}_fullbody.png"
-    if fb_src.exists():
-        im = Image.open(fb_src).convert("RGBA")
-        if flip_horizontal:
-            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        fb_out_dir = asset_dir / "fullbody"
-        fb_out_dir.mkdir(parents=True, exist_ok=True)
-        out_img = fit_lanczos(im, FULLBODY_BOX[0], FULLBODY_BOX[1])
-        out_path = fb_out_dir / f"{char_id}_fullbody.png"
-        out_img.save(out_path, "PNG", optimize=True)
-        print(f"[fullbody] {out_path.name} -> {out_img.size}")
+    if only in ("all", "fullbody"):
+        fb_src = hd_dir / f"{char_id}_fullbody.png"
+        if fb_src.exists():
+            im = Image.open(fb_src).convert("RGBA")
+            if flip_horizontal:
+                im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            fb_out_dir = asset_dir / "fullbody"
+            fb_out_dir.mkdir(parents=True, exist_ok=True)
+            out_img = fit_lanczos(im, FULLBODY_BOX[0], FULLBODY_BOX[1])
+            out_path = fb_out_dir / f"{char_id}_fullbody.png"
+            out_img.save(out_path, "PNG", optimize=True)
+            print(f"[fullbody] {out_path.name} -> {out_img.size}")
 
 
 def main() -> None:
@@ -119,8 +140,14 @@ def main() -> None:
     parser.add_argument("--id", required=True, help="Character id (e.g. trixie, sylvi)")
     parser.add_argument("--category", default="playable", choices=["playable", "customers"])
     parser.add_argument("--flip-portraits", action="store_true", help="Mirror character horizontally (e.g. to face right)")
+    parser.add_argument(
+        "--only",
+        default="all",
+        choices=["all", "portraits", "halfbody", "fullbody"],
+        help="Restrict export to a single asset tier (default: all)",
+    )
     args = parser.parse_args()
-    export_character(args.id, args.category, args.flip_portraits)
+    export_character(args.id, args.category, args.flip_portraits, args.only)
 
 
 if __name__ == "__main__":

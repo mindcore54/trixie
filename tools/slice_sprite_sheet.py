@@ -14,6 +14,7 @@ from neighboring sprites). Instead:
 
 from __future__ import annotations
 
+import argparse
 from collections import deque
 from pathlib import Path
 import sys
@@ -100,7 +101,14 @@ def _bbox_dist(b1: tuple[int, int, int, int], b2: tuple[int, int, int, int]) -> 
     return (dx * dx + dy * dy) ** 0.5
 
 
-def _export_component(rgba: Image.Image, pixel_indices: list[int], out_path: Path, pad: int = 8) -> tuple[int, int]:
+def _export_component(
+    rgba: Image.Image,
+    pixel_indices: list[int],
+    out_path: Path,
+    pad: int = 8,
+    padded_canvas: bool = False,
+    flip_horizontal: bool = False,
+) -> tuple[int, int]:
     w, h = rgba.size
     src = rgba.tobytes()
     min_x, min_y, max_x, max_y = w, h, 0, 0
@@ -116,52 +124,81 @@ def _export_component(rgba: Image.Image, pixel_indices: list[int], out_path: Pat
         if y > max_y:
             max_y = y
 
-    x0 = max(0, min_x - pad)
-    y0 = max(0, min_y - pad)
-    x1 = min(w - 1, max_x + pad)
-    y1 = min(h - 1, max_y + pad)
-    cw = x1 - x0 + 1
-    ch = y1 - y0 + 1
+    if padded_canvas:
+        cw = (max_x - min_x + 1) + 2 * pad
+        ch = (max_y - min_y + 1) + 2 * pad
+        ox = min_x - pad
+        oy = min_y - pad
+    else:
+        ox = max(0, min_x - pad)
+        oy = max(0, min_y - pad)
+        x1 = min(w - 1, max_x + pad)
+        y1 = min(h - 1, max_y + pad)
+        cw = x1 - ox + 1
+        ch = y1 - oy + 1
 
     out_buf = bytearray(cw * ch * 4)
     for idx in pixel_indices:
         x = idx % w
         y = idx // w
         s_off = idx * 4
-        d_off = ((y - y0) * cw + (x - x0)) * 4
+        d_off = ((y - oy) * cw + (x - ox)) * 4
         out_buf[d_off : d_off + 4] = src[s_off : s_off + 4]
 
     out_img = Image.frombytes("RGBA", (cw, ch), bytes(out_buf))
+    if flip_horizontal:
+        out_img = out_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_img.save(out_path, format="PNG")
     return cw, ch
 
 
-def slice_grid_by_components(
-    input_path: Path,
+def _export_component_padded(
+    rgba: Image.Image,
+    pixel_indices: list[int],
+    out_path: Path,
+    pad: int = 6,
+    flip_horizontal: bool = False,
+) -> tuple[int, int]:
+    """Export isolated component onto a symmetric transparent canvas (safe near sheet edges)."""
+    return _export_component(
+        rgba,
+        pixel_indices,
+        out_path,
+        pad=pad,
+        padded_canvas=True,
+        flip_horizontal=flip_horizontal,
+    )
+
+
+def _slice_rgba_components(
+    rgba: Image.Image,
+    source_name: str,
     out_dir: Path,
     names_row_major: Sequence[str],
     rows: int,
     cols: int,
     max_satellite_dist: float = 110.0,
-    tolerance: int = 28,
-    chroma_tol: int = 26,
-    defringe: int = 2,
+    alpha_thresh: int = 15,
+    min_satellite_area: int = 12,
+    pad: int = 8,
+    padded_canvas: bool = False,
+    flip_horizontal: bool = False,
 ) -> list[Path]:
     expected = rows * cols
     assert len(names_row_major) == expected, "names count must equal rows * cols"
-    with Image.open(input_path) as im:
-        clean = remove_white_background(im, tolerance=tolerance, chroma_tolerance=chroma_tol, defringe_passes=defringe)
 
-    comps = _label_components(clean, alpha_thresh=15)
+    comps = _label_components(rgba, alpha_thresh=alpha_thresh)
+    if len(comps) < expected:
+        raise RuntimeError(f"Expected at least {expected} components in {source_name}, found {len(comps)}")
     comps.sort(key=lambda c: c["area"], reverse=True)
     mains = comps[:expected]
     satellites = comps[expected:]
 
-    # Merge nearby floating VFX (sweat drops, sparkles) into their nearest main sprite
+    # Merge nearby floating VFX (sweat drops, sparkles, smoke wisps) into their nearest main sprite
     merged_pixels: list[list[int]] = [list(m["pixels"]) for m in mains]
     for sat in satellites:
-        if sat["area"] < 12:
+        if sat["area"] < min_satellite_area:
             continue
         best_i = -1
         best_d = max_satellite_dist
@@ -185,10 +222,146 @@ def slice_grid_by_components(
     written: list[Path] = []
     for name, comp_idx in zip(names_row_major, ordered):
         out_file = out_dir / f"{name}.png"
-        cw, ch = _export_component(clean, merged_pixels[comp_idx], out_file, pad=8)
-        print(f"[SLICE] {input_path.name} -> {out_file.relative_to(PROJECT_ROOT).as_posix()} ({cw}x{ch})")
+        cw, ch = _export_component(
+            rgba,
+            merged_pixels[comp_idx],
+            out_file,
+            pad=pad,
+            padded_canvas=padded_canvas,
+            flip_horizontal=flip_horizontal,
+        )
+        try:
+            rel_label = out_file.resolve().relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            rel_label = out_file.as_posix()
+        print(f"[SLICE] {source_name} -> {rel_label} ({cw}x{ch})")
         written.append(out_file)
     return written
+
+
+def _find_pure_white_pocket_seeds(
+    rgba: Image.Image,
+    min_rgb: int = 242,
+    max_chroma: int = 12,
+    min_area: int = 30,
+) -> list[tuple[int, int]]:
+    """Locate one seed (x, y) per enclosed pure-white background pocket (arm/hair/horn loops)."""
+    w, h = rgba.size
+    px = rgba.tobytes()
+    visited = bytearray(w * h)
+    seeds: list[tuple[int, int]] = []
+
+    def is_pure_white(off: int) -> bool:
+        a = px[off + 3]
+        if a <= 15:
+            return False
+        r, g, b = px[off], px[off + 1], px[off + 2]
+        return min(r, g, b) >= min_rgb and (max(r, g, b) - min(r, g, b)) <= max_chroma
+
+    for y in range(h):
+        row = y * w
+        for x in range(w):
+            idx = row + x
+            if visited[idx] or not is_pure_white(idx * 4):
+                continue
+            visited[idx] = 1
+            q: deque[int] = deque([idx])
+            area = 0
+            while q:
+                cur = q.popleft()
+                area += 1
+                cx = cur % w
+                cy = cur // w
+                if cx > 0 and not visited[cur - 1] and is_pure_white((cur - 1) * 4):
+                    visited[cur - 1] = 1
+                    q.append(cur - 1)
+                if cx + 1 < w and not visited[cur + 1] and is_pure_white((cur + 1) * 4):
+                    visited[cur + 1] = 1
+                    q.append(cur + 1)
+                if cy > 0 and not visited[cur - w] and is_pure_white((cur - w) * 4):
+                    visited[cur - w] = 1
+                    q.append(cur - w)
+                if cy + 1 < h and not visited[cur + w] and is_pure_white((cur + w) * 4):
+                    visited[cur + w] = 1
+                    q.append(cur + w)
+            if area >= min_area:
+                seeds.append((x, y))
+    return seeds
+
+
+def slice_grid_by_components(
+    input_path: Path,
+    out_dir: Path,
+    names_row_major: Sequence[str],
+    rows: int,
+    cols: int,
+    max_satellite_dist: float = 110.0,
+    tolerance: int = 28,
+    chroma_tol: int = 26,
+    defringe: int = 2,
+    clean_pockets: bool = False,
+    pad: int = 8,
+    padded_canvas: bool = False,
+    flip_horizontal: bool = False,
+) -> list[Path]:
+    with Image.open(input_path) as im:
+        clean = remove_white_background(im, tolerance=tolerance, chroma_tolerance=chroma_tol, defringe_passes=defringe)
+        if clean_pockets:
+            seeds = _find_pure_white_pocket_seeds(clean)
+            if seeds:
+                print(f"[POCKET-SEEDS] {input_path.name}: detected {len(seeds)} enclosed pure-white pockets")
+                clean = remove_white_background(
+                    im,
+                    tolerance=tolerance,
+                    chroma_tolerance=chroma_tol,
+                    defringe_passes=defringe,
+                    extra_seeds=seeds,
+                )
+    return _slice_rgba_components(
+        clean,
+        input_path.name,
+        out_dir,
+        names_row_major,
+        rows,
+        cols,
+        max_satellite_dist=max_satellite_dist,
+        alpha_thresh=15,
+        min_satellite_area=12,
+        pad=pad,
+        padded_canvas=padded_canvas,
+        flip_horizontal=flip_horizontal,
+    )
+
+
+def slice_alpha_sheet_by_components(
+    input_path: Path,
+    out_dir: Path,
+    names_row_major: Sequence[str],
+    rows: int,
+    cols: int,
+    max_satellite_dist: float = 110.0,
+    alpha_thresh: int = 1,
+    min_satellite_area: int = 12,
+    pad: int = 6,
+    flip_horizontal: bool = False,
+) -> list[Path]:
+    """Slice a pre-transparent RGBA sprite sheet directly by connected components (no white-BG pass)."""
+    with Image.open(input_path) as im:
+        rgba = im.convert("RGBA")
+    return _slice_rgba_components(
+        rgba,
+        input_path.name,
+        out_dir,
+        names_row_major,
+        rows,
+        cols,
+        max_satellite_dist=max_satellite_dist,
+        alpha_thresh=alpha_thresh,
+        min_satellite_area=min_satellite_area,
+        pad=pad,
+        padded_canvas=True,
+        flip_horizontal=flip_horizontal,
+    )
 
 
 def extract_fullbody_from_concept(
@@ -248,6 +421,50 @@ def _clean_pure_white_hat_pockets(png_path: Path) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Slice white-BG or pre-transparent RGBA sprite sheets by connected components.")
+    parser.add_argument("--alpha-sheet", type=Path, default=None, help="Pre-transparent RGBA sprite sheet PNG to slice directly")
+    parser.add_argument("--white-sheet", type=Path, default=None, help="Pure #FFFFFF background sprite sheet to clean and slice")
+    parser.add_argument("--clean-pockets", action="store_true", help="Detect & remove enclosed #FFFFFF pockets (arms/hair/horns)")
+    parser.add_argument("--out-dir", type=Path, default=None, help="Output directory for sliced PNGs")
+    parser.add_argument("--names", default="", help="Comma-separated output file stems in row-major order")
+    parser.add_argument("--rows", type=int, default=1, help="Grid rows (default: 1)")
+    parser.add_argument("--cols", type=int, default=3, help="Grid cols (default: 3)")
+    parser.add_argument("--pad", type=int, default=6, help="Transparent margin padding around each cutout (default: 6)")
+    parser.add_argument("--flip-horizontal", action="store_true", help="Mirror each sliced sprite horizontally")
+    args = parser.parse_args()
+
+    if args.alpha_sheet is not None:
+        if args.out_dir is None or not args.names.strip():
+            parser.error("--out-dir and --names are required when using --alpha-sheet.")
+        names = [n.strip() for n in args.names.split(",") if n.strip()]
+        slice_alpha_sheet_by_components(
+            input_path=args.alpha_sheet,
+            out_dir=args.out_dir,
+            names_row_major=names,
+            rows=args.rows,
+            cols=args.cols,
+            pad=args.pad,
+            flip_horizontal=args.flip_horizontal,
+        )
+        return 0
+
+    if args.white_sheet is not None:
+        if args.out_dir is None or not args.names.strip():
+            parser.error("--out-dir and --names are required when using --white-sheet.")
+        names = [n.strip() for n in args.names.split(",") if n.strip()]
+        slice_grid_by_components(
+            input_path=args.white_sheet,
+            out_dir=args.out_dir,
+            names_row_major=names,
+            rows=args.rows,
+            cols=args.cols,
+            clean_pockets=args.clean_pockets,
+            pad=args.pad,
+            padded_canvas=True,
+            flip_horizontal=args.flip_horizontal,
+        )
+        return 0
+
     out_dir = PROJECT_ROOT / "assets" / "characters" / "playable" / "trixie"
     slice_grid_by_components(
         PROJECT_ROOT / "raw_assets" / "trixie" / "trixie_expressions_v02.jpg",

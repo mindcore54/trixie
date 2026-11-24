@@ -11,6 +11,7 @@ const TRIXIE_HAIR: Color = Color(0.24, 0.13, 0.18)
 const GOLD: Color = Color(1.0, 0.82, 0.32)
 
 const TRIXIE_ART_DIR: String = "res://assets/characters/playable/trixie"
+const CUSTOMERS_ART_DIR: String = "res://assets/characters/customers"
 static var _tex_cache: Dictionary = {}
 
 
@@ -73,25 +74,110 @@ static func get_trixie_halfbody(emotion: String) -> Texture2D:
 	return _get_cached_tex("%s/halfbody/trixie_halfbody_normal.png" % TRIXIE_ART_DIR)
 
 
+static func _draw_halfbody_tex(ci: CanvasItem, rect: Rect2, tex: Texture2D, off_x: float, off_y: float, sx: float, sy: float, bob: float, dim: float) -> void:
+	var tw: float = float(tex.get_width())
+	var th: float = float(tex.get_height())
+	var scale_f: float = minf(rect.size.x / maxf(1.0, tw), rect.size.y / maxf(1.0, th))
+	var dw: float = roundf(tw * scale_f * sx)
+	var dh: float = roundf(th * scale_f * sy)
+	var anchor_x: float = rect.position.x + rect.size.x * 0.5
+	var anchor_y: float = rect.position.y + rect.size.y
+	var dst: Rect2 = Rect2(
+		roundf(anchor_x - dw * 0.5 + off_x),
+		roundf(anchor_y - dh + bob + off_y),
+		dw,
+		dh
+	)
+	ci.draw_texture_rect(tex, dst, false, Color(dim, dim, dim, 1.0))
+
+
 ## Frameless tall vertical half-body Trixie fitted inside `rect` (bottom-aligned, crisp 1:1 or gently fitted).
-static func draw_trixie_halfbody(ci: CanvasItem, rect: Rect2, emotion: String, t: float, dim: float = 1.0) -> void:
+static func draw_trixie_halfbody(ci: CanvasItem, rect: Rect2, emotion: String, t: float, dim: float = 1.0, react_progress: float = 0.0) -> void:
 	var tex: Texture2D = get_trixie_halfbody(emotion)
 	if tex != null:
-		var tw: float = float(tex.get_width())
-		var th: float = float(tex.get_height())
-		var scale_f: float = minf(rect.size.x / maxf(1.0, tw), rect.size.y / maxf(1.0, th))
-		var dw: float = roundf(tw * scale_f)
-		var dh: float = roundf(th * scale_f)
+		var p: float = clampf(react_progress, 0.0, 1.0)
+		var pop: float = sin(p * PI)
+		var off_x: float = 0.0
+		var off_y: float = -pop * 5.0
+		var sx: float = 1.0
+		var sy: float = 1.0
 		var bob: float = roundf(sin(t * 2.1) * 3.0)
-		var dst: Rect2 = Rect2(
-			roundf(rect.position.x + (rect.size.x - dw) * 0.5),
-			roundf(rect.position.y + (rect.size.y - dh)) + bob,
-			dw,
-			dh
-		)
-		ci.draw_texture_rect(tex, dst, false, Color(dim, dim, dim, 1.0))
+		match emotion:
+			"sorprendida":
+				off_y = -pop * 16.0
+				sx = 1.0 - pop * 0.035
+				sy = 1.0 + pop * 0.055
+				bob = roundf(sin(t * 3.0) * 2.5)
+			"hollin", "hollin_derrota":
+				off_x = sin(t * 48.0) * 6.5 * p
+				off_y = 6.0 + pop * 5.0
+				sx = 1.0 + pop * 0.035
+				sy = 1.0 - pop * 0.045
+				bob = roundf(sin(t * 1.4) * 2.0)
+			"sonrojada", "sonrojada_picante":
+				off_x = sin(t * 2.2) * 3.0
+				off_y = -pop * 8.0
+				sx = 1.0 + pop * 0.025
+				sy = 1.0 + pop * 0.025
+				bob = roundf(sin(t * 2.1) * 3.0)
+			"confiada":
+				off_y = -pop * 12.0
+				sx = 1.0 - pop * 0.02
+				sy = 1.0 + pop * 0.035
+				bob = roundf(sin(t * 2.4) * 3.0)
+			"nerviosa", "nerviosa_sudando":
+				off_x = sin(t * 34.0) * (2.2 + 4.0 * p)
+				off_y = -pop * 5.0
+				bob = roundf(sin(t * 2.1) * 2.5)
+		_draw_halfbody_tex(ci, rect, tex, off_x, off_y, sx, sy, bob, dim)
 		return
 	draw_trixie_bust(ci, rect, emotion, t, dim, "cutscene")
+
+
+static func get_customer_halfbody(customer_id: StringName, emotion: String) -> Texture2D:
+	var cid: String = String(customer_id)
+	var emo_key: String = "normal"
+	match emotion:
+		"sonrojada", "sonrojada_picante":
+			emo_key = "sonrojada_picante"
+		"impaciente", "molesta":
+			emo_key = "impaciente"
+	var tex: Texture2D = _get_cached_tex("%s/%s/halfbody/%s_halfbody_%s.png" % [CUSTOMERS_ART_DIR, cid, cid, emo_key])
+	if tex != null:
+		return tex
+	return _get_cached_tex("%s/%s/halfbody/%s_halfbody_normal.png" % [CUSTOMERS_ART_DIR, cid, cid])
+
+
+static func has_customer_halfbody(customer_id: StringName) -> bool:
+	return get_customer_halfbody(customer_id, "normal") != null
+
+
+static func draw_customer_halfbody(ci: CanvasItem, rect: Rect2, customer_id: StringName, emotion: String, t: float, dim: float = 1.0, react_progress: float = 0.0) -> bool:
+	var tex: Texture2D = get_customer_halfbody(customer_id, emotion)
+	if tex == null:
+		return false
+	var p: float = clampf(react_progress, 0.0, 1.0)
+	var pop: float = sin(p * PI)
+	var off_x: float = 0.0
+	var off_y: float = -pop * 6.0
+	var sx: float = 1.0
+	var sy: float = 1.0
+	var bob: float = roundf(sin(t * 1.8) * 3.0)
+	match emotion:
+		"sonrojada", "sonrojada_picante":
+			off_x = sin(t * 2.0) * 3.0
+			off_y = -pop * 8.0
+			sx = 1.0 + pop * 0.025
+			sy = 1.0 + pop * 0.025
+			bob = roundf(sin(t * 1.9) * 3.0)
+		"impaciente", "molesta":
+			off_x = sin(t * 36.0) * 5.0 * p
+			off_y = -pop * 9.0
+			sx = 1.0 - pop * 0.02
+			sy = 1.0 + pop * 0.03
+			bob = roundf(sin(t * 2.4) * 2.0)
+	_draw_halfbody_tex(ci, rect, tex, off_x, off_y, sx, sy, bob, dim)
+	return true
 
 
 static func dim_color(c: Color, dim: float) -> Color:

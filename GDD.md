@@ -2,7 +2,7 @@
 
 > **Versión:** 1.0 (Diseño Base Completo)  
 > **Motor:** Godot 4.7 (`1920x1080`, `canvas_items`)  
-> **Referencia Visual Aprobada:** [stash/imagen3.jpeg](file:///c:/Users/M1ndc0re53/Projects/trixie/stash/imagen3.jpeg)
+> **Referencia Visual Aprobada:** [stash/imagen3.jpeg](stash/imagen3.jpeg)
 
 ---
 
@@ -267,7 +267,7 @@ res://
 * `ReactiveBustHUD` + `CustomerDialoguePanel`: Escuchan `EventBus.witch_emotion_changed` y `EventBus.customer_dialogue_requested` para hacer *tween* de entrada estilo novela visual sobre el pergamino *chipped*.
 
 ### 8.3 Pipeline Automatizado de Arte (`#FFFFFF` -> PNG Transparente)
-1. El desarrollador genera las imágenes usando las plantillas de [docs/prompts_catalog.md](file:///c:/Users/M1ndc0re53/Projects/trixie/docs/prompts_catalog.md) sobre **fondo blanco puro (`#FFFFFF`)**.
+1. El desarrollador genera las imágenes usando las plantillas de [docs/prompts_catalog.md](docs/prompts_catalog.md) sobre **fondo blanco puro (`#FFFFFF`)**.
 2. Las guarda en `raw_assets/` y Antigravity ejecuta:
    `python tools/process_white_bg.py raw_assets/<carpeta> --category <playable|customers|...> --id <nombre> --trim`
 3. El script ejecuta *flood-fill* 4-conectado desde el perímetro + descontaminación de bordes (*defringe*) para eliminar halos blancos **sin tocar ningún píxel blanco interno** (ojos, dientes, brillos o delantales), exportando directamente a `res://assets/`.

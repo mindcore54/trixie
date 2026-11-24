@@ -39,14 +39,26 @@ func _run() -> void:
 
 	var sim_ok: bool = (
 		bool(res.get("initial_cap_ok", false))
+		and bool(res.get("all_halfbodies_distinct_ok", false))
+		and bool(res.get("sylvi_halfbodies_distinct_ok", false))
 		and bool(res.get("no_autoclicker_ok", false))
-		and bool(res.get("liked_raised_tube", false))
+		and bool(res.get("three_clicks_to_break_ok", false))
+		and bool(res.get("lift_combine_color_ok", false))
+		and bool(res.get("lift_concentrate_ok", false))
 		and bool(res.get("purge_kept_combo", false))
 		and bool(res.get("disliked_lowered_tube", false))
 		and bool(res.get("disliked_reset_combo", false))
+		and bool(res.get("nerviosa_ok", false))
+		and bool(res.get("cust_impaciente_ok", false))
+		and bool(res.get("hollin_triggered", false))
+		and bool(res.get("sorprendida_triggered", false))
 		and int(res.get("orders_completed", 0)) >= 1
+		and bool(res.get("mixed_order_velvet_ok", false))
 		and bool(res.get("frenzy_triggered", false))
-		and bool(res.get("bought_aroma", false))
+		and bool(res.get("sonrojada_triggered", false))
+		and bool(res.get("cust_sonrojada_ok", false))
+		and bool(res.get("bought_hold_hit", false))
+		and bool(res.get("bought_strength", false))
 		and bool(res.get("bought_boil", false))
 		and int(res.get("nodes_count", 0)) == 17
 	)

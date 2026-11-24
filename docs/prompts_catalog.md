@@ -2,7 +2,7 @@
 
 Este documento estandariza cómo generar ilustraciones de personajes y props para que mantengan coherencia visual y sean 100% compatibles con el script automático de transparencia (`tools/process_white_bg.py`).
 
-> **Archivo de Prompts por Personaje:** Los prompts exactos ya aprobados de cada personaje (Concept Art, Retratos `16:9`, Medio Cuerpo `4:3` y archivo de Semi-Chibi) se guardan en [prompts_characters.md](file:///c:/Users/mindcore.dev/Projects/trixie/docs/prompts_characters.md).
+> **Archivo de Prompts por Personaje:** Los prompts exactos ya aprobados de cada personaje (Concept Art, Retratos `16:9`, Medio Cuerpo `4:3` y archivo de Semi-Chibi) se guardan en [prompts_characters.md](prompts_characters.md).
 
 ## Reglas de Oro para Todo Prompt
 1. **Fondo Blanco Puro (`#FFFFFF`) sin Sombra Proyectada ni Marco:**
@@ -20,7 +20,7 @@ Este documento estandariza cómo generar ilustraciones de personajes y props par
 ---
 
 ## Generador CLI Rápido
-Usa [generate_prompts.py](file:///c:/Users/mindcore.dev/Projects/trixie/tools/generate_prompts.py) para imprimir prompts listos para copiar y pegar:
+Usa [generate_prompts.py](../tools/generate_prompts.py) para imprimir prompts listos para copiar y pegar:
 
 ```bash
 # 0. Concept Art (SOLO referencia de diseño)

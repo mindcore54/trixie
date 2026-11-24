@@ -34,7 +34,7 @@ Tienes **agencia completa** para:
 
 ### 3.1 GDScript Tipado Estricto
 * **100% Static Typing:** Toda variable, parámetro de función y tipo de retorno debe llevar anotación explícita (`var speed: float = 340.0`, `func brew_potion(recipe: PotionRecipeData) -> void:`). Evitar `Variant` implícito salvo en diccionarios de configuración documentados.
-* **Signals & "Call Down, Signal Up":** Los nodos hijos nunca llaman métodos de padres ni buscan rutas frágiles (`get_node("../../...")`). Usan señales propias o el autoload global [EventBus.gd](file:///c:/Users/M1ndc0re53/Projects/trixie/scripts/autoloads/EventBus.gd).
+* **Signals & "Call Down, Signal Up":** Los nodos hijos nunca llaman métodos de padres ni buscan rutas frágiles (`get_node("../../...")`). Usan señales propias o el autoload global [EventBus.gd](scripts/autoloads/EventBus.gd).
 * **Animación por Código (Juice First):** Para multiplicar el valor de los sprites semi-chibi (de apenas 2–4 cuadros dibujados), el movimiento, rebote al caminar, *squash & stretch* al interactuar, sacudida del caldero y transición de retratos deben potenciarse mediante `Tween`, curvas y shaders en Godot.
 
 ### 3.2 Arquitectura Data-Driven (`.tres` + JSON)
@@ -59,6 +59,7 @@ Tienes **agencia completa** para:
 
 ---
 
-## 5. Sincronización Obligatoria de `roadmap.md`
-* [roadmap.md](file:///c:/Users/M1ndc0re53/Projects/trixie/roadmap.md) es la **memoria viva y punto de contacto oficial** entre Antigravity y el desarrollador.
+## 5. Sincronización Obligatoria de `roadmap.md` y Portabilidad
+* [roadmap.md](roadmap.md) es la **memoria viva y punto de contacto oficial** entre Antigravity y el desarrollador.
 * Tras completar cualquier tarea, validar un prototipo, tomar una decisión de diseño o detectar un bloqueo, **debes actualizar `roadmap.md` inmediatamente** marcando casillas (`[x]`), anotando aprendizajes en el registro de decisiones y dejando claro el siguiente paso.
+* **Cero Rutas Absolutas en Archivos Versionados:** El proyecto se comparte entre varias PCs; dentro de cualquier archivo del repositorio (`.md`, `.gd`, `.py`, `.tres`, etc.) usa siempre rutas relativas al proyecto o `res://`, jamás rutas absolutas locales de usuario ni enlaces `file://`.

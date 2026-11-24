@@ -14,16 +14,7 @@ static func get_witches() -> Array[WitchCharacterData]:
 		if res is WitchCharacterData:
 			loaded.append(res as WitchCharacterData)
 	if not loaded.is_empty():
-		var order: Array[StringName] = [&"trixie", &"lyra", &"nyxara", &"morrigan"]
-		loaded.sort_custom(func(a: WitchCharacterData, b: WitchCharacterData) -> bool:
-			var ia: int = order.find(a.witch_id)
-			var ib: int = order.find(b.witch_id)
-			if ia == -1:
-				ia = 999
-			if ib == -1:
-				ib = 999
-			return ia < ib
-		)
+		_sort_by_id_order(loaded, "witch_id", [&"trixie", &"lyra", &"nyxara", &"morrigan"])
 		return loaded
 	return _build_default_witches()
 
@@ -34,8 +25,17 @@ static func get_customers() -> Array[CustomerArchetypeData]:
 		if res is CustomerArchetypeData:
 			loaded.append(res as CustomerArchetypeData)
 	if not loaded.is_empty():
+		_sort_by_id_order(loaded, "customer_id", [&"sylvi", &"velvet", &"seraphina", &"mona", &"roxy"])
 		return loaded
 	return _build_default_customers()
+
+
+static func _sort_by_id_order(items: Array, id_prop: String, order: Array[StringName]) -> void:
+	items.sort_custom(func(a: Resource, b: Resource) -> bool:
+		var ia: int = order.find(a.get(id_prop) as StringName)
+		var ib: int = order.find(b.get(id_prop) as StringName)
+		return (999 if ia == -1 else ia) < (999 if ib == -1 else ib)
+	)
 
 
 static func get_recipes() -> Array[PotionRecipeData]:
@@ -552,47 +552,47 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 1,
 			"base_cost": 0,
 			"cost_mult": 1.0,
-			"short_desc": "Clic Izquierdo o arrastra para encadenar orbes iguales. Clic Derecho purga orbes ❌.",
+			"short_desc": "Clic Izq (3 golpes) rompe orbes. Arrastra un orbe sobre otro para mezclar colores o concentrar x2. Clic Der (o mantén) purga ❌.",
 		},
-		# Rama Oeste/Izquierda: Alquimia y Cadenas
+		# Rama Oeste/Izquierda: Golpes, Toque Continuo y Purga
 		{
-			"id": &"aroma_concentrado",
-			"name": "Aroma Concentrado",
-			"icon": "✨",
+			"id": &"toque_continuo",
+			"name": "Toque Continuo",
+			"icon": "👆",
 			"branch": &"cursor",
 			"color": Color(1.0, 0.38, 0.50),
 			"pos": Vector2(690.0, 475.0),
 			"parent_id": &"root_cauldron",
-			"max_level": 8,
-			"base_cost": 10,
-			"cost_mult": 1.50,
-			"short_desc": "+25% Esencia y +4% progreso de poción por cada orbe Afín.",
+			"max_level": 6,
+			"base_cost": 8,
+			"cost_mult": 1.55,
+			"short_desc": "Nv.1: Mantener Clic Izq golpea automáticamente el orbe elegido (+15% Esencia). Nv.2+: golpes más rápidos y +20% Esencia.",
 		},
 		{
-			"id": &"enlace_arcano",
-			"name": "Enlace Arcano",
-			"icon": "🔗",
+			"id": &"fuerza_molienda",
+			"name": "Fuerza Alquímica",
+			"icon": "💥",
 			"branch": &"cursor",
 			"color": Color(1.0, 0.46, 0.58),
 			"pos": Vector2(455.0, 390.0),
-			"parent_id": &"aroma_concentrado",
-			"max_level": 6,
-			"base_cost": 20,
-			"cost_mult": 1.65,
-			"short_desc": "+45px alcance de cadena y mayor multiplicador al unir 2+ orbes.",
+			"parent_id": &"toque_continuo",
+			"max_level": 3,
+			"base_cost": 24,
+			"cost_mult": 2.20,
+			"short_desc": "Reduce los golpes necesarios para romper orbes (3 -> 2 -> 1 golpe) y +25% progreso de poción.",
 		},
 		{
 			"id": &"espuma_veloz",
-			"name": "Espuma Veloz",
+			"name": "Purga Recicladora",
 			"icon": "🫧",
 			"branch": &"cursor",
 			"color": Color(1.0, 0.52, 0.36),
 			"pos": Vector2(455.0, 560.0),
-			"parent_id": &"aroma_concentrado",
+			"parent_id": &"toque_continuo",
 			"max_level": 5,
-			"base_cost": 24,
-			"cost_mult": 1.70,
-			"short_desc": "Purgar orbes ❌ con Clic Derecho los recicla en Esencia y genera un orbe nuevo.",
+			"base_cost": 20,
+			"cost_mult": 1.65,
+			"short_desc": "Purgar orbes ❌ (clic o manteniendo Clic Der) los recicla en Esencia y genera un ingrediente útil.",
 		},
 		{
 			"id": &"frenesi_escarlata",
@@ -601,11 +601,11 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"branch": &"cursor",
 			"color": Color(1.0, 0.24, 0.40),
 			"pos": Vector2(225.0, 475.0),
-			"parent_id": &"enlace_arcano",
+			"parent_id": &"fuerza_molienda",
 			"max_level": 5,
-			"base_cost": 50,
-			"cost_mult": 1.90,
-			"short_desc": "Carga Frenesí más rápido y alarga la transmutación de orbes ❌ a Afines.",
+			"base_cost": 45,
+			"cost_mult": 1.85,
+			"short_desc": "Carga Frenesí más rápido; al activarlo, transmuta todos los ❌ al color Afín y rompe de 1 golpe con 2x producción.",
 		},
 		# Rama Norte: Caldero y Reacciones
 		{
@@ -632,7 +632,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 6,
 			"base_cost": 30,
 			"cost_mult": 1.80,
-			"short_desc": "Cadenas de 2+ Afines disparan rayos cian que revientan otro Afín cercano.",
+			"short_desc": "Al romper un orbe Afín o Concentrado, dispara rayos cian que golpean otro orbe Afín cercano.",
 		},
 		{
 			"id": &"bomba_alquimica",
@@ -645,7 +645,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 5,
 			"base_cost": 45,
 			"cost_mult": 1.85,
-			"short_desc": "Aparecen Bombas Moradas que explotan Afines y Neutros en área sin dañar por ❌.",
+			"short_desc": "Aparecen Bombas que al romperlas (1 golpe) explotan Afines e ingredientes cercanos sin activar ❌.",
 		},
 		{
 			"id": &"orbe_estrella",
@@ -658,7 +658,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 5,
 			"base_cost": 90,
 			"cost_mult": 2.00,
-			"short_desc": "Aparecen Estrellas Doradas comodín que enlazan cualquier cadena y dan x5 Esencia.",
+			"short_desc": "Estrellas Doradas: suéltalas sobre cualquier orbe para subirlo de nivel (x2/x3) o rómpelas por x5 Esencia.",
 		},
 		# Rama Este/Derecha: Familiares Inteligentes y Tiempo
 		{
@@ -685,7 +685,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 5,
 			"base_cost": 40,
 			"cost_mult": 1.90,
-			"short_desc": "Familiar que caza automáticamente SOLO orbes Afines para tu clienta.",
+			"short_desc": "Familiar inteligente: mezcla colores compatibles si hace falta y golpea/rompe orbes Afines por ti.",
 		},
 		{
 			"id": &"diablillo_purgador",
@@ -698,7 +698,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 5,
 			"base_cost": 65,
 			"cost_mult": 1.95,
-			"short_desc": "Familiar que expulsa orbes negativos (❌) del caldero automáticamente.",
+			"short_desc": "Familiar que purga orbes negativos (❌) del caldero automáticamente para mantener espacio.",
 		},
 		{
 			"id": &"murcielago_alquimista",
