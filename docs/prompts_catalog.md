@@ -16,6 +16,7 @@ Este documento estandariza cómo generar ilustraciones de personajes y props par
    - **Medio Cuerpo (`halfbody` — 2 Hojas `4:3`, 3 por imagen)**: Ilustraciones verticales sin marco, divididas en **Hoja 1 Core Gameplay** (`normal`, `confiada`, `nerviosa_sudando`) y **Hoja 2 Secundarias** (`sonrojada_picante`, `hollin_derrota`, `sorprendida`) para asegurar consistencia en las 3 principales de partida.
    - **Full Size (`fullbody` — Vertical `9:16`)**: Ilustración de cuerpo completo **dedicada y pensada aparte** en `9:16` (pose de presentación/escena, nunca reciclada del Concept Art).
 4. **Dirección Estética (Próximos Conceptos):** Estilo súper sexy con curvas marcadas y recursos de vestuario atrevido (escotes muy pronunciados, *underboob*, *sideboob*, transparencias) según la personalidad de cada personaje.
+5. **Prompts 100% Autocontenidos (Cero Referencias Externas):** Nunca incluyas nombres propios de otros personajes del proyecto (p. ej. Trixie, Sylvi, Velvet, Seraphina, Mona) ni referencias a lore interno del juego dentro del texto de un prompt de imagen. La IA generadora no conoce el universo ni otros personajes; describe siempre cada rasgo visual, silueta, pose y punto focal de vestuario de forma directa e independiente.
 
 ---
 

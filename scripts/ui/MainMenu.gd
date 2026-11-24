@@ -270,6 +270,9 @@ func _build_ui() -> void:
 func _on_start_pressed() -> void:
 	if SceneFader.is_busy():
 		return
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs != null:
+		gs.call("reset_run")
 	AudioJuiceManager.play_pentatonic(5, 0.0)
 	SceneFader.fade_to_scene("res://scenes/ui/IntroCutscene.tscn", 0.55, 0.55)
 

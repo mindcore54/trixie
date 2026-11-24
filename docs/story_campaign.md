@@ -9,7 +9,7 @@
 
 * **Premisa:** Trixie inicia su emprendimiento como vendedora ambulante recorriendo el reino con su caldero a cuestas (tropezándose a menudo).
 * **Motivación de viaje diario:** `[Por definir rápido más adelante]` *(Doña Remedios descartada definitivamente del juego).*
-  * *Semillas rápidas opcionales:* (a) pique/apuesta inicial con **Mona** (su rival tsundere) para probar quién vende más pociones por todo el reino; o (b) Trixie sola tras una explosión en su cuarto/academia, mudándose de plaza cada día porque su caldero portátil siempre arma algún caos al cerrar.
+  * *Semillas rápidas opcionales:* (a) pique/apuesta inicial con **Mona** (la exigente elfa noble tsundere) para probar que la alquimia ambulante supera a su boticario real; o (b) Trixie sola tras una explosión en su cuarto/academia, mudándose de plaza cada día porque su caldero portátil siempre arma algún caos al cerrar.
 * **Estructura ligera de cada día/parada:**
   1. **Llegada breve** (cambio de fondo + 1–2 líneas rápidas o viñeta visual).
   2. **Ola de clientela local** (mecánica principal del caldero + química de colores/manías).

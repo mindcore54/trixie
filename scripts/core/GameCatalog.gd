@@ -305,27 +305,27 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	var mona: CustomerArchetypeData = CustomerArchetypeData.new()
 	mona.customer_id = &"mona"
 	mona.display_name = "Mona"
-	mona.species_archetype = "Bruja Rival Tsundere"
+	mona.species_archetype = "Elfa Noble Tsundere"
 	mona.base_patience_sec = 70.0
 	mona.tip_generosity_mult = 1.15
 	mona.preferred_recipes = [&"bruma_lunar", &"tonico_silvestre"]
 	mona.greeting_lines = PackedStringArray([
-		"Solo vine a comprobar lo lenta que eres. Hazme un filtro decente.",
-		"¡No creas que vengo porque me gusten tus mezclas!"
+		"Solo vine porque mi boticario real cerró temprano. ¡Hazme algo decente!",
+		"¡No creas que hago fila en un puesto callejero porque me gusten tus mezclas!"
 	])
 	mona.satisfied_lines = PackedStringArray([
-		"¡Hmph! Pasable. Supongo que tienes algo de técnica.",
-		"N-no está mal... ¡pero la mía sale mejor!"
+		"¡Hmph! Pasable para ser alquimia ambulante... te dejo el cambio.",
+		"N-no está nada mal... ¡pero no te confíes!"
 	])
 	mona.spicy_affinity_lines = PackedStringArray([
-		"¡Hmph! No te pongas tan coqueta solo porque atendiste rápido, tonta!",
-		"Oye... si cierras temprano un día, ven a comparar calderos... ¡s-solo por negocio!"
+		"¡Hmph! ¡Deja de sonreír tan coqueta solo porque me gustó tu elixir, tonta!",
+		"Oye... si pasas cerca de mi mansión esta noche, trae un frasco privado... ¡s-solo por cortesía noble!"
 	])
 	mona.impatient_lines = PackedStringArray([
-		"¡Ja! Sabía que no podías con tantos pedidos!"
+		"¡Inaceptable! ¡Una dama noble no espera tanto!"
 	])
 	mona.display_tempted_lines = PackedStringArray([
-		"¿Pusiste esa en vitrina para presumir? ¡A ver, pásamela!"
+		"¿Ese frasco brillante está disponible? ¡Pásamelo antes de que alguien más lo vea!"
 	])
 
 	var roxy: CustomerArchetypeData = CustomerArchetypeData.new()
@@ -672,7 +672,7 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"max_level": 6,
 			"base_cost": 16,
 			"cost_mult": 1.60,
-			"short_desc": "+4s de duración en cada ronda de hervor.",
+			"short_desc": "+4s de paciencia para cada clienta antes de que se vaya.",
 		},
 		{
 			"id": &"michi_alado",
@@ -765,5 +765,256 @@ static func get_incremental_nodes() -> Array[Dictionary]:
 			"base_cost": 1000,
 			"cost_mult": 1.0,
 			"short_desc": "Hito final: consagra la Botica de Trixie y desbloquea el Gran Final.",
+		},
+	]
+
+
+## Returns the 6 branching stops of Trixie's traveling potion tour (from docs/story_campaign.md).
+static func get_map_nodes() -> Array[Dictionary]:
+	return [
+		{
+			"id": &"castillo",
+			"name": "Afueras del Castillo",
+			"subtitle": "Parada 1 · Primer Día de Gira",
+			"route_tag": "Inicio del Viaje",
+			"icon": "🏰",
+			"pos": Vector2(250.0, 500.0),
+			"color": Color(1.0, 0.78, 0.40),
+			"bg_tint": Color(0.09, 0.06, 0.16),
+			"bg_path": "res://assets/backgrounds/bg_01_castillo.jpg",
+			"unlock_any_of": [],
+			"next_ids": [&"pueblo"],
+			"customers": [&"sylvi", &"velvet"],
+			"essence_mult": 1.0,
+			"affinity_bonus": 0,
+			"spawn_rate_mult": 1.0,
+			"first_clear_bonus": 18,
+			"recruits_witch": &"",
+			"description": "Primer puesto ambulante frente a las murallas del castillo. Ideal para calentar el caldero, probar mezclas de colores y atender a Sylvi y Velvet.",
+			"closing_victory_lines": [
+				{
+					"speaker": "customer",
+					"emotion": "sonrojada",
+					"text": "¡Mmm, este elixir sí que despierta los sentidos! Nos volveremos a ver en la ruta, brujita.",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Uf, primer puesto superado sin volar por los aires! Aunque casi me tropiezo cargando el cucharón...",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "normal",
+					"text": "¡Hora de recoger el caldero y abrir el Mapa! Allí podré mejorar mi magia en el Árbol de Habilidades antes de seguir.",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Puf...! Se cansaron de esperar y se marcharon antes de tiempo. Por suerte conservo toda la Esencia reunida.",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Vamos al Mapa para mejorar el caldero en el Árbol de Habilidades y atender más rápido!",
+				},
+			],
+		},
+		{
+			"id": &"pueblo",
+			"name": "El Pueblo",
+			"subtitle": "Parada 2 · Plaza del Mercado",
+			"route_tag": "Ruta Comercial",
+			"icon": "🏘",
+			"pos": Vector2(560.0, 420.0),
+			"color": Color(0.45, 0.88, 1.0),
+			"bg_tint": Color(0.10, 0.07, 0.18),
+			"bg_path": "res://assets/backgrounds/bg_02_pueblo.jpg",
+			"unlock_any_of": [&"castillo"],
+			"next_ids": [&"bosque_goblins"],
+			"customers": [&"sylvi", &"velvet", &"seraphina"],
+			"essence_mult": 1.25,
+			"affinity_bonus": 1,
+			"spawn_rate_mult": 1.08,
+			"first_clear_bonus": 28,
+			"recruits_witch": &"",
+			"description": "Plaza bulliciosa con 3 clientas seguidas. Llegan pedidos de Sylvi, Velvet y la exigente paladín Seraphina (+25% Esencia).",
+			"closing_victory_lines": [
+				{
+					"speaker": "customer",
+					"emotion": "sonrojada",
+					"text": "A-aprobado por la Orden... pero no vayas contando lo mucho que me gustó tu mezcla.",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Jaja, qué clientas más intensas! Ya cae la tarde y mis tacones no dan más... ¡toca descansar antes de tomar el sendero!",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Uff, cuántas clientas impacientes en el mercado! Conservaré la Esencia para subir más mejoras en el Árbol.",
+				},
+			],
+		},
+		{
+			"id": &"bosque_goblins",
+			"name": "Bosque Tenebroso",
+			"subtitle": "Parada 3 · Desvío de la Jefa Goblin",
+			"route_tag": "Ruta Volátil · +45% ✦",
+			"icon": "🌲",
+			"pos": Vector2(880.0, 520.0),
+			"color": Color(0.76, 0.44, 1.0),
+			"bg_tint": Color(0.06, 0.05, 0.13),
+			"unlock_any_of": [&"pueblo"],
+			"next_ids": [&"bosque_profundo", &"arroyo_balsa"],
+			"customers": [&"velvet", &"roxy", &"mona", &"sylvi"],
+			"essence_mult": 1.45,
+			"affinity_bonus": 1,
+			"spawn_rate_mult": 1.18,
+			"first_clear_bonus": 42,
+			"recruits_witch": &"",
+			"description": "Árboles sin hojas y cielo cerrado. ¡Trixie tomó un desvío equivocado y debe encantar con pociones a 4 clientas bajo la mirada de la Jefa Goblin!",
+			"closing_victory_lines": [
+				{
+					"speaker": "customer",
+					"emotion": "sonrojada",
+					"text": "¡Hmph! Para haberte perdido en este bosque, tus brebajes saben peligrosamente bien.",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "sorprendida",
+					"text": "¡Lo logré! ¡La Jefa Goblin quedó fascinada y hasta nos prestó su choza para dormir!",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "Mañana podremos elegir en el Mapa: internarnos en el Bosque Profundo o bajar por el Arroyo en balsa mágica.",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Se cansaron de esperar y casi termino decorando su olla gigante! Salí con toda mi Esencia intacta: hora de mejorar antes de volver.",
+				},
+			],
+		},
+		{
+			"id": &"bosque_profundo",
+			"name": "Sendero de Esporas",
+			"subtitle": "Bifurcación A · Recluta a Lyra",
+			"route_tag": "Ruta Arcana · +Lyra 🌿",
+			"icon": "🍄",
+			"pos": Vector2(1240.0, 340.0),
+			"color": Color(0.36, 0.94, 0.58),
+			"bg_tint": Color(0.05, 0.11, 0.12),
+			"unlock_any_of": [&"bosque_goblins"],
+			"next_ids": [&"nuevo_pueblo"],
+			"customers": [&"sylvi", &"seraphina", &"roxy", &"mona"],
+			"essence_mult": 1.55,
+			"affinity_bonus": 2,
+			"spawn_rate_mult": 1.20,
+			"first_clear_bonus": 55,
+			"recruits_witch": &"lyra",
+			"description": "Esporas luminosas en lo hondo del bosque. Atiende esta ola de 4 clientas para conocer y reclutar a Lyra, la druida traviesa (+2 Afinidad extra).",
+			"closing_victory_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "sorprendida",
+					"text": "¡Mira quién salió entre las flores brillantes! ¡Es Lyra!",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "sonrojada",
+					"text": "¡Con Lyra viajando con nosotras la botica ambulante se vuelve imparable! Vamos al Mapa para ver el siguiente tramo.",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Estas esporas marean y las clientas perdieron la paciencia! Volvamos al Mapa a mejorar el caldero para impresionar a Lyra.",
+				},
+			],
+		},
+		{
+			"id": &"arroyo_balsa",
+			"name": "Arroyo en Balsa",
+			"subtitle": "Bifurcación B · Aguas de Sirenas",
+			"route_tag": "Ruta Fluvial · +70% ✦",
+			"icon": "🌊",
+			"pos": Vector2(1240.0, 660.0),
+			"color": Color(0.24, 0.86, 0.96),
+			"bg_tint": Color(0.05, 0.09, 0.19),
+			"unlock_any_of": [&"bosque_goblins"],
+			"next_ids": [&"nuevo_pueblo"],
+			"customers": [&"mona", &"velvet", &"sylvi", &"roxy"],
+			"essence_mult": 1.70,
+			"affinity_bonus": 1,
+			"spawn_rate_mult": 1.26,
+			"first_clear_bonus": 65,
+			"recruits_witch": &"",
+			"description": "Trixie conjura una balsa mágica y hierve pociones corriente abajo frente a 4 clientas. Ritmo veloz con enorme recompensa de Esencia (+70%).",
+			"closing_victory_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "sorprendida",
+					"text": "¡O-oye! ¡La corriente está acelerando! ¡El caldero se desliza por la balsa...!",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡WOOOOSH! ¡Una cascadaaaa! *Splash*... Bueno, llegamos empapadas pero con el bolso lleno de Esencia.",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡La balsa dio tres vueltas seguidas y varias clientas se fueron molestas! Me llevo la Esencia ganada al Mapa antes de intentar domar el río otra vez.",
+				},
+			],
+		},
+		{
+			"id": &"nuevo_pueblo",
+			"name": "Nuevo Pueblo Costero",
+			"subtitle": "Parada 5 · Gran Feria Nocturna",
+			"route_tag": "Gran Ola · x2.0 ✦",
+			"icon": "🏮",
+			"pos": Vector2(1610.0, 495.0),
+			"color": Color(1.0, 0.56, 0.78),
+			"bg_tint": Color(0.13, 0.06, 0.16),
+			"unlock_any_of": [&"bosque_profundo", &"arroyo_balsa"],
+			"next_ids": [],
+			"customers": [&"sylvi", &"velvet", &"seraphina", &"mona", &"roxy"],
+			"essence_mult": 2.0,
+			"affinity_bonus": 2,
+			"spawn_rate_mult": 1.32,
+			"first_clear_bonus": 110,
+			"recruits_witch": &"",
+			"description": "Tras dejar atrás el bosque y la cascada, Trixie despliega su caldero en la gran feria nocturna frente a las cinco clientas VIP.",
+			"closing_victory_lines": [
+				{
+					"speaker": "customer",
+					"emotion": "sonrojada",
+					"text": "¡Increíble! Toda la feria habla de tus elixires... y de tu encanto detrás del caldero.",
+				},
+				{
+					"speaker": "trixie",
+					"emotion": "sonrojada",
+					"text": "¡Las cinco clientas encantadas en una sola noche! ¡Nos vemos en el Mapa para desbloquear el Árbol entero y la Galería!",
+				},
+			],
+			"closing_timeout_lines": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Cinco clientas con poca paciencia son pura adrenalina! Mejoremos un poco más en el Mapa y volvamos a arrasar la feria.",
+				},
+			],
 		},
 	]

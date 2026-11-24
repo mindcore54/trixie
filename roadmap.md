@@ -27,8 +27,8 @@
 1. **Prototipar el bucle táctico "Vendedora Ambulante" en `proto/incremental` (Zona 1 jugable):**
    - Sustituir el timer pasivo de `25s` por **Olas de Clientas**, un **Mapa de Viaje bifurcado** entre paradas (rutas de Hechizos Activos vs. rutas de mayor riesgo/spawn/Esencia, con el nodo final de reclutamiento de **Lyra**) y **3 Hechizos Activos** (`Q/W/E`) en el caldero para comprobar en playtest que el ritmo engancha de verdad.
 2. **Vestir el Tablero Central estilo [imagen4.jpeg](stash/imagen4.jpeg) (Bloque A):**
-   - Caldero central ligeramente inclinado con runas doradas, escala por profundidad `Y`, Y-Sort del borde frontal y caldo animado; fondo atmosférico de parada/botica ambulante; hoja de 5 orbes alquímicos + tubo/matraz vertical + botón circular de Frenesí.
-3. **Completar el elenco visual de Clientas (siguiente: Velvet #2) y Brujas viajeras:**
+   - Ya integrados: **caldero parcheado (`cauldron_main.png`) + fuego difuso por shader (`cauldron_fire_glow.gdshader`)**, **Fondos Nivel 1 y 2 (`bg_01_castillo.jpg`, `bg_02_pueblo.jpg` con `stage_bg_depth.gdshader`)**, **tubo/matraz vertical (`flask_empty.png` + `flask_liquid_mask.png`, `flask_liquid.gdshader`)**, **8 orbes alquímicos + grietas biseladas 3D (`assets/props/items/orbs/*.png`)** y **pergamino de diálogo (`dialog_bg.png` + sombra gaussiana y entrada *ease-out* desde abajo-izquierda en partida e intro)**; faltan fondos por parada restantes (`3–5`) y el shader de caldo animado en el caldero.
+3. **Completar el elenco visual de Brujas viajeras (`Lyra`, `Nyxara`, `Morrigan`) — 5/5 Clientas ya integradas:**
    - Repetir el flujo afinado con Sylvi: conversación rápida con 1 firma sexy protagonista -> Concept Art -> 1 hoja `16:9` Core de Medio Cuerpo mirando `<<` (o `>>` para brujas) -> integración automática en Godot.
 4. **Convertir la Galería en Cinemáticas Secretas (`Bruja × Clienta`) y adaptar la Intro:**
    - Evolucionar la Galería a mini-historias desbloqueables por pareja `(witch_id, customer_id)` y ajustar [intro_cutscene.json](data/dialogues/intro_cutscene.json) a la premisa de Trixie recorriendo el reino con su caldero ambulante.
@@ -66,13 +66,13 @@
 
 ## Fase 2: Profundidad Táctica, Campaña Itinerante (3–5h) y Caldero 2.5D
 - [ ] **2.1 Olas de Clientas, Mapa de Viaje Bifurcado y Hechizos Activos (Núcleo Adictivo):**
-  - [ ] Sustituir el reloj pasivo de `25s` por **Olas de Clientas por Parada** (ej. `3–5` clientas por nodo con presión/estabilidad viva del caldero; si fallas conservas toda la Esencia ganada y vuelves al Árbol Permanente más fuerte — **cero permadeath**).
-  - [ ] Implementar **Mapa de Viaje por Zonas con Bifurcaciones** entre paradas: caminos con decisiones tácticas reales (*Ruta Arcana* que otorga Hechizos Activos, *Ruta Volátil* con mayor spawn/dificultad y bono de Esencia, *Ruta Social/Taberna* con doble afinidad y eventos de carretera). Las ramas son rejugables desde el mapa para que ninguna bruja ni historia sea perdible.
+  - [x] Sustituir el reloj pasivo de `25s` por **Olas por Cantidad de Clientas (`2–5`) + Paciencia Individual por Clienta** (`30.0s` base uniforme + `+4s` por nivel de *Reloj de Arena*, hook listo para variar por arquetipo en el futuro) con diálogo corto de cierre tras la ola y transición *fade* suave al Mapa; si se van demasiadas conservas toda la Esencia ganada — **cero permadeath**).
+  - [x] Implementar **Mapa de Viaje por Zonas con Bifurcaciones** entre paradas ([WorldMap.tscn](scenes/meta/WorldMap.tscn), [WorldMap.gd](scripts/meta/WorldMap.gd), [GameState.gd](scripts/autoloads/GameState.gd) + `get_map_nodes()` en [GameCatalog.gd](scripts/core/GameCatalog.gd)): 6 nodos de campaña con bifurcación rejugable (*Sendero de Esporas* -> **Lyra** vs. *Arroyo en Balsa*), concentrando el **Árbol de Habilidades** y la **Galería** únicamente en el Mapa sin botones duplicados en partida.
   - [ ] Añadir **2–3 ranuras de Hechizos Activos** del caldero (`Q / W / E` o clic, cargables con combos — sin deriva a *deckbuilder*): ej. *Tinte Alquímico* (convierte todos los orbes al color Afín), *Vórtice* (agrupa Afines para mega-cadena), *Purga Total* (detona todos los `❌` en Esencia) y *Hielo Arcano* (congela la presión/reloj).
   - [ ] Añadir **manías mecánicas propias por clienta** además de su trío de color (ej. Velvet exigiendo cadenas `2+`; Seraphina corrompiendo orbes si no purgas; Mona premiando cadenas específicas; Roxy acelerando el caldero a cambio de doble propina) y expandir el Árbol Permanente (`~25–35` nodos) con 2–3 saltos claros de fantasía de poder.
-  - [ ] Añadir **micro-onboarding orgánico en Parada 1** (resaltar visualmente primer orbe Afín, primera cadena, primera purga `❌` y primer Hechizo Activo sin textos largos ni popups bloqueantes).
+  - [x] Añadir **tutoriales guiados por Trixie con tiempo pausado ("Just-In-Time")**: tutorial básico inicial (romper `3 clics`, purgar `❌` con Clic Der y resumen de paciencia/Frenesí con botón `¡ENTENDIDO!`), **tutorial de mezcla contextual** que solo salta cuando llega la primera clienta con pedido compuesto (`Velvet`), y guía obligatoria en el Mapa hacia el **Árbol de Habilidades** forzando la compra de **Toque Continuo**.
 - [ ] **2.2 Perspectiva Ligera del Caldero y UI Estilo [imagen4.jpeg](stash/imagen4.jpeg):**
-  - [ ] Proyectar el caldero con ligera inclinación hacia atrás (orbes en área elíptica, escala sutil por profundidad `Y` y **Y-Sort** con el borde frontal con runas iluminadas).
+  - [x] Integrar el caldero central parcheado (`assets/props/stations/cauldron_main.png`) en vista casi cenital sobre caldo base neutro con apertura elíptica, escala sutil por profundidad `Y` y ordenamiento `Y-Sort` de orbes bajo el borde frontal.
   - [ ] Refinar el lateral derecho e izquierdo: tubo vertical conectado a matraz inferior, fila visual de corazones de afinidad (`❤`) bajo el tubo, ranuras de Hechizos Activos y botón circular de Frenesí integrado bajo la bruja activa.
 - [ ] **2.3 Reclutamiento de Brujas Jugables en el Mapa (`Lyra`, `Nyxara`, `Morrigan`) y Matriz `Bruja × Clienta`:**
   - [ ] **Mecánica oficial de desbloqueo (Hitos del Mapa de Viaje):** las demás brujas no se compran en un menú frío ni llegan por días pasivos; Trixie **las conoce y recluta al superar los nodos clave / Olas Especiales de cada Zona del Mapa** (*Zona 1: Sendero del Bosque -> **Lyra***; *Zona 2: Mercado Nocturno -> **Nyxara***; *Zona 3: Gala Carmesí -> **Morrigan***), con rutas rejugables para recorrer en libertad sin bloquear ninguna.
@@ -86,10 +86,10 @@
   - [x] **Trixie** (Concept `v05` + Medio Cuerpo `6/6` integrado).
   - [ ] **Trixie — `fullbody` dedicado (`9:16`)** (Menú Principal / cierre de campaña).
   - [x] **Sylvi (Clienta #1 — Fauno Bohemia)** (Concept `v02` + Medio Cuerpo Core `3/3` integrado).
-  - [ ] **Velvet (Clienta #2 — Súcubo Ejecutiva)** (diseño con firma sexy propia -> Concept Art -> Hoja 1 Medio Cuerpo `<<` -> integración).
-  - [ ] **Seraphina (Clienta #3 — Paladín "Reprimida")** (Concept Art -> Hoja 1 Medio Cuerpo `<<` -> integración).
-  - [ ] **Mona (Clienta #4 — Bruja Rival Tsundere)** (Concept Art -> Hoja 1 Medio Cuerpo `<<` -> integración).
-  - [ ] **Roxy (Clienta #5 — Cazadora Lupina)** (Concept Art -> Hoja 1 Medio Cuerpo `<<` -> integración).
+  - [x] **Velvet (Clienta #2 — Súcubo Ejecutiva)** (Concept Art + Hoja 1 Medio Cuerpo `3/3` mirando `<<` integrada en juego y Galería).
+  - [x] **Seraphina (Clienta #3 — Paladín Celestial Dulce · Estilo Veraniego)** (Concept Art + Hoja 1 Medio Cuerpo `3/3` mirando `<<` integrada en juego y Galería).
+  - [x] **Mona (Clienta #4 — Elfa Noble Tsundere × Polilla Lunar)** (Concept Art + Hoja 1 Medio Cuerpo `3/3` mirando `<<` integrada en juego y Galería).
+  - [x] **Roxy (Clienta #5 — Cazadora Lupina de Fantasía)** (Concept Art + Hoja 1 Medio Cuerpo `3/3` mirando `<<` integrada en juego y Galería).
 - [ ] **3.2 Banco JSON de Diálogos Picantes y Reactivos (`res://data/dialogues/`):**
   - [ ] Sacar los diálogos a JSON por personaje con triggers en vivo (llegada, cadena alta, orbe `❌` -> `impaciente`, Frenesí, Poción Crítica y afinidad Nv. 1–3) manteniendo 1–2 líneas ágiles que no frenen el gameplay.
   - [ ] Rehacer [intro_cutscene.json](data/dialogues/intro_cutscene.json) **sin Doña Remedios** (descartada) con la premisa de **Trixie vendedora ambulante** (arranque ágil con Trixie sola o pique directo con Mona, manteniendo el humor físico de sus tropiezos).
@@ -106,8 +106,9 @@
   - [ ] BGM adaptativa por intensidad (capa base tranquila de botica -> percusión/bajo en racha alta -> clímax en **Frenesí Escarlata**).
   - [ ] Refinar feedback sonoro de cadenas ascendentes, purga `❌`, puf cómico con hollín, desbloqueo de nodos del árbol y subida de afinidad.
 - [ ] **4.2 Shaders, VFX y Sprites de Juego (0 formas genéricas en build final):**
-  - [ ] Sustituir placeholders actuales del **caldero**, los **5 iconos de orbe** (Fuego, Luna, Savia, Estrella, Bomba), el **tubo/matraz**, el **pergamino *chipped*** y los **3 familiares voladores** (Michi Alado, Diablillo Purgador, Murciélago Alquimista).
-  - [ ] Añadir shader de caldo burbujeante/arremolinado que cambia de tono según el color Afín o durante el Frenesí.
+  - [ ] Sustituir placeholders restantes de los **3 familiares voladores** (*Caldero, matraz vertical, los 8 orbes alquímicos con grietas 3D y el pergamino de diálogo ya integrados*).
+  - [x] Mezcla cromática dinámica sincronizada en caldo del caldero y matraz vertical: arranca neutro con *fade* suave en cada nueva clienta y gira hacia el pigmento de cada orbe roto (sin volverse marrón al combinar 3+ tonos).
+  - [ ] Añadir shader/sprite de caldo animado bajo el borde del caldero.
   - [ ] Añadir banner/efecto breve de *cut-in* al activar Frenesí Escarlata sin congelar el ritmo más de un instante, y partículas de humo sobre Trixie en `hollin_derrota`.
   - [ ] Pulir visualmente la pestaña **Árbol de Habilidades** (fondo estilo grimorio/mesa arcana, nodos ilustrados en vez de círculos planos y líneas energizadas).
 
@@ -150,6 +151,12 @@
   * Reemplazado el trazo de cadenas del mismo color en [MainGame.gd](scripts/core/MainGame.gd) y [GameCatalog.gd](scripts/core/GameCatalog.gd) por **levantar orbes por encima del resto y soltarlos sobre otro** para combinar colores primarios (`🔥+🍃 -> ☀️ Solar`, `🔥+🌙 -> 🔮 Estelar`, `🌙+🍃 -> 💧 Bruma`) o concentrar iguales (`x2/x3`).
   * Implementado sistema de golpes por soltar clic quieto o mantener tras mejora temprana (**Toque Continuo** + **Fuerza Alquímica** `3 -> 2 -> 1` golpes) para evitar conflictos entre agarrar y romper; spawner inteligente para pedidos mezclados + purga continua con Clic Derecho.
   * **Validación:** parse-check GDScript y [smoke_test_slice.gd](tools/smoke_test_slice.gd) headless verificando 3 golpes para romper, mezcla de colores, concentración `x2`, cambio a pedido mixto de Velvet, Frenesí y compras de *Toque Continuo* / *Fuerza Alquímica* (`INCREMENTAL SMOKE RESULT: PASS`).
+* **2026-11-24 — Escena del Mapa ([WorldMap.tscn](scenes/meta/WorldMap.tscn)), Olas por Cantidad de Clientas con Paciencia Individual y Tutoriales Pausados "Just-In-Time":**
+  * Centralizado el progreso persistente en el autoload [GameState.gd](scripts/autoloads/GameState.gd) y definidos los 6 nodos del viaje en `GameCatalog.get_map_nodes()`.
+  * Sustituido el reloj global de ronda en [MainGame.gd](scripts/core/MainGame.gd) por **olas por cantidad de clientas (`2–5`)** y **paciencia individual por clienta** (`30.0s` base uniforme + `+4s` por nivel de *Reloj de Arena*, con flag `USE_PER_CUSTOMER_PATIENCE` listo para variar por arquetipo a futuro); al agotarse la paciencia de una clienta se marcha molesta, reinicia el combo y entra la siguiente.
+  * Eliminados los botones duplicados de Árbol y Galería del caldero; al terminar la ola aparece un **diálogo corto de cierre en pergamino** y ejecuta *fade* suave vía [SceneFader.gd](scripts/autoloads/SceneFader.gd) hacia [WorldMap.tscn](scenes/meta/WorldMap.tscn).
+  * Implementados **tutoriales pausados contextuales**: el tutorial inicial explica romper (`3 clics`), purgar `❌` con Clic Der y paciencia/Frenesí con el tiempo 100% pausado; la mecánica de **mezclar colores** salta únicamente cuando llega la primera clienta que exige un color compuesto (`Velvet`). En el Mapa ([WorldMap.gd](scripts/meta/WorldMap.gd)), Trixie guía al **Árbol de Habilidades** y obliga a subir **Toque Continuo** antes de viajar a la Parada 2.
+  * **Pedidos visuales y rediseño de Mona:** añadido globo visual de pedido sobre el tubo con receta gráfica de mezcla, tubo pre-teñido, tira visual de orbes en la ficha de la clienta y colores de pedido variados dinámicamente entre visitas; cambiado el arquetipo de **Mona** de "Bruja Rival" a **Elfa Noble Tsundere** y redactado el prompt de Concept Art de **Velvet (#2 — Súcubo Ejecutiva)** en [prompts_characters.md](docs/prompts_characters.md).
 
 ---
 
