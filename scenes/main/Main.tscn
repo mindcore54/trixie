@@ -13,6 +13,7 @@
 [ext_resource type="Shader" path="res://shaders/flask_liquid.gdshader" id="11_flask_shader"]
 [ext_resource type="PackedScene" uid="uid://7pjca6y8yrpa" path="res://scenes/ui/SpeechBubble.tscn" id="12_speech_bubble"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DialogBox.tscn" id="13_dialog_box"]
+[ext_resource type="Script" path="res://scripts/core/PotionFlaskView.gd" id="14_flask_view"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stage_bg"]
 shader = ExtResource("4_bg_shader")
@@ -380,6 +381,7 @@ offset = Vector2(-419, -351)
 
 [node name="PotionFlask" type="Node2D" parent="."]
 position = Vector2(1304, 238)
+script = ExtResource("14_flask_view")
 
 [node name="LiquidSprite" type="Sprite2D" parent="PotionFlask"]
 z_index = 1

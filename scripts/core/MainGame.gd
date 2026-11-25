@@ -13,25 +13,8 @@ extends Node2D
 ## - Completing the stop's customer wave (or running out of time) triggers a short closing dialogue
 ##   followed by a smooth fade to WorldMap.tscn (where the Skill Tree & Gallery live).
 
-enum BubbleKind {
-	RED,
-	BLUE,
-	GREEN,
-	YELLOW,
-	PURPLE,
-	CYAN,
-	GOLD,
-	BOMB,
-}
-
-enum CauldronTutStep {
-	NONE = 0,
-	BASIC_BREAK_LIKED = 1,
-	BASIC_PURGE_DISLIKED = 2,
-	BASIC_READY_SUMMARY = 3,
-	MIX_DRAG_COMBINE = 4,
-	MIX_BREAK_RESULT = 5,
-}
+const BubbleKind = ChemistryRules.BubbleKind
+const GameStateScript: GDScript = preload("res://scripts/autoloads/GameState.gd")
 
 const VIEWPORT_SIZE: Vector2 = Vector2(1920.0, 1080.0)
 const CAULDRON_CENTER: Vector2 = Vector2(880.0, 564.0)
@@ -45,8 +28,6 @@ const BASE_CUSTOMER_PATIENCE: float = 30.0
 const USE_PER_CUSTOMER_PATIENCE: bool = false
 const CUSTOMER_IMPATIENT_RATIO: float = 0.30
 const CAULDRON_TEX_PATH: String = "res://assets/props/stations/cauldron_main.png"
-const FLASK_GLASS_TEX_PATH: String = "res://assets/props/items/flask_empty.png"
-const FLASK_MASK_TEX_PATH: String = "res://assets/props/items/flask_liquid_mask.png"
 const ORB_TEX_DIR: String = "res://assets/props/items/orbs/"
 const ORB_CANVAS_MULT: float = 1.067
 const ORB_BOMB_DRAW_MULT: float = 1.467
@@ -55,22 +36,7 @@ const DRAG_LIFT_THRESHOLD: float = 12.0
 const HOLD_HIT_START_DELAY: float = 0.16
 const RIGHT_PURGE_HOLD_INTERVAL: float = 0.13
 const BASE_ORB_HP: int = 3
-
-const TUBE_RECT: Rect2 = Rect2(1312.0, 265.0, 54.0, 445.0)
-const FLASK_RECT: Rect2 = Rect2(1304.0, 238.0, 88.0, 501.0)
-const BROTH_NEUTRAL_COLOR: Color = Color(0.11, 0.09, 0.22)
-const FLASK_NEUTRAL_COLOR: Color = Color(0.42, 0.36, 0.58)
 const AFFINITY_THRESHOLDS: Array[int] = [3, 7, 12]
-
-const CUSTOMER_CHEMISTRY: Dictionary = {
-	&"sylvi": {"liked": BubbleKind.RED, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.BLUE},
-	&"velvet": {"liked": BubbleKind.PURPLE, "neutral": BubbleKind.RED, "disliked": BubbleKind.GREEN},
-	&"seraphina": {"liked": BubbleKind.YELLOW, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.BLUE},
-	&"mona": {"liked": BubbleKind.CYAN, "neutral": BubbleKind.BLUE, "disliked": BubbleKind.RED},
-	&"roxy": {"liked": BubbleKind.YELLOW, "neutral": BubbleKind.RED, "disliked": BubbleKind.BLUE},
-}
-
-const GameStateScript: GDScript = preload("res://scripts/autoloads/GameState.gd")
 
 # Local fallback state when instantiated standalone without autoloads
 var _local_state: Node = null
@@ -153,8 +119,6 @@ var _combo_timer: float = 0.0
 var _frenzy_charge: float = 0.0
 var _frenzy_timer: float = 0.0
 var _cauldron_shake: float = 0.0
-var _tube_flash_timer: float = 0.0
-var _tube_flash_positive: bool = true
 
 var _mouse_pos: Vector2 = CAULDRON_CENTER
 var _next_orb_id: int = 1
@@ -201,8 +165,7 @@ var _customer_emotion_timer: float = 0.0
 var _customer_react_anim: float = 0.0
 
 # In-game Cauldron Tutorial & Closing Dialogue state
-var _tut_active: bool = false
-var _tut_step: CauldronTutStep = CauldronTutStep.NONE
+var _tutorial: TutorialDirector = TutorialDirector.new()
 
 # Closing Dialogue state before smooth fade to WorldMap
 var _closing_active: bool = false
@@ -216,9 +179,7 @@ var _closing_idx: int = -1
 @onready var _customer_stage_slot: TextureRect = $CustomerStageSlot
 @onready var _fire_glow_rect: ColorRect = $CauldronFireGlow
 @onready var _cauldron_preview: Sprite2D = $CauldronAnchor/CauldronPreview
-@onready var _potion_flask: Node2D = $PotionFlask
-@onready var _flask_liquid_sprite: Sprite2D = $PotionFlask/LiquidSprite
-@onready var _flask_glass_sprite: Sprite2D = $PotionFlask/GlassSprite
+@onready var _flask_view: PotionFlaskView = $PotionFlask
 @onready var _hud: StageHUD = $UILayer
 
 var _trixie_stage_rect: Rect2 = Rect2(-8.0, 124.0, 520.0, 816.0)
@@ -228,21 +189,6 @@ var _stop_bg_tex: Texture2D = null
 var _bg_shader_mat: ShaderMaterial = null
 var _bg_frenzy_mix: float = 0.0
 var _fire_shader_mat: ShaderMaterial = null
-var _flask_glass_tex: Texture2D = null
-var _flask_mask_tex: Texture2D = null
-var _flask_liquid_mat: ShaderMaterial = null
-var _tube_display_pct: float = 0.0
-var _tube_fill_vel: float = 0.0
-var _tube_slosh_amp: float = 0.0
-var _tube_slosh_tilt: float = 0.0
-var _tube_slosh_vel: float = 0.0
-var _tube_pour_glow: float = 0.0
-var _tube_color_current: Color = FLASK_NEUTRAL_COLOR
-var _mix_hue_vec: Vector2 = Vector2.ZERO
-var _mix_weight: float = 0.0
-var _broth_target_color: Color = BROTH_NEUTRAL_COLOR
-var _broth_current_color: Color = BROTH_NEUTRAL_COLOR
-var _flask_target_color: Color = FLASK_NEUTRAL_COLOR
 var _orb_textures: Dictionary = {}
 var _crack_textures: Array[Texture2D] = []
 var _crack_glow_textures: Array[Texture2D] = []
@@ -287,12 +233,6 @@ func _ready() -> void:
 		_fire_shader_mat = _fire_glow_rect.material as ShaderMaterial
 		if _fire_shader_mat == null:
 			_fire_glow_rect.visible = false
-
-	if _flask_liquid_sprite != null:
-		_flask_mask_tex = _flask_liquid_sprite.texture
-		_flask_liquid_mat = _flask_liquid_sprite.material as ShaderMaterial
-	if _flask_glass_sprite != null:
-		_flask_glass_tex = _flask_glass_sprite.texture
 
 	_load_orb_textures()
 
@@ -373,7 +313,8 @@ func _process(delta: float) -> void:
 		_bg_shader_mat.set_shader_parameter("frenzy_amount", _bg_frenzy_mix)
 	if _fire_shader_mat != null:
 		_fire_shader_mat.set_shader_parameter("frenzy_amount", _bg_frenzy_mix)
-	_update_flask_fluid(delta)
+	if _flask_view != null:
+		_flask_view.step_fluid(delta, _potion_tube_pct, _cauldron_shake)
 
 	if _trixie_react_anim > 0.0:
 		_trixie_react_anim = maxf(0.0, _trixie_react_anim - delta * 3.2)
@@ -404,8 +345,6 @@ func _process(delta: float) -> void:
 		if _customer_emotion != desired_cust:
 			_customer_emotion = desired_cust
 			_customer_react_anim = 1.0
-	if _tube_flash_timer > 0.0:
-		_tube_flash_timer = maxf(0.0, _tube_flash_timer - delta)
 	if _customer_slide_t < 1.0:
 		_customer_slide_t = minf(1.0, _customer_slide_t + delta * 3.4)
 
@@ -449,7 +388,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			if _is_modal_open():
 				return
-			if _tut_active and _tut_step == CauldronTutStep.BASIC_READY_SUMMARY and (kev.keycode == KEY_ENTER or kev.keycode == KEY_KP_ENTER):
+			if _tutorial.is_waiting_summary_ack() and (kev.keycode == KEY_ENTER or kev.keycode == KEY_KP_ENTER):
 				_acknowledge_basic_tutorial_summary()
 				get_viewport().set_input_as_handled()
 				return
@@ -556,152 +495,52 @@ func _reset_pointer_state() -> void:
 func get_customer_chemistry() -> Dictionary:
 	if not _current_order_chemistry.is_empty():
 		return _current_order_chemistry
-	if _active_customer != null and CUSTOMER_CHEMISTRY.has(_active_customer.customer_id):
-		return CUSTOMER_CHEMISTRY[_active_customer.customer_id] as Dictionary
+	if _active_customer != null:
+		return ChemistryRules.get_default_chemistry_for_customer(_active_customer.customer_id)
 	return {"liked": BubbleKind.RED, "neutral": BubbleKind.GREEN, "disliked": BubbleKind.BLUE}
-
-
-func _build_chemistry_for_liked(liked_k: int, deterministic_neutral: int = -1) -> Dictionary:
-	var primaries: Array[int] = [BubbleKind.RED, BubbleKind.BLUE, BubbleKind.GREEN]
-	if is_mixed_kind(liked_k):
-		var comps: Array[int] = get_recipe_components(liked_k)
-		var disliked_k: int = BubbleKind.BLUE
-		for p: int in primaries:
-			if not comps.has(p):
-				disliked_k = p
-				break
-		return {
-			"liked": liked_k,
-			"neutral": comps[0],
-			"disliked": disliked_k,
-		}
-	var others: Array[int] = []
-	for p: int in primaries:
-		if p != liked_k:
-			others.append(p)
-	var neutral_k: int = deterministic_neutral if (deterministic_neutral != -1 and others.has(deterministic_neutral)) else others[randi() % others.size()]
-	var disliked_p: int = others[1] if neutral_k == others[0] else others[0]
-	return {
-		"liked": liked_k,
-		"neutral": neutral_k,
-		"disliked": disliked_p,
-	}
 
 
 func _roll_order_chemistry_for_customer(cid: StringName, first_order: bool) -> Dictionary:
 	var st: Node = _state()
-	if first_order and bool(st.call("should_run_cauldron_basics_tutorial")):
-		return _build_chemistry_for_liked(BubbleKind.RED, BubbleKind.GREEN)
-	if not first_order and bool(st.call("should_run_mix_tutorial")) and cid == &"velvet":
-		return _build_chemistry_for_liked(BubbleKind.PURPLE)
-
-	var pool: Array[int] = [
-		BubbleKind.RED, BubbleKind.BLUE, BubbleKind.GREEN,
-		BubbleKind.PURPLE, BubbleKind.YELLOW, BubbleKind.CYAN,
-	]
-	var candidates: Array[int] = []
-	for k: int in pool:
-		if k != _last_order_liked_kind:
-			candidates.append(k)
-	if candidates.is_empty():
-		candidates = pool
-	var chosen: int = candidates[randi() % candidates.size()]
-	return _build_chemistry_for_liked(chosen)
+	return ChemistryRules.roll_order_chemistry(
+		cid,
+		first_order,
+		bool(st.call("should_run_cauldron_basics_tutorial")),
+		bool(st.call("should_run_mix_tutorial")),
+		_last_order_liked_kind
+	)
 
 
 static func is_primary_kind(kind: int) -> bool:
-	return kind == BubbleKind.RED or kind == BubbleKind.BLUE or kind == BubbleKind.GREEN
+	return ChemistryRules.is_primary_kind(kind)
 
 
 static func is_mixed_kind(kind: int) -> bool:
-	return kind == BubbleKind.YELLOW or kind == BubbleKind.PURPLE or kind == BubbleKind.CYAN
+	return ChemistryRules.is_mixed_kind(kind)
 
 
 static func get_recipe_components(kind: int) -> Array[int]:
-	match kind:
-		BubbleKind.YELLOW:
-			return [BubbleKind.RED, BubbleKind.GREEN]
-		BubbleKind.PURPLE:
-			return [BubbleKind.RED, BubbleKind.BLUE]
-		BubbleKind.CYAN:
-			return [BubbleKind.BLUE, BubbleKind.GREEN]
-	return []
+	return ChemistryRules.get_recipe_components(kind)
 
 
 static func get_combine_result(a_kind: int, b_kind: int) -> int:
-	if a_kind == BubbleKind.BOMB or b_kind == BubbleKind.BOMB:
-		return -1
-	if a_kind == BubbleKind.GOLD and b_kind == BubbleKind.GOLD:
-		return BubbleKind.GOLD
-	if a_kind == BubbleKind.GOLD:
-		return b_kind
-	if b_kind == BubbleKind.GOLD:
-		return a_kind
-	if a_kind == b_kind:
-		return a_kind
-	if is_primary_kind(a_kind) and is_primary_kind(b_kind):
-		var lo: int = mini(a_kind, b_kind)
-		var hi: int = maxi(a_kind, b_kind)
-		if lo == BubbleKind.RED and hi == BubbleKind.BLUE:
-			return BubbleKind.PURPLE
-		if lo == BubbleKind.RED and hi == BubbleKind.GREEN:
-			return BubbleKind.YELLOW
-		if lo == BubbleKind.BLUE and hi == BubbleKind.GREEN:
-			return BubbleKind.CYAN
-	return -1
+	return ChemistryRules.get_combine_result(a_kind, b_kind)
 
 
 func get_orb_relation(kind: int) -> StringName:
-	if kind == BubbleKind.GOLD or kind == BubbleKind.BOMB:
-		return &"special"
-	var chem: Dictionary = get_customer_chemistry()
-	var liked_k: int = int(chem["liked"])
-	if kind == liked_k:
-		return &"liked"
-	if kind == int(chem["disliked"]):
-		return &"disliked"
-	if is_mixed_kind(liked_k) and get_recipe_components(liked_k).has(kind):
-		return &"ingredient"
-	return &"neutral"
+	return ChemistryRules.get_orb_relation(kind, get_customer_chemistry())
 
 
 static func get_element_name(kind: int) -> String:
-	match kind:
-		BubbleKind.RED: return "🔥 Fuego"
-		BubbleKind.BLUE: return "🌙 Luna"
-		BubbleKind.GREEN: return "🍃 Savia"
-		BubbleKind.YELLOW: return "☀️ Solar"
-		BubbleKind.PURPLE: return "🔮 Estelar"
-		BubbleKind.CYAN: return "💧 Bruma"
-		BubbleKind.GOLD: return "⭐ Estrella"
-		BubbleKind.BOMB: return "💣 Bomba"
-	return "Orbe"
+	return ChemistryRules.get_element_name(kind)
 
 
 static func get_element_glyph(kind: int) -> String:
-	match kind:
-		BubbleKind.RED: return "🔥"
-		BubbleKind.BLUE: return "🌙"
-		BubbleKind.GREEN: return "🍃"
-		BubbleKind.YELLOW: return "☀️"
-		BubbleKind.PURPLE: return "🔮"
-		BubbleKind.CYAN: return "💧"
-		BubbleKind.GOLD: return "⭐"
-		BubbleKind.BOMB: return "💣"
-	return "●"
+	return ChemistryRules.get_element_glyph(kind)
 
 
 static func get_element_color(kind: int) -> Color:
-	match kind:
-		BubbleKind.RED: return Color(0.98, 0.28, 0.34)
-		BubbleKind.BLUE: return Color(0.24, 0.64, 1.0)
-		BubbleKind.GREEN: return Color(0.24, 0.88, 0.46)
-		BubbleKind.YELLOW: return Color(1.0, 0.80, 0.22)
-		BubbleKind.PURPLE: return Color(0.74, 0.34, 1.0)
-		BubbleKind.CYAN: return Color(0.18, 0.88, 0.90)
-		BubbleKind.GOLD: return Color(1.0, 0.88, 0.28)
-		BubbleKind.BOMB: return Color(0.56, 0.22, 0.72)
-	return Color.WHITE
+	return ChemistryRules.get_element_color(kind)
 
 
 func _get_effective_click_damage() -> int:
@@ -750,7 +589,7 @@ func _compute_customer_patience(c: CustomerArchetypeData) -> float:
 
 
 func _is_patience_paused_for_tutorial() -> bool:
-	return _tut_active and _tut_step != CauldronTutStep.NONE
+	return _tutorial.is_pausing_patience()
 
 
 # ==============================================================================
@@ -801,8 +640,7 @@ func _start_stop() -> void:
 	_orbs.clear()
 	_lightning_arcs.clear()
 	_shockwaves.clear()
-	_tut_active = false
-	_tut_step = CauldronTutStep.NONE
+	_tutorial.reset()
 	if _hud != null:
 		_hud.set_cauldron_hud_visible(true)
 	_hide_trixie_bubble(true)
@@ -812,17 +650,16 @@ func _start_stop() -> void:
 
 	var liked_k: int = int(get_customer_chemistry()["liked"])
 	if st.should_run_cauldron_basics_tutorial() and not is_mixed_kind(liked_k):
-		_tut_active = true
-		_tut_step = CauldronTutStep.BASIC_BREAK_LIKED
+		_tutorial.start_basics()
 		_setup_tutorial_initial_orbs()
 		_update_tutorial_banner()
 		_set_trixie_reaction("confiada", 3.0, "¡Primera clienta! El tiempo está pausado mientras aprendemos lo básico.")
 	else:
-		if not _tut_active:
+		if not _tutorial.active:
 			_update_tutorial_banner()
 		for _i: int in range(spawn_cap):
 			_spawn_orb(false)
-		if not _tut_active:
+		if not _tutorial.active:
 			var stop_name: String = String(_active_stop.get("name", "Parada"))
 			_set_trixie_reaction("confiada", 2.5, "¡Llegamos a %s! Rompe %s (%d golpes) para %s." % [
 				stop_name,
@@ -832,7 +669,7 @@ func _start_stop() -> void:
 			])
 
 	if _hud != null:
-		_hud.set_map_button_disabled(_tut_active)
+		_hud.set_map_button_disabled(_tutorial.active)
 
 
 func _setup_tutorial_initial_orbs() -> void:
@@ -870,31 +707,22 @@ func _ensure_mix_ingredients_for_tutorial(liked_k: int) -> void:
 		_orbs.append(_make_orb_dict(comps[1], CAULDRON_CENTER + Vector2(95, 10), 1))
 
 
-func _advance_cauldron_tutorial(next_step: CauldronTutStep) -> void:
-	if not _tut_active or int(next_step) <= int(_tut_step):
+func _advance_cauldron_tutorial(next_step: TutorialDirector.Step) -> void:
+	if not _tutorial.advance_to(next_step):
 		return
-	_tut_step = next_step
 	_play_pentatonic(4, -2.0)
-	match _tut_step:
-		CauldronTutStep.BASIC_PURGE_DISLIKED:
-			var disliked_k: int = int(get_customer_chemistry()["disliked"])
-			_ensure_tutorial_orb(disliked_k)
-			_set_trixie_reaction("nerviosa", 3.0, "¡Bien! Ahora purga el orbe con ❌ usando Clic Derecho sin romper el combo.")
-		CauldronTutStep.BASIC_READY_SUMMARY:
-			_set_trixie_reaction("confiada", 3.2, "¡Eso es todo lo básico! Revisa el resumen arriba y pulsa ¡ENTENDIDO! para iniciar.")
-		CauldronTutStep.MIX_BREAK_RESULT:
-			_set_trixie_reaction("confiada", 2.8, "¡Mezcla lograda! Ahora rompe ese orbe combinado para llenar el tubo mucho más rápido.")
+	if next_step == TutorialDirector.Step.BASIC_PURGE_DISLIKED:
+		var disliked_k: int = int(get_customer_chemistry()["disliked"])
+		_ensure_tutorial_orb(disliked_k)
+	var react: Dictionary = _tutorial.get_step_reaction(next_step)
+	if not react.is_empty():
+		_set_trixie_reaction(String(react["emotion"]), float(react["dur"]), String(react["line"]))
 	_update_tutorial_banner()
 
 
 func _acknowledge_basic_tutorial_summary() -> void:
-	if not _tut_active or _tut_step != CauldronTutStep.BASIC_READY_SUMMARY:
+	if not _tutorial.acknowledge_basics_summary(_state()):
 		return
-	var st: Node = _state()
-	st.cauldron_basics_tutorial_done = true
-	st.cauldron_tutorial_done = true
-	_tut_active = false
-	_tut_step = CauldronTutStep.NONE
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
 	_set_trixie_reaction("confiada", 2.5, "¡Corre la paciencia de Sylvi! Llena su tubo al 100%.")
@@ -906,8 +734,7 @@ func _start_mix_tutorial() -> void:
 	var liked_k: int = int(get_customer_chemistry()["liked"])
 	if not is_mixed_kind(liked_k):
 		return
-	_tut_active = true
-	_tut_step = CauldronTutStep.MIX_DRAG_COMBINE
+	_tutorial.start_mix()
 	_ensure_mix_ingredients_for_tutorial(liked_k)
 	_play_pentatonic(5, -2.0)
 	_update_tutorial_banner()
@@ -917,10 +744,7 @@ func _start_mix_tutorial() -> void:
 
 
 func _finish_mix_tutorial() -> void:
-	var st: Node = _state()
-	st.mix_tutorial_done = true
-	_tut_active = false
-	_tut_step = CauldronTutStep.NONE
+	_tutorial.finish_mix(_state())
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
 	_set_trixie_reaction("confiada", 2.4, "¡Perfecto! Ya dominas las mezclas. ¡A atender antes de que pierda la paciencia!")
@@ -931,41 +755,12 @@ func _finish_mix_tutorial() -> void:
 func _update_tutorial_banner() -> void:
 	if _hud == null:
 		return
-	if not _tut_active or _closing_active or _tut_step == CauldronTutStep.NONE:
+	if not _tutorial.active or _closing_active or _tutorial.step == TutorialDirector.Step.NONE:
 		if _hud.is_trixie_bubble_tutorial():
 			_hide_trixie_bubble(false)
 		return
-
-	var tut_title: String = "✨ Tutorial · Pausado"
-	var tut_body: String = ""
-	var show_ack: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY)
-	match _tut_step:
-		CauldronTutStep.BASIC_BREAK_LIKED:
-			var liked_k: int = int(get_customer_chemistry()["liked"])
-			tut_title = "✨ Tutorial 1/3 · Pausado"
-			tut_body = "Haz 3 CLICS IZQ en un orbe %s para llenar el matraz." % get_element_name(liked_k)
-		CauldronTutStep.BASIC_PURGE_DISLIKED:
-			var disliked_k: int = int(get_customer_chemistry()["disliked"])
-			tut_title = "✨ Tutorial 2/3 · Pausado"
-			tut_body = "Haz CLIC DER en el orbe %s ❌ para purgarlo sin perder combo." % get_element_name(disliked_k)
-		CauldronTutStep.BASIC_READY_SUMMARY:
-			tut_title = "✨ ¡Lista! (3/3)"
-			tut_body = "Cuida la Paciencia y usa [ESPACIO] al cargar Frenesí."
-		CauldronTutStep.MIX_DRAG_COMBINE:
-			var liked_m: int = int(get_customer_chemistry()["liked"])
-			var comps: Array[int] = get_recipe_components(liked_m)
-			tut_title = "✨ Mezcla · Pausado"
-			tut_body = "ARRASTRA %s sobre %s para crear %s." % [
-				get_element_name(comps[0]),
-				get_element_name(comps[1]),
-				get_element_name(liked_m),
-			]
-		CauldronTutStep.MIX_BREAK_RESULT:
-			var liked_m2: int = int(get_customer_chemistry()["liked"])
-			tut_title = "✨ ¡Mezcla lista!"
-			tut_body = "¡Genial! Ahora rompe ese orbe %s a clics." % get_element_name(liked_m2)
-
-	_show_trixie_bubble(tut_title, tut_body, -1.0, true, show_ack)
+	var payload: Dictionary = _tutorial.get_banner_payload(get_customer_chemistry())
+	_show_trixie_bubble(String(payload["title"]), String(payload["body"]), -1.0, true, bool(payload["show_ack"]))
 
 
 func _trigger_stop_end(victory: bool) -> void:
@@ -1497,8 +1292,8 @@ func _combine_orbs_by_id(src_id: int, dst_id: int) -> bool:
 		if res_kind == liked_k:
 			_set_trixie_reaction("confiada", 1.7, "¡Mezcla perfecta! ¡Ahora rómpela a golpes!")
 
-	if _tut_active and _tut_step == CauldronTutStep.MIX_DRAG_COMBINE and res_kind == liked_k:
-		_advance_cauldron_tutorial(CauldronTutStep.MIX_BREAK_RESULT)
+	if _tutorial.active and _tutorial.step == TutorialDirector.Step.MIX_DRAG_COMBINE and res_kind == liked_k:
+		_advance_cauldron_tutorial(TutorialDirector.Step.MIX_BREAK_RESULT)
 	return true
 
 
@@ -1555,7 +1350,8 @@ func _shatter_orb_at_idx(idx: int, _by_player: bool = true) -> void:
 	var kind: int = int(snap["kind"])
 	var tier: int = int(snap["tier"])
 	var rel: StringName = get_orb_relation(kind)
-	_inject_mix_pigment(kind, tier)
+	if _flask_view != null:
+		_flask_view.inject_mix_pigment(kind, tier)
 	var frenzy_mult: float = 2.0 if _frenzy_timer > 0.0 else 1.0
 	var tier_mult: float = 1.0 if tier <= 1 else (2.3 if tier == 2 else 4.2)
 
@@ -1572,12 +1368,12 @@ func _shatter_orb_at_idx(idx: int, _by_player: bool = true) -> void:
 		var prev_combo: int = _combo
 		var penalty: float = 18.0
 		_potion_tube_pct = maxf(0.0, _potion_tube_pct - penalty)
-		_excite_flask_fluid(-penalty)
+		if _flask_view != null:
+			_flask_view.excite(-penalty)
+			_flask_view.trigger_flash(0.55, false)
 		_combo = 0
 		_disliked_mistake_streak += 1
 		_disliked_streak_timer = 7.0
-		_tube_flash_timer = 0.55
-		_tube_flash_positive = false
 		_play_pentatonic(0, 0.0)
 		_spawn_popup(pos, "¡❌ -%d%% Poción! Combo 0" % int(penalty), Color(1.0, 0.32, 0.34))
 		var severe_backfire: bool = prev_combo >= 2 or _disliked_mistake_streak >= 2 or _potion_tube_pct <= 0.0
@@ -1663,9 +1459,9 @@ func _shatter_orb_at_idx(idx: int, _by_player: bool = true) -> void:
 	if kind != BubbleKind.BOMB:
 		_spawn_popup(pos, pop_txt, Color(1.0, 0.90, 0.40) if (rel == &"liked" or kind == BubbleKind.GOLD) else Color(0.84, 0.92, 1.0))
 
-	if _tut_active and _tut_step == CauldronTutStep.BASIC_BREAK_LIKED and rel == &"liked":
-		_advance_cauldron_tutorial(CauldronTutStep.BASIC_PURGE_DISLIKED)
-	elif _tut_active and _tut_step == CauldronTutStep.MIX_BREAK_RESULT and rel == &"liked":
+	if _tutorial.active and _tutorial.step == TutorialDirector.Step.BASIC_BREAK_LIKED and rel == &"liked":
+		_advance_cauldron_tutorial(TutorialDirector.Step.BASIC_PURGE_DISLIKED)
+	elif _tutorial.active and _tutorial.step == TutorialDirector.Step.MIX_BREAK_RESULT and rel == &"liked":
 		_finish_mix_tutorial()
 
 	if tube_gain > 0.0:
@@ -1763,8 +1559,8 @@ func _purge_orb_by_id(orb_id: int) -> void:
 	else:
 		_spawn_popup(pos, "Purgado", Color(0.80, 0.84, 0.94))
 
-	if _tut_active and _tut_step == CauldronTutStep.BASIC_PURGE_DISLIKED and rel == &"disliked":
-		_advance_cauldron_tutorial(CauldronTutStep.BASIC_READY_SUMMARY)
+	if _tutorial.active and _tutorial.step == TutorialDirector.Step.BASIC_PURGE_DISLIKED and rel == &"disliked":
+		_advance_cauldron_tutorial(TutorialDirector.Step.BASIC_READY_SUMMARY)
 
 
 func try_activate_frenzy() -> bool:
@@ -1892,71 +1688,11 @@ func _grant_essence(amount: int) -> void:
 	_round_essence_gained += amount
 
 
-func _reset_mix_pigment(instant: bool = false) -> void:
-	_mix_hue_vec = Vector2.ZERO
-	_mix_weight = 0.0
-	_broth_target_color = BROTH_NEUTRAL_COLOR
-	_flask_target_color = FLASK_NEUTRAL_COLOR
-	if instant:
-		_broth_current_color = BROTH_NEUTRAL_COLOR
-		_tube_color_current = FLASK_NEUTRAL_COLOR
-
-
-func _inject_mix_pigment(kind: int, tier: int = 1) -> void:
-	var c: Color = get_element_color(kind)
-	var ang: float = c.h * TAU
-	var w: float = (0.7 if kind == BubbleKind.GOLD else (0.45 if kind == BubbleKind.BOMB else 1.0)) * (1.0 + float(maxi(0, tier - 1)) * 0.35)
-	_mix_hue_vec = _mix_hue_vec * 0.85 + Vector2(cos(ang), sin(ang)) * w
-	_mix_weight = minf(12.0, _mix_weight * 0.85 + w)
-	var res_h: float = c.h
-	if _mix_hue_vec.length() >= 0.14:
-		res_h = fposmod(atan2(_mix_hue_vec.y, _mix_hue_vec.x) / TAU, 1.0)
-	_broth_target_color = Color.from_hsv(res_h, 0.72, 0.34)
-	_flask_target_color = Color.from_hsv(res_h, 0.82, 0.96)
-
-
-func _excite_flask_fluid(delta_pct: float) -> void:
-	_tube_fill_vel += delta_pct * 3.8
-	_tube_slosh_amp = minf(1.25, _tube_slosh_amp + clampf(absf(delta_pct) / 28.0, 0.25, 0.95))
-	var impulse_dir: float = 1.0 if delta_pct >= 0.0 else -1.0
-	_tube_slosh_vel += impulse_dir * randf_range(3.2, 5.2)
-	if delta_pct > 0.0:
-		_tube_pour_glow = minf(1.2, _tube_pour_glow + 0.85)
-
-
-func _update_flask_fluid(delta: float) -> void:
-	var target_pct: float = clampf(_potion_tube_pct, 0.0, 100.0)
-	var fill_force: float = (target_pct - _tube_display_pct) * 78.0 - _tube_fill_vel * 11.5
-	_tube_fill_vel += fill_force * delta
-	_tube_display_pct = clampf(_tube_display_pct + _tube_fill_vel * delta, 0.0, 104.0)
-
-	if _cauldron_shake > 0.5:
-		_tube_slosh_amp = minf(1.25, _tube_slosh_amp + delta * 0.65)
-	var slosh_accel: float = -28.0 * _tube_slosh_tilt - 4.2 * _tube_slosh_vel
-	_tube_slosh_vel += slosh_accel * delta
-	_tube_slosh_tilt = clampf(_tube_slosh_tilt + _tube_slosh_vel * delta, -1.5, 1.5)
-	_tube_slosh_amp = maxf(0.0, _tube_slosh_amp - delta * 1.45)
-	_tube_pour_glow = maxf(0.0, _tube_pour_glow - delta * 2.4)
-
-	_broth_current_color = _broth_current_color.lerp(_broth_target_color, clampf(delta * 2.8, 0.0, 1.0))
-	_tube_color_current = _tube_color_current.lerp(_flask_target_color, clampf(delta * 6.5, 0.0, 1.0))
-
-	if _flask_liquid_mat != null:
-		_flask_liquid_mat.set_shader_parameter("fill_ratio", clampf(_tube_display_pct / 100.0, 0.0, 1.0))
-		_flask_liquid_mat.set_shader_parameter("liquid_color", _tube_color_current)
-		_flask_liquid_mat.set_shader_parameter("slosh_amp", _tube_slosh_amp)
-		_flask_liquid_mat.set_shader_parameter("slosh_tilt", _tube_slosh_tilt)
-		_flask_liquid_mat.set_shader_parameter("pour_glow", _tube_pour_glow)
-		var flash_norm: float = clampf(_tube_flash_timer / 0.45, 0.0, 1.0)
-		_flask_liquid_mat.set_shader_parameter("flash_amount", flash_norm)
-		_flask_liquid_mat.set_shader_parameter("flash_negative", 0.0 if _tube_flash_positive else 1.0)
-
-
 func _add_tube_progress(pct: float) -> void:
 	_potion_tube_pct += pct
-	_tube_flash_timer = 0.45
-	_tube_flash_positive = true
-	_excite_flask_fluid(pct)
+	if _flask_view != null:
+		_flask_view.trigger_flash(0.45, true)
+		_flask_view.excite(pct)
 	if _potion_tube_pct >= 100.0:
 		_complete_customer_order()
 
@@ -2014,15 +1750,8 @@ func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
 	_current_order_chemistry = _roll_order_chemistry_for_customer(next_c.customer_id, first_order)
 	_last_order_liked_kind = int(_current_order_chemistry["liked"])
 	_potion_tube_pct = 0.0
-	_tube_display_pct = 0.0
-	_tube_fill_vel = 0.0
-	_tube_slosh_amp = 0.35
-	_tube_slosh_tilt = 0.0
-	_tube_slosh_vel = 1.8
-	_tube_pour_glow = 0.0
-	_reset_mix_pigment(first_order)
-	if not first_order:
-		_tube_color_current = FLASK_NEUTRAL_COLOR
+	if _flask_view != null:
+		_flask_view.reset_for_new_customer(first_order)
 	customer_patience_max = _compute_customer_patience(next_c)
 	customer_patience_left = customer_patience_max
 	_customer_impatient_warned = false
@@ -2042,7 +1771,7 @@ func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
 	var liked_k: int = int(get_customer_chemistry()["liked"])
 	if is_mixed_kind(liked_k) and _state().should_run_mix_tutorial():
 		_start_mix_tutorial()
-	elif _tut_active:
+	elif _tutorial.active:
 		_update_tutorial_banner()
 
 
@@ -2055,8 +1784,8 @@ func _on_customer_patience_expired() -> void:
 	_combo = 0
 	_combo_timer = 0.0
 	_potion_tube_pct = 0.0
-	_tube_flash_timer = 0.55
-	_tube_flash_positive = false
+	if _flask_view != null:
+		_flask_view.trigger_flash(0.55, false)
 	_cauldron_shake = maxf(_cauldron_shake, 10.0)
 	_play_pentatonic(0, 0.0)
 	_reset_pointer_state()
@@ -2148,7 +1877,7 @@ func _set_trixie_reaction(emotion: String, dur: float, line: String) -> void:
 	_trixie_emotion_timer = dur
 	if line != "":
 		_trixie_line = line
-		if not _tut_active and not _closing_active:
+		if not _tutorial.active and not _closing_active:
 			_show_trixie_bubble("Trixie", line, clampf(dur, 2.4, 3.6), false, false)
 
 
@@ -2189,7 +1918,7 @@ func _connect_hud() -> void:
 
 
 func _on_pause_return_to_map() -> void:
-	if _fading_out or _tut_active:
+	if _fading_out or _tutorial.active:
 		return
 	if _hud != null:
 		_hud.set_pause_visible(false)
@@ -2221,7 +1950,7 @@ func _on_pause_main_menu() -> void:
 func _show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false, show_ack: bool = false) -> void:
 	if _hud == null or _closing_active or text == "":
 		return
-	if _tut_active and not is_tutorial:
+	if _tutorial.active and not is_tutorial:
 		return
 	_hud.show_trixie_bubble(title, text, duration, is_tutorial, show_ack)
 
@@ -2314,7 +2043,8 @@ func _draw() -> void:
 	var c_pos: Vector2 = CAULDRON_CENTER + shake_v
 
 	# Layer 1: Broth liquid tucked slightly wider than inner opening so foreground rim overlaps cleanly
-	var liq_col: Color = _broth_current_color.lightened(0.08 + 0.04 * sin(_time * 8.0)) if _frenzy_timer > 0.0 else _broth_current_color
+	var broth_base: Color = _flask_view.broth_current_color if _flask_view != null else PotionFlaskView.BROTH_NEUTRAL_COLOR
+	var liq_col: Color = broth_base.lightened(0.08 + 0.04 * sin(_time * 8.0)) if _frenzy_timer > 0.0 else broth_base
 	_draw_filled_ellipse(c_pos, CAULDRON_ELLIPSE_RX * 1.035, CAULDRON_ELLIPSE_RY * 1.035, liq_col)
 	_draw_filled_ellipse(c_pos + Vector2(0.0, 16.0), CAULDRON_ELLIPSE_RX * 0.93, CAULDRON_ELLIPSE_RY * 0.89, liq_col.lightened(0.10))
 	var ripple_base: Color = liq_col.lightened(0.48)
@@ -2424,62 +2154,19 @@ func _draw() -> void:
 
 
 func _draw_tutorial_orb_guide(shake_v: Vector2, font: Font) -> void:
-	if not _tut_active or round_ending or _closing_active or _tut_step == CauldronTutStep.NONE or _tut_step == CauldronTutStep.BASIC_READY_SUMMARY:
-		return
-
-	var pulse: float = 0.5 + 0.5 * sin(_time * 7.5)
-	if _tut_step == CauldronTutStep.MIX_DRAG_COMBINE:
-		var liked_k: int = int(get_customer_chemistry()["liked"])
-		if not is_mixed_kind(liked_k):
-			return
-		var comps: Array[int] = get_recipe_components(liked_k)
-		var pos_a: Vector2 = Vector2.ZERO
-		var rad_a: float = ORB_RADIUS
-		var found_a: bool = false
-		var pos_b: Vector2 = Vector2.ZERO
-		var rad_b: float = ORB_RADIUS
-		var found_b: bool = false
-		for o: Dictionary in _orbs:
-			if int(o["id"]) == _lifted_orb_id:
-				continue
-			var k: int = int(o["kind"])
-			if not found_a and k == comps[0]:
-				pos_a = (o["pos"] as Vector2) + shake_v
-				rad_a = float(o["radius"])
-				found_a = true
-			elif not found_b and k == comps[1]:
-				pos_b = (o["pos"] as Vector2) + shake_v
-				rad_b = float(o["radius"])
-				found_b = true
-		if found_a and found_b:
-			var c_guide: Color = Color(0.45, 0.96, 1.0)
-			draw_arc(pos_a, rad_a + 12.0 + pulse * 5.0, 0.0, TAU, 28, c_guide, 3.6)
-			draw_arc(pos_b, rad_b + 12.0 + pulse * 5.0, 0.0, TAU, 28, Color(1.0, 0.88, 0.36), 3.6)
-			draw_line(pos_a, pos_b, Color(1.0, 0.92, 0.46, 0.72), 3.0)
-			var mid: Vector2 = (pos_a + pos_b) * 0.5
-			draw_string(font, mid + Vector2(-75, -18), "¡Arrastra y junta!", HORIZONTAL_ALIGNMENT_CENTER, 150, 16, Color(1.0, 0.94, 0.52))
-		return
-
-	var target_rel: StringName = &"liked"
-	var guide_txt: String = "¡3 clics!"
-	var guide_col: Color = Color(1.0, 0.90, 0.34)
-	if _tut_step == CauldronTutStep.BASIC_PURGE_DISLIKED:
-		target_rel = &"disliked"
-		guide_txt = "¡Clic Der!"
-		guide_col = Color(1.0, 0.42, 0.50)
-	elif _tut_step == CauldronTutStep.MIX_BREAK_RESULT:
-		guide_txt = "¡Rómpelo!"
-		guide_col = Color(1.0, 0.88, 0.36)
-
-	for o: Dictionary in _orbs:
-		if int(o["id"]) == _lifted_orb_id:
-			continue
-		if get_orb_relation(int(o["kind"])) == target_rel:
-			var pos: Vector2 = (o["pos"] as Vector2) + shake_v
-			var rad: float = float(o["radius"])
-			draw_arc(pos, rad + 13.0 + pulse * 5.0, 0.0, TAU, 28, guide_col, 3.6)
-			draw_string(font, pos + Vector2(-60, -rad - 20.0), guide_txt, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, guide_col)
-			break
+	_tutorial.draw_orb_guide(
+		self,
+		_orbs,
+		_lifted_orb_id,
+		get_customer_chemistry(),
+		get_orb_relation,
+		ORB_RADIUS,
+		shake_v,
+		_time,
+		font,
+		round_ending,
+		_closing_active
+	)
 
 
 func _draw_alchemy_orb(o: Dictionary, shake_v: Vector2, is_lifted: bool) -> void:
@@ -2557,44 +2244,10 @@ func _draw_alchemy_orb(o: Dictionary, shake_v: Vector2, is_lifted: bool) -> void
 		draw_string(font, pos + Vector2(-r * 0.60 - 11, -r * 0.60 + 5), "x%d" % tier, HORIZONTAL_ALIGNMENT_CENTER, 22, 12, Color(1.0, 0.92, 0.52))
 
 
-func _get_flask_rect() -> Rect2:
-	var pos: Vector2 = _potion_flask.position if _potion_flask != null else FLASK_RECT.position
-	return Rect2(pos, FLASK_RECT.size)
-
-
 func _draw_vertical_potion_tube() -> void:
-	var font: Font = ThemeDB.fallback_font
-	var f_rect: Rect2 = _get_flask_rect()
-	if _flask_glass_tex != null and _flask_liquid_mat != null:
-		var pct_txt: String = "%d%%" % int(roundf(_potion_tube_pct))
-		var lbl_pos: Vector2 = Vector2(f_rect.position.x - 4.0, f_rect.end.y + 30.0)
-		var lbl_w: int = int(f_rect.size.x + 8.0)
-		draw_string(font, lbl_pos + Vector2(2, 2), pct_txt, HORIZONTAL_ALIGNMENT_CENTER, lbl_w, 24, Color(0.05, 0.02, 0.10, 0.90))
-		draw_string(font, lbl_pos, pct_txt, HORIZONTAL_ALIGNMENT_CENTER, lbl_w, 24, Color(1.0, 0.94, 0.78))
-		return
-
-	var r: Rect2 = TUBE_RECT
-	var liked_col: Color = get_element_color(int(get_customer_chemistry()["liked"]))
-	var pct: float = clampf(_potion_tube_pct / 100.0, 0.0, 1.0)
-
-	# Fallback procedural tube if flask textures are missing
-	draw_rect(r.grow(5.0), Color(liked_col.r, liked_col.g, liked_col.b, 0.16))
-	draw_rect(r, Color(0.08, 0.06, 0.14, 0.90))
-	draw_rect(r, Color(liked_col.r, liked_col.g, liked_col.b, 0.16))
-	if pct > 0.0:
-		var fill_h: float = r.size.y * pct
-		var fill_rect: Rect2 = Rect2(r.position.x + 5, r.position.y + r.size.y - fill_h, r.size.x - 10, fill_h)
-		var fill_col: Color = liked_col.lightened(0.18) if (_tube_flash_timer > 0.0 and _tube_flash_positive) else (Color(1.0, 0.24, 0.28) if (_tube_flash_timer > 0.0 and not _tube_flash_positive) else liked_col)
-		draw_rect(fill_rect, fill_col)
-		draw_rect(Rect2(fill_rect.position.x, fill_rect.position.y, fill_rect.size.x, 6.0), Color(1, 1, 1, 0.65))
-
-	for mark: float in [0.25, 0.50, 0.75]:
-		var my: float = r.position.y + r.size.y * (1.0 - mark)
-		draw_line(Vector2(r.position.x + 4, my), Vector2(r.position.x + 20, my), Color(1, 1, 1, 0.45), 2.0)
-
-	draw_rect(r, liked_col.lightened(0.28), false, 3.5)
-	draw_rect(Rect2(r.position.x + 8, r.position.y - 16, r.size.x - 16, 16), Color(0.68, 0.46, 0.26))
-	draw_string(font, Vector2(r.position.x - 12, r.position.y + r.size.y + 34), "%d%%" % int(roundf(_potion_tube_pct)), HORIZONTAL_ALIGNMENT_CENTER, 78, 24, Color(1.0, 0.94, 0.78))
+	if _flask_view != null:
+		var liked_col: Color = get_element_color(int(get_customer_chemistry()["liked"]))
+		_flask_view.draw_potion_tube(self, _potion_tube_pct, liked_col)
 
 
 func _draw_mini_orb_badge(ci: CanvasItem, center: Vector2, rad: float, kind: int, is_forbidden: bool = false) -> void:
@@ -2626,51 +2279,9 @@ func _draw_mini_orb_badge(ci: CanvasItem, center: Vector2, rad: float, kind: int
 
 
 func _draw_visual_order_bubble() -> void:
-	if _active_customer == null:
+	if _active_customer == null or _flask_view == null:
 		return
-	var chem: Dictionary = get_customer_chemistry()
-	var liked_k: int = int(chem["liked"])
-	var liked_col: Color = get_element_color(liked_k)
-	var box: Rect2 = Rect2(1256.0, 102.0, 164.0, 134.0)
-	var pulse: float = 0.5 + 0.5 * sin(_time * 4.5)
-
-	# Glowing beam connecting requested color bubble into the flask cork
-	var f_rect: Rect2 = _get_flask_rect()
-	var flask_cork: Vector2 = Vector2(f_rect.position.x + f_rect.size.x * 0.5, f_rect.position.y + 8.0)
-	draw_line(Vector2(1338.0, box.end.y), flask_cork, Color(liked_col.r, liked_col.g, liked_col.b, 0.55), 4.0)
-
-	# Bubble backdrop + pointer tail toward customer on the right
-	draw_rect(box, Color(0.11, 0.07, 0.19, 0.94))
-	draw_rect(box, liked_col.lightened(0.25), false, 3.0)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(box.end.x, 152.0),
-		Vector2(box.end.x + 22.0, 166.0),
-		Vector2(box.end.x, 180.0),
-	]), Color(0.11, 0.07, 0.19, 0.94))
-	draw_polyline(PackedVector2Array([
-		Vector2(box.end.x, 152.0),
-		Vector2(box.end.x + 22.0, 166.0),
-		Vector2(box.end.x, 180.0),
-	]), liked_col.lightened(0.25), 2.8)
-
-	var font: Font = ThemeDB.fallback_font
-	if is_mixed_kind(liked_k):
-		var main_c: Vector2 = Vector2(box.position.x + box.size.x * 0.5, box.position.y + 42.0)
-		draw_circle(main_c, 31.0 + pulse * 4.0, Color(liked_col.r, liked_col.g, liked_col.b, 0.24))
-		draw_arc(main_c, 28.0, 0.0, TAU, 28, Color(1.0, 0.90, 0.38, 0.90), 2.6)
-		_draw_mini_orb_badge(self, main_c, 25.0, liked_k, false)
-
-		var comps: Array[int] = get_recipe_components(liked_k)
-		var y_rec: float = box.position.y + 104.0
-		_draw_mini_orb_badge(self, Vector2(box.position.x + 44.0, y_rec), 15.0, comps[0], false)
-		draw_string(font, Vector2(box.position.x + 71.0, y_rec + 7.0), "+", HORIZONTAL_ALIGNMENT_CENTER, 22, 20, Color(1.0, 0.92, 0.65))
-		_draw_mini_orb_badge(self, Vector2(box.position.x + 120.0, y_rec), 15.0, comps[1], false)
-	else:
-		var main_c: Vector2 = box.position + box.size * 0.5 + Vector2(0.0, 4.0)
-		draw_circle(main_c, 42.0 + pulse * 5.0, Color(liked_col.r, liked_col.g, liked_col.b, 0.24))
-		draw_arc(main_c, 37.0, 0.0, TAU, 28, Color(1.0, 0.90, 0.38, 0.92), 3.0)
-		_draw_mini_orb_badge(self, main_c, 33.0, liked_k, false)
-		draw_string(font, Vector2(box.position.x, box.position.y + 20.0), "PIDE", HORIZONTAL_ALIGNMENT_CENTER, int(box.size.x), 14, Color(1.0, 0.92, 0.65))
+	_flask_view.draw_order_bubble(self, get_customer_chemistry(), _time, _draw_mini_orb_badge)
 
 
 func _draw_chem_visual_strip() -> void:
@@ -2869,315 +2480,4 @@ func _play_pentatonic(step_index: int, vol_db: float = 0.0) -> void:
 
 ## Exercises cauldron mechanics, paused just-in-time tutorials, per-customer patience timeout, wave closing dialogue, and clean HUD.
 func run_incremental_smoke_step() -> Dictionary:
-	var initial_cap_ok: bool = (spawn_cap == 6 and _orbs.size() == 6 and click_damage == 1 and not hold_auto_hit_unlocked)
-	var cauldron_tex_ok: bool = (_cauldron_tex != null and _cauldron_tex.resource_path == CAULDRON_TEX_PATH)
-	var stop_bg_tex_ok: bool = (_stop_bg_tex != null and _stop_bg_tex.resource_path == "res://assets/backgrounds/bg_01_castillo.jpg" and _bg_sprite != null and _bg_sprite.visible)
-	var flask_assets_ok: bool = (_flask_glass_tex != null and _flask_mask_tex != null and _flask_liquid_mat != null and _flask_glass_sprite != null and _flask_liquid_sprite != null)
-	var orb_sprites_ok: bool = (_orb_textures.size() == 8 and _crack_textures.size() == 2 and _crack_glow_textures.size() == 2)
-	var dialog_bg_tex_ok: bool = (_hud != null and _hud.has_dialog_and_bubble_textures())
-	var pueblo_bg_exists_ok: bool = ResourceLoader.exists("res://assets/backgrounds/bg_02_pueblo.jpg")
-	var no_duplicate_meta_buttons_in_main: bool = (
-		get("_tab_tree_btn") == null
-		and get("_tab_gallery_btn") == null
-		and get("_end_round_btn") == null
-	)
-
-	var hb_paths: Dictionary = {}
-	var all_hb_ok: bool = true
-	for emo: String in ["normal", "confiada", "nerviosa", "sonrojada", "hollin", "sorprendida"]:
-		var hb_tex: Texture2D = CharacterArt.get_trixie_halfbody(emo)
-		if hb_tex == null:
-			all_hb_ok = false
-		else:
-			hb_paths[hb_tex.resource_path] = true
-	var all_halfbodies_distinct_ok: bool = all_hb_ok and hb_paths.size() == 6
-
-	var sylvi_paths: Dictionary = {}
-	var all_sylvi_ok: bool = true
-	for s_emo: String in ["normal", "sonrojada_picante", "impaciente"]:
-		var s_tex: Texture2D = CharacterArt.get_customer_halfbody(&"sylvi", s_emo)
-		if s_tex == null:
-			all_sylvi_ok = false
-		else:
-			sylvi_paths[s_tex.resource_path] = true
-	var sylvi_halfbodies_distinct_ok: bool = all_sylvi_ok and sylvi_paths.size() == 3
-
-	var velvet_paths: Dictionary = {}
-	var all_velvet_ok: bool = true
-	for v_emo: String in ["normal", "sonrojada_picante", "impaciente"]:
-		var v_tex: Texture2D = CharacterArt.get_customer_halfbody(&"velvet", v_emo)
-		if v_tex == null:
-			all_velvet_ok = false
-		else:
-			velvet_paths[v_tex.resource_path] = true
-	var velvet_halfbodies_distinct_ok: bool = all_velvet_ok and velvet_paths.size() == 3
-
-	var seraphina_paths: Dictionary = {}
-	var all_seraphina_ok: bool = true
-	for sp_emo: String in ["normal", "sonrojada_picante", "impaciente"]:
-		var sp_tex: Texture2D = CharacterArt.get_customer_halfbody(&"seraphina", sp_emo)
-		if sp_tex == null:
-			all_seraphina_ok = false
-		else:
-			seraphina_paths[sp_tex.resource_path] = true
-	var seraphina_halfbodies_distinct_ok: bool = all_seraphina_ok and seraphina_paths.size() == 3
-
-	var mona_paths: Dictionary = {}
-	var all_mona_ok: bool = true
-	for mn_emo: String in ["normal", "sonrojada_picante", "impaciente"]:
-		var mn_tex: Texture2D = CharacterArt.get_customer_halfbody(&"mona", mn_emo)
-		if mn_tex == null:
-			all_mona_ok = false
-		else:
-			mona_paths[mn_tex.resource_path] = true
-	var mona_halfbodies_distinct_ok: bool = all_mona_ok and mona_paths.size() == 3
-
-	var roxy_paths: Dictionary = {}
-	var all_roxy_ok: bool = true
-	for rx_emo: String in ["normal", "sonrojada_picante", "impaciente"]:
-		var rx_tex: Texture2D = CharacterArt.get_customer_halfbody(&"roxy", rx_emo)
-		if rx_tex == null:
-			all_roxy_ok = false
-		else:
-			roxy_paths[rx_tex.resource_path] = true
-	var roxy_halfbodies_distinct_ok: bool = all_roxy_ok and roxy_paths.size() == 3
-
-	var st: Node = _state()
-	var tut_step_1_ok: bool = _tut_active and _tut_step == CauldronTutStep.BASIC_BREAK_LIKED and _hud != null and _hud.trixie_bubble != null and _hud.trixie_bubble.visible and not st.mix_tutorial_done
-	var banner_above_cauldron_ok: bool = (_hud != null and _hud.trixie_bubble != null and (_hud.trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (CAULDRON_CENTER.y - CAULDRON_ELLIPSE_RY))
-
-	# 1) Verify idle frame causes zero passive extraction AND tutorial pauses patience!
-	var tube_before: float = _potion_tube_pct
-	var ess_before: int = essence_gold
-	var pat_before: float = customer_patience_left
-	_process_cauldron_gameplay(5.0)
-	var no_autoclicker_ok: bool = (_potion_tube_pct == tube_before and essence_gold == ess_before)
-	var tutorial_pauses_patience_ok: bool = (customer_patience_left == pat_before)
-
-	# 2) Verify 3 hits break a tier-1 orb initially (advances basic tutorial 1 -> 2)
-	var chem: Dictionary = get_customer_chemistry()
-	var liked_k: int = int(chem["liked"])
-	var disliked_k: int = int(chem["disliked"])
-
-	_orbs.clear()
-	var red_orb: Dictionary = _make_orb_dict(liked_k, CAULDRON_CENTER, 1)
-	var red_id: int = int(red_orb["id"])
-	_orbs.append(red_orb)
-	var h1_broke: bool = _hit_orb_by_id(red_id, click_damage, true)
-	var h2_broke: bool = _hit_orb_by_id(red_id, click_damage, true)
-	var hp_before_3: int = int(_orbs[0]["hp"]) if _orbs.size() == 1 else -1
-	var h3_broke: bool = _hit_orb_by_id(red_id, click_damage, true)
-	var three_clicks_to_break_ok: bool = (not h1_broke and not h2_broke and hp_before_3 == 1 and h3_broke and _potion_tube_pct > 15.0 and _combo == 1)
-	var tut_step_2_ok: bool = (_tut_step == CauldronTutStep.BASIC_PURGE_DISLIKED)
-
-	# 3) Verify lift-and-drop color combining & concentration mechanics
-	_orbs.clear()
-	var mix_a: Dictionary = _make_orb_dict(BubbleKind.RED, CAULDRON_CENTER + Vector2(-60, 0), 1)
-	var mix_b: Dictionary = _make_orb_dict(BubbleKind.GREEN, CAULDRON_CENTER + Vector2(60, 0), 1)
-	_orbs.append(mix_a)
-	_orbs.append(mix_b)
-	var combined_color: bool = _combine_orbs_by_id(int(mix_a["id"]), int(mix_b["id"]))
-	var lift_combine_color_ok: bool = (combined_color and _orbs.size() >= 1 and int(_orbs[0]["kind"]) == BubbleKind.YELLOW and int(_orbs[0]["hp"]) == BASE_ORB_HP)
-
-	_orbs.clear()
-	var conc_a: Dictionary = _make_orb_dict(BubbleKind.RED, CAULDRON_CENTER + Vector2(-60, 0), 1)
-	var conc_b: Dictionary = _make_orb_dict(BubbleKind.RED, CAULDRON_CENTER + Vector2(60, 0), 1)
-	_orbs.append(conc_a)
-	_orbs.append(conc_b)
-	var combined_same: bool = _combine_orbs_by_id(int(conc_a["id"]), int(conc_b["id"]))
-	var lift_concentrate_ok: bool = (combined_same and _orbs.size() == 1 and int(_orbs[0]["kind"]) == BubbleKind.RED and int(_orbs[0]["tier"]) == 2)
-
-	# 4) Purge a Disliked orb with Right-click -> preserves combo & advances basic tutorial 2 -> 3 (summary)
-	_orbs.clear()
-	var bad_p: Dictionary = _make_orb_dict(disliked_k, CAULDRON_CENTER + Vector2(90, 0), 1)
-	_orbs.append(bad_p)
-	_purge_orb_by_id(int(bad_p["id"]))
-	var purge_kept_combo: bool = (_combo == 1 and _potion_tube_pct > 15.0)
-	var tut_step_3_ok: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY and _hud != null and _hud.trixie_bubble != null and _hud.trixie_bubble.is_ack_visible())
-
-	# Acknowledge summary -> basic tutorial done and patience starts counting down
-	_acknowledge_basic_tutorial_summary()
-	var pat_pre_tick: float = customer_patience_left
-	_process_cauldron_gameplay(2.0)
-	var patience_ticks_after_tut_ok: bool = (not _tut_active and st.cauldron_basics_tutorial_done and customer_patience_left < pat_pre_tick)
-
-	# 5) Break Disliked orb -> lowers tube, resets combo to 0, triggers nerviosa & customer impaciente
-	_orbs.clear()
-	var bad_1: Dictionary = _make_orb_dict(disliked_k, CAULDRON_CENTER, 1)
-	bad_1["hp"] = 1
-	_orbs.append(bad_1)
-	var tube_pre_bad: float = _potion_tube_pct
-	_hit_orb_by_id(int(bad_1["id"]), 1, true)
-	var disliked_lowered_tube: bool = _potion_tube_pct < tube_pre_bad
-	var disliked_reset_combo: bool = (_combo == 0)
-	var nerviosa_ok: bool = (_trixie_emotion == "nerviosa")
-	var cust_impaciente_ok: bool = (_customer_emotion == "impaciente")
-
-	# Second consecutive Disliked backfire -> triggers hollin
-	_orbs.clear()
-	var bad_2: Dictionary = _make_orb_dict(disliked_k, CAULDRON_CENTER, 1)
-	bad_2["hp"] = 1
-	_orbs.append(bad_2)
-	_hit_orb_by_id(int(bad_2["id"]), 1, true)
-	var hollin_triggered: bool = (_trixie_emotion == "hollin")
-
-	# 6) Break GOLD Star orb -> triggers sorprendida
-	_orbs.clear()
-	var gold_o: Dictionary = _make_orb_dict(BubbleKind.GOLD, CAULDRON_CENTER, 1)
-	gold_o["hp"] = 1
-	_orbs.append(gold_o)
-	_hit_orb_by_id(int(gold_o["id"]), 1, true)
-	var sorprendida_triggered: bool = (_trixie_emotion == "sorprendida")
-
-	# 7) Complete Sylvi's order -> Velvet arrives with mixed color order & JUST-IN-TIME MIX TUTORIAL pops and pauses time!
-	_orbs.clear()
-	var finisher: Dictionary = _make_orb_dict(liked_k, CAULDRON_CENTER, 3)
-	finisher["hp"] = 1
-	_orbs.append(finisher)
-	_hit_orb_by_id(int(finisher["id"]), 1, true)
-	var mixed_order_velvet_ok: bool = (orders_completed >= 1 and _active_customer != null and _active_customer.customer_id == &"velvet" and is_mixed_kind(int(get_customer_chemistry()["liked"])))
-	var mix_tut_started_ok: bool = (_tut_active and _tut_step == CauldronTutStep.MIX_DRAG_COMBINE)
-	var v_pat_before: float = customer_patience_left
-	_process_cauldron_gameplay(4.0)
-	var mix_tut_paused_ok: bool = (customer_patience_left == v_pat_before)
-
-	# Complete the contextual mix tutorial by combining RED + BLUE -> PURPLE and breaking it
-	var v_comps: Array[int] = get_recipe_components(int(get_customer_chemistry()["liked"]))
-	_orbs.clear()
-	var vm_a: Dictionary = _make_orb_dict(v_comps[0], CAULDRON_CENTER + Vector2(-50, 0), 1)
-	var vm_b: Dictionary = _make_orb_dict(v_comps[1], CAULDRON_CENTER + Vector2(50, 0), 1)
-	_orbs.append(vm_a)
-	_orbs.append(vm_b)
-	_combine_orbs_by_id(int(vm_a["id"]), int(vm_b["id"]))
-	var mix_tut_step2_ok: bool = (_tut_step == CauldronTutStep.MIX_BREAK_RESULT)
-	_orbs[0]["hp"] = 1
-	_hit_orb_by_id(int(_orbs[0]["id"]), 1, true)
-	var mix_tut_done_ok: bool = (not _tut_active and st.mix_tutorial_done)
-
-	# 8) Append temporary 3rd customer (&"seraphina") to test Frenzy + Velvet serve + Seraphina patience timeout
-	_wave_customers.append(&"seraphina")
-
-	# Trigger Frenzy on Velvet -> sonrojada on both girls
-	_orbs.clear()
-	var v_bad: Dictionary = _make_orb_dict(int(get_customer_chemistry()["disliked"]), CAULDRON_CENTER, 1)
-	_orbs.append(v_bad)
-	if _frenzy_charge < 100.0:
-		_frenzy_charge = 100.0
-	var frenzy_triggered: bool = try_activate_frenzy()
-	var sonrojada_triggered: bool = (_trixie_emotion == "sonrojada")
-	var cust_sonrojada_ok: bool = (_customer_emotion == "sonrojada")
-
-	# Serve Velvet -> Seraphina arrives
-	var v_liked: int = int(get_customer_chemistry()["liked"])
-	_orbs.clear()
-	var v_fin: Dictionary = _make_orb_dict(v_liked, CAULDRON_CENTER, 3)
-	v_fin["hp"] = 1
-	_orbs.append(v_fin)
-	_hit_orb_by_id(int(v_fin["id"]), 1, true)
-	var seraphina_arrived_ok: bool = (_active_customer != null and _active_customer.customer_id == &"seraphina" and _wave_served_count == 2)
-
-	# Drain Seraphina's patience -> customer leaves, missed count=1, combo=0, 2/3 served -> wave victory & closing dialogue!
-	_combo = 3
-	customer_patience_left = 0.05
-	_process_cauldron_gameplay(0.2)
-	var customer_timeout_advances_ok: bool = (seraphina_arrived_ok and _wave_missed_count == 1 and _combo == 0)
-
-	var end_triggered_gracefully: bool = round_ending and _wave_victory and not _closing_active
-	_round_end_timer = 0.0
-	_process_cauldron_gameplay(0.05)
-	var closing_opened_ok: bool = _closing_active and _hud != null and _hud.is_closing_visible() and _closing_lines.size() == 1 and String(_closing_lines[0].get("speaker", "")) == "trixie"
-
-	for _step: int in range(10):
-		if not _closing_active or _fading_out:
-			break
-		if _hud != null:
-			_hud.complete_closing_typing()
-		_handle_closing_advance_input()
-
-	var wave_closing_dialogue_ok: bool = (
-		end_triggered_gracefully
-		and closing_opened_ok
-		and st.is_map_node_completed(&"castillo")
-		and st.is_map_node_unlocked(&"pueblo")
-		and st.cauldron_tutorial_done
-	)
-
-	# 9) Verify dynamic varied customer orders & Mona Elfa Noble archetype
-	var rolled_kinds: Dictionary = {}
-	var roll_valid: bool = true
-	for _r: int in range(10):
-		var c_chem: Dictionary = _roll_order_chemistry_for_customer(&"sylvi", false)
-		var lk: int = int(c_chem["liked"])
-		var dk: int = int(c_chem["disliked"])
-		_last_order_liked_kind = lk
-		rolled_kinds[lk] = true
-		if is_mixed_kind(lk) and get_recipe_components(lk).has(dk):
-			roll_valid = false
-	var varied_customer_orders_ok: bool = (rolled_kinds.size() >= 2 and roll_valid)
-
-	var mona_c: CustomerArchetypeData = _find_customer_by_id(&"mona")
-	var mona_elf_archetype_ok: bool = (
-		mona_c != null
-		and mona_c.species_archetype.contains("Elfa")
-		and not mona_c.species_archetype.contains("Bruja")
-	)
-
-	_reset_mix_pigment(true)
-	var reset_clean_ok: bool = (_mix_weight == 0.0 and _broth_target_color == BROTH_NEUTRAL_COLOR)
-	_inject_mix_pigment(BubbleKind.BLUE, 1)
-	var h_blue: float = _flask_target_color.h
-	_inject_mix_pigment(BubbleKind.RED, 1)
-	var h_purple: float = _flask_target_color.h
-	_inject_mix_pigment(BubbleKind.BLUE, 1)
-	var h_bluish: float = _flask_target_color.h
-	_reset_mix_pigment(false)
-	var mix_pigment_blending_ok: bool = (
-		reset_clean_ok
-		and h_blue >= 0.50 and h_blue <= 0.66
-		and h_purple >= 0.72 and h_purple <= 0.90
-		and h_bluish >= 0.58 and h_bluish < h_purple - 0.05
-		and _mix_weight == 0.0
-		and _broth_target_color == BROTH_NEUTRAL_COLOR
-	)
-
-	return {
-		"initial_cap_ok": initial_cap_ok,
-		"cauldron_tex_ok": cauldron_tex_ok,
-		"stop_bg_tex_ok": stop_bg_tex_ok,
-		"flask_assets_ok": flask_assets_ok,
-		"orb_sprites_ok": orb_sprites_ok,
-		"dialog_bg_tex_ok": dialog_bg_tex_ok,
-		"pueblo_bg_exists_ok": pueblo_bg_exists_ok,
-		"mix_pigment_blending_ok": mix_pigment_blending_ok,
-		"no_duplicate_meta_buttons_in_main": no_duplicate_meta_buttons_in_main,
-		"all_halfbodies_distinct_ok": all_halfbodies_distinct_ok,
-		"sylvi_halfbodies_distinct_ok": sylvi_halfbodies_distinct_ok,
-		"velvet_halfbodies_distinct_ok": velvet_halfbodies_distinct_ok,
-		"seraphina_halfbodies_distinct_ok": seraphina_halfbodies_distinct_ok,
-		"mona_halfbodies_distinct_ok": mona_halfbodies_distinct_ok,
-		"roxy_halfbodies_distinct_ok": roxy_halfbodies_distinct_ok,
-		"cauldron_tutorial_flow_ok": tut_step_1_ok and banner_above_cauldron_ok and tut_step_2_ok and tut_step_3_ok and patience_ticks_after_tut_ok,
-		"tutorial_pauses_patience_ok": tutorial_pauses_patience_ok,
-		"mix_tutorial_contextual_ok": mix_tut_started_ok and mix_tut_paused_ok and mix_tut_step2_ok and mix_tut_done_ok,
-		"customer_timeout_advances_ok": customer_timeout_advances_ok,
-		"varied_customer_orders_ok": varied_customer_orders_ok,
-		"mona_elf_archetype_ok": mona_elf_archetype_ok,
-		"no_autoclicker_ok": no_autoclicker_ok,
-		"three_clicks_to_break_ok": three_clicks_to_break_ok,
-		"lift_combine_color_ok": lift_combine_color_ok,
-		"lift_concentrate_ok": lift_concentrate_ok,
-		"purge_kept_combo": purge_kept_combo,
-		"disliked_lowered_tube": disliked_lowered_tube,
-		"disliked_reset_combo": disliked_reset_combo,
-		"nerviosa_ok": nerviosa_ok,
-		"cust_impaciente_ok": cust_impaciente_ok,
-		"hollin_triggered": hollin_triggered,
-		"sorprendida_triggered": sorprendida_triggered,
-		"orders_completed": orders_completed,
-		"mixed_order_velvet_ok": mixed_order_velvet_ok,
-		"frenzy_triggered": frenzy_triggered,
-		"sonrojada_triggered": sonrojada_triggered,
-		"cust_sonrojada_ok": cust_sonrojada_ok,
-		"wave_closing_dialogue_ok": wave_closing_dialogue_ok,
-		"nodes_count": tree_nodes.size(),
-	}
+	return MainGameSmokeRunner.run(self)
