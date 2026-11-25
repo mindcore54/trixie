@@ -59,6 +59,10 @@ func play_stir() -> void:
 	_play_stream(_stir_stream, randf_range(0.95, 1.12), -3.0)
 
 
+func play_explosion(volume_offset_db: float = 2.0, pitch: float = 0.88) -> void:
+	_play_stream(_explosion_stream, pitch, volume_offset_db)
+
+
 func trigger_screen_shake(intensity: float = 10.0, duration: float = 0.25) -> void:
 	if _active_camera == null or not is_instance_valid(_active_camera):
 		return

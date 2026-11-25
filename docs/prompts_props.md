@@ -138,3 +138,103 @@ MATERIAL & LINEWORK:
 
 isolated on a completely pure solid white #FFFFFF background, zero cast shadow, zero background scenery, no folded or curled corners, no inner border, no frame, no scroll rods, no text, no symbols, closed dark outer silhouette contour
 ```
+
+---
+
+## 7. Fondos de la Intro (`16:9` — `res://assets/backgrounds/intro/<id>.jpg`)
+
+*(Misma línea de arte digital anime que `bg_01_castillo.jpg` y `bg_02_pueblo.jpg`. Escenas 100% vacías de personajes para no chocar con `PortraitStage` ni con `DialogBox` en la parte inferior. Al guardarlos con el ID exacto en `assets/backgrounds/intro/`, `IntroCutscene.gd` los carga automáticamente.)*
+
+### 7.1 `feria` — La Gran Feria de Pociones (CG Exterior ante la Muralla de Entrada)
+
+*(Adjuntar `trixie_concept_v05_usergenerated.jpg` como referencia visual para el personaje. Al ser una escena CG con la bruja ya dentro del cuadro, en `intro_cutscene.json` no se muestra retrato encima — solo el pergamino de diálogo abajo.)*
+
+```text
+High-end 2D digital anime visual novel CG key illustration, 16:9 widescreen aspect ratio, styled like premium Chinese gacha and Japanese fantasy RPG scenic story illustrations (painterly anime digital art with semi-stylized architectural rendering, clean brushwork, rich harmonious colors, luminous atmospheric lighting — strictly 2D digital illustration, NOT photorealistic, NOT 3D CGI).
+
+SCENE — ARRIVING OUTSIDE THE WALLED ENTRANCE GATE OF A GRAND MEDIEVAL FANTASY POTION FAIR (WIDE EPIC ESTABLISHING CG):
+- Sweeping, awe-inspiring wide shot looking from behind a small, enthusiastic young witch standing OUTSIDE on an open country approach road, gazing in wonder toward the towering walled entrance archway of a massive medieval-fantasy potion fair rising ahead of her.
+- FOREGROUND (STRICTLY OUTSIDE THE FAIR — NO TENTS OR STALLS HERE): Open, sunlit countryside approach outside the festival walls — a wide weathered cobblestone-and-dirt road leading straight forward toward the gate, bordered on the far left and far right ONLY by lush green grass, wildflowers, mossy rocks, leafy trees, and low wooden roadside posts. STRICTLY ZERO market tents, ZERO stalls, ZERO booths, and ZERO shop awnings in the foreground or anywhere in front of the wall!
+- CHARACTER IN SCENE (SMALL-TO-MEDIUM IN COMPOSITION, BACK/THREE-QUARTER REAR VIEW, LOWER-RIGHT-CENTER): Matching the attached character reference sheet — a petite, curvy young witch with voluminous wavy dark chestnut-brown hair, an oversized tilted plum-and-wine pointed mushroom-gill witch hat with cream spots, brass goggles on the band, and a dangling tiny amber mushroom charm, wearing her deep wine-crimson and dark-plum corset dress with gold filigree, large wine ribbon bow at the back, asymmetrical layered skirt, one dark thigh-high stocking, and heeled witch boots. Positioned on the lower-right side of the open approach road (elevated slightly above the bottom 22% safe zone so a dialogue box won't hide her), viewed from behind in a joyful, triumphant pose with BOTH ARMS FLUNG WIDE OPEN toward the grand entrance gate ahead. A battered, patched cast-iron alchemy cauldron rests beside her feet on the road.
+- MIDGROUND (CONTINUOUS FAIRGROUND WALL & MONUMENTAL ENTRANCE ARCHWAY): Stretching continuously across the midground from left to right is an ornate medieval-fantasy stone-and-timber perimeter wall separating the quiet countryside outside from the fair inside, centered on a massive, imposing grand timber-and-stone entrance archway adorned with colorful heraldic banners, hanging glowing potion-flask lanterns, and decorative carved alchemy emblems (strictly NO readable text or letters).
+- BEHIND THE WALL & VISIBLE THROUGH THE ARCHWAY (THE FAIR INSIDE): STRICTLY BEHIND the perimeter wall and framed through the open central gateway, the vast, dazzling potion fair unfolds into the distance — rows of colorful striped silk apothecary tents (burgundy, teal, emerald, purple, gold), half-timbered guild pavilions, pointed carnival spires, strings of festive triangular pennants, and shimmering arcane light motes rising above the wall into a radiant bright blue daytime sky filled with voluminous sunlit white clouds and dramatic golden sunbeams.
+
+COMPOSITION & VISUAL READABILITY:
+- Crystal-clear spatial storytelling: the viewer immediately understands she is OUTSIDE arriving at the entrance wall, about to step through the gate into the bustling fair beyond.
+- Vibrant, joyful daylight fantasy palette with warm golden rim-lighting catching her hat, hair, and outstretched arms.
+- NO other foreground people or crowds, NO tents in front of the wall, NO readable text, NO letters, NO UI elements, NO borders or frames, full-bleed edge-to-edge painted CG illustration.
+```
+
+### 7.2 `puesto` — El Puesto Medio Derruido (Ya Montado con Caldero, Letrero de Tela y Pócimas)
+
+```text
+High-end 2D digital anime visual novel background illustration, 16:9 widescreen aspect ratio, styled like premium Chinese gacha and Japanese fantasy RPG painted scenic backgrounds (painterly anime digital art with semi-stylized architectural rendering, clean brushwork, rich harmonious colors, luminous atmospheric lighting — strictly 2D digital illustration, NOT photorealistic, NOT 3D CGI).
+
+SCENE — RUNDOWN, LOPSIDED WOODEN POTION STALL ALREADY SET UP FOR BUSINESS AT THE EDGE OF A GRAND FANTASY FAIR:
+- Eye-level view facing a charmingly shabby, lopsided, patched-up medieval-fantasy wooden market booth set up on a cobblestone fairground lane, already stocked and ready for customers, contrasting humorously with the glamorous, grand festival pavilions visible softly in the sunlit background.
+- HANDMADE CLOTH SIGN AT THE TOP OF THE STALL: Hanging slightly crookedly across the upper front beam beneath the tattered awning is a hand-sewn, rough-edged cream cloth banner with the words "Trixie Potion Shop" hand-lettered in slightly uneven, enthusiastic black brush ink (charming DIY hand-painted look, with tiny ink splatters).
+- CENTER & MIDGROUND (THE SHABBY BUT STOCKED STALL): A small crooked wooden vendor booth built from mismatched weathered planks and slightly tilting posts, topped with a faded patched-up striped fabric awning drooping unevenly with a couple of small tattered holes letting thin shafts of sunlight through, plus a tiny cobweb tucked neatly in an upper corner.
+- ALCHEMY SETUP ON THE COUNTER & SHELVES (NO GAME ICONS OR EMBLEMS):
+  - Resting prominently on the scratched, wobbly wooden counter (or right beside it on a low iron stand) is a battered, patched dark cast-iron alchemy cauldron ready for brewing (no runes or symbols on it).
+  - Arranged neatly across the counter and crooked wooden shelves behind it are simple hand-blown glass flasks and corked bottles — some empty, several already filled with vibrant plain colored potions (glossy ruby red, sapphire blue, emerald green, warm amber liquid — strictly plain glass potions with NO floating icons, NO game emblems, NO symbols inside).
+  - Tied burlap ingredient pouches and small cloth sacks stuffed with peeking dried herbs, little mushrooms, colorful roots, a simple wooden mortar and pestle, and stacked wooden crates tucked around the booth.
+- BACKGROUND & LOWER 30%: Beyond the shabby booth, soft sunlit festival pennants, lush green trees, and the colorful roofs of much fancier market pavilions peek through warm atmospheric haze under a bright daytime sky. Clean weathered cobblestone ground stretches across the bottom 25–30% of the frame.
+
+COMPOSITION & VISUAL READABILITY (FOR VISUAL NOVEL PORTRAITS & DIALOGUE):
+- Calm, readable mid-shot framing with the stocked shabby stall centered comfortably in the mid-distance so character portraits on the left and right edges and a dialogue box at the bottom sit cleanly over the scene without clutter.
+- Warm, charming painterly anime daylight tones — slightly muted dusty wood and faded cloth on the stall contrasting against the glowing colorful potions and brighter festival behind it.
+- STRICTLY EMPTY OF CHARACTERS: NO characters, NO people, NO crowds, NO silhouettes, NO animals, NO game UI icons or floating emblems, NO extra text besides the handmade "Trixie Potion Shop" cloth sign, NO UI elements, NO borders or frames, full-bleed edge-to-edge painted background.
+```
+
+### 7.3 `puesto_explotado` — El Mismo Puesto Explotado (Edición Imperativa sobre `puesto.jpg`)
+
+*(Adjuntar `puesto.jpg` como imagen base a editar.)*
+
+```text
+Edit this image to show the exact same wooden potion stall moments after a comical magical potion explosion, shifting the camera slightly to a dynamic three-quarter angle while keeping the exact same 2D anime art style, fairground background, and afternoon lighting:
+
+- Scorch and splinter the wooden booth with dramatic black soot smudges across the beams, shelves, and counter, making the stall look comically ruined beyond repair.
+- Tear and singe the striped awning so it hangs half-collapsed, with small stylized anime flames still flickering along its burnt edges and wispy gray smoke rising.
+- Detach one corner of the handmade "Trixie Potion Shop" cloth sign so it hangs crookedly, tattered, singed, and smoldering with a tiny flame licking one frayed corner.
+- Leave the cast-iron cauldron blackened and gently smoking on the counter, with a few small lingering flames burning on broken wooden planks and a charred crate nearby.
+- Knock the wooden shelves, ingredient pouches, and glass bottles askew; splash vibrant, glowing multicolored potions (magenta, emerald green, cyan, amber-gold) dripping down the wood and pooling in shimmering puddles across the counter and cobblestones, with scattered corks, spilled herbs, and drifting colorful arcane smoke wisps and tiny sparkles in the air.
+- Keep the tone funny and cartoonish-anime (comically hopeless disaster with small flickering flames, smoke, soot, and glowing spilled potions — NOT grim or violent) and keep the scene strictly empty of any characters or people.
+```
+
+### 7.4 `salida_gris` — Salida Derrotada (CG en Ambiente Gris, de Frente con Ojos Cerrados y Hollín, Fuera de la Muralla)
+
+*(Adjuntar `trixie_concept_v05_usergenerated.jpg` — y opcionalmente tu `feria.jpg` final para mantener la misma muralla y arco de entrada vistos en versión gris. En `intro_cutscene.json` no se muestra retrato encima para no duplicarla.)*
+
+```text
+High-end 2D digital anime visual novel CG key illustration, 16:9 widescreen aspect ratio, styled like premium Chinese gacha and Japanese fantasy RPG scenic story illustrations (painterly anime digital art with semi-stylized architectural rendering, clean brushwork, expressive moody atmospheric lighting — strictly 2D digital illustration, NOT photorealistic, NOT 3D CGI).
+
+SCENE — DEFEATED WALK AWAY OUTSIDE THE WALLED FAIRGROUND IN A GRAY OVERCAST ATMOSPHERE (MELANCHOLIC COMIC-DRAMA CG):
+- Quiet, atmospheric wide shot looking down an open country approach road OUTSIDE the perimeter wall of a grand medieval-fantasy potion fair, as a defeated young witch walks slowly forward AWAY from the walled fairground fading into cool gray mist behind her.
+- FOREGROUND (STRICTLY OUTSIDE THE FAIR — NO TENTS OR STALLS HERE): Open, damp, quiet countryside outside the festival walls — a wide weathered cobblestone-and-dirt road stretching toward the bottom of the frame, bordered on the far left and far right ONLY by muted desaturated grass, mossy rocks, leafy trees in cool slate-olive tones, unlit wrought-iron road lamps, and a few drifting fallen leaves. STRICTLY ZERO market tents, ZERO stalls, ZERO booths, and ZERO shop awnings in front of the wall!
+- CHARACTER IN SCENE (FRONT VIEW WALKING TOWARD THE CAMERA, CENTER-MID-LOWER): Matching the attached character reference sheet — the petite, curvy young witch walking slowly forward along the open country road AWAY from the fair behind her, seen FROM THE FRONT with slumped, exhausted shoulders. Her eyes are gently/sadly CLOSED in a cute, comically defeated, resigned expression; her cheeks, nose, arms, and wine-and-plum corset dress are covered in comical black soot smudges; her oversized mushroom-gill witch hat sits tilted askew with soot marks and slightly disheveled wavy dark chestnut hair. Positioned in the middle-lower center of the frame (elevated slightly above the bottom 24% safe zone so a dialogue box at the bottom won't cover her!), dragging her heavy battered patched cast-iron alchemy cauldron behind her with a rope strap along the road (or lugging it slumped awkwardly), with a tiny comical wisp of fading gray smoke still curling up from the cauldron.
+- MIDGROUND & BACKGROUND (CONTINUOUS FAIRGROUND WALL & FAIR BEHIND IT): Behind her across the midground stretches the continuous medieval-fantasy stone-and-timber perimeter wall and monumental arched entrance gate, clearly separating the lonely outside road from the fair inside. STRICTLY BEHIND that wall and visible through the archway and rising above the wall into a heavy overcast slate-gray sky, the distant silhouettes of colorful festival tents, drooping pennants, and carnival spires fade softly into cool gray mist.
+- LOWER 24% (DIALOGUE SAFE ZONE): Wide, empty, damp weathered cobblestone road stretching across the bottom edge of the frame with subtle desaturated reflections, keeping the bottom band uncluttered for a visual novel dialogue box.
+
+COMPOSITION & VISUAL READABILITY:
+- Deliberately desaturated, cool slate-gray and muted steel-blue palette (touching yet comically dramatic anime defeat mood — expressive and cute, NOT grim or pitch black).
+- Crystal-clear spatial continuity: she is clearly OUTSIDE the wall walking away from the fair behind her.
+- NO other people, NO crowds, NO guards, NO tents in front of the wall, NO readable text, NO letters, NO UI elements, NO borders or frames, full-bleed edge-to-edge painted CG illustration.
+```
+
+### 7.5 `castillo_ocaso` — Afueras del Castillo al Ocaso (Opcional: puedes reusar `bg_01_castillo.jpg`)
+
+*(Nota: como el Nivel 1 ocurre justo aquí en `bg_01_castillo.jpg` al ocaso, puedes copiar `bg_01_castillo.jpg` como `assets/backgrounds/intro/castillo_ocaso.jpg` y ahorrarte este fondo; o generar una toma distinta al ocaso con este prompt.)*
+
+```text
+High-end 2D digital anime visual novel background illustration, 16:9 widescreen aspect ratio, styled like premium Chinese gacha and Japanese fantasy RPG painted scenic backgrounds (painterly anime digital art with semi-stylized architectural rendering, clean brushwork, rich harmonious colors, luminous atmospheric lighting — strictly 2D digital illustration, NOT photorealistic, NOT 3D CGI).
+
+SCENE — OUTSIDE A GRAND MEDIEVAL FANTASY CASTLE AT GOLDEN SUNSET DUSK:
+- Scenic view along a wide, welcoming weathered cobblestone roadside plaza just outside the towering stone ramparts and arched gatehouse of a majestic medieval-fantasy castle on a gentle hill at late sunset.
+- UPPER 70% (GOLDEN DUSK SKY & CASTLE): Dramatic, luminous late-sunset sky transitioning smoothly upward from rich burnt-orange, warm apricot-gold, and rose-amber near the horizon into soft twilight periwinkle and deep lavender-violet overhead, with voluminous painterly anime clouds catching glowing golden rim-light and tiny drifting warm dust motes. In the mid-background, iconic medieval-fantasy castle towers with slate-blue pointed spires, stone battlements, arched windows beginning to glow warmly with lantern light, fluttering royal crimson-and-gold pennants, distant rolling hills, and a graceful arched stone bridge leading to the main gate. Lush stylized trees, ivy-draped low stone walls, and warmly lit wrought-iron roadside lanterns frame the upper-left and upper-right edges.
+- LOWER 30% (COBBLESTONE PLAZA): A clean, spacious weathered cobblestone road and mossy stone courtyard stretching continuously across the entire bottom 25–30% of the frame, bathed in long warm sunset shadows and soft golden lantern glow near the edges.
+
+COMPOSITION & VISUAL READABILITY (FOR VISUAL NOVEL PORTRAITS & DIALOGUE):
+- Eye-level establishing camera angle with a calm, uncluttered mid-center composition so character portraits on the left and right and a lower dialogue box stand out clearly.
+- Hopeful, warm golden-hour sunset contrast with deep twilight-plum shadows in the lower corners and glowing amber highlights along rooftops and clouds.
+- STRICTLY EMPTY SCENE: NO characters, NO people, NO guards, NO silhouettes, NO crowds, NO animals, NO carts, NO cauldrons, NO market stalls, NO readable text, NO letters, NO UI elements, NO borders or frames, full-bleed edge-to-edge painted background.
+```

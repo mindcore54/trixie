@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/StagePortrait.gd" id="1_portrait"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/halfbody/trixie_halfbody_normal.png" id="2_preview"]
+
+[node name="StagePortrait" type="TextureRect"]
+offset_right = 560.0
+offset_bottom = 789.0
+mouse_filter = 2
+texture = ExtResource("2_preview")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("1_portrait")
