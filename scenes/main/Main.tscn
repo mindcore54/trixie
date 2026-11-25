@@ -1,6 +1,736 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c80d40421b606"]
 
 [ext_resource type="Script" path="res://scripts/core/MainGame.gd" id="1_u1xfj"]
+[ext_resource type="Script" path="res://scripts/ui/StageHUD.gd" id="2_stage_hud"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/bg_01_castillo.jpg" id="3_bg_castillo"]
+[ext_resource type="Shader" path="res://shaders/stage_bg_depth.gdshader" id="4_bg_shader"]
+[ext_resource type="Shader" path="res://shaders/cauldron_fire_glow.gdshader" id="5_fire_shader"]
+[ext_resource type="Texture2D" path="res://assets/props/stations/cauldron_main.png" id="6_cauldron_tex"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/halfbody/trixie_halfbody_normal.png" id="7_trixie_preview"]
+[ext_resource type="Texture2D" path="res://assets/characters/customers/sylvi/halfbody/sylvi_halfbody_normal.png" id="8_sylvi_preview"]
+[ext_resource type="Texture2D" path="res://assets/props/items/flask_liquid_mask.png" id="9_flask_mask"]
+[ext_resource type="Texture2D" path="res://assets/props/items/flask_empty.png" id="10_flask_empty"]
+[ext_resource type="Shader" path="res://shaders/flask_liquid.gdshader" id="11_flask_shader"]
+[ext_resource type="PackedScene" uid="uid://7pjca6y8yrpa" path="res://scenes/ui/SpeechBubble.tscn" id="12_speech_bubble"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DialogBox.tscn" id="13_dialog_box"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_stage_bg"]
+shader = ExtResource("4_bg_shader")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fire_glow"]
+shader = ExtResource("5_fire_shader")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flask_liquid"]
+shader = ExtResource("11_flask_shader")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top_bar"]
+bg_color = Color(0.08, 0.05, 0.13, 0.95)
+border_width_bottom = 3
+border_color = Color(0.76, 0.58, 0.28, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_btn_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.24, 0.16, 0.34, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.84, 0.66, 0.38, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_btn_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3616, 0.2944, 0.4456, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.872, 0.728, 0.504, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pill_disabled"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16, 0.14, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.32, 0.45, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_dock"]
+bg_color = Color(0.1, 0.06, 0.16, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92, 0.56, 0.4, 0.85)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_bar_bg"]
+bg_color = Color(0.08, 0.04, 0.12, 0.92)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_bar_fill"]
+bg_color = Color(1, 0.32, 0.44, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_btn_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.68, 0.14, 0.24, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.84, 0.38, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_btn_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.7312, 0.2776, 0.3616, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.872, 0.504, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cust_hdr"]
+bg_color = Color(0.1, 0.06, 0.16, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92, 0.68, 0.82, 0.85)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_card"]
+bg_color = Color(0.1, 0.06, 0.16, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92, 0.72, 0.36, 0.85)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_bar_bg"]
+bg_color = Color(0.08, 0.04, 0.12, 0.94)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_bar_fill"]
+resource_local_to_scene = true
+bg_color = Color(0.32, 0.88, 0.56, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chem_card"]
+bg_color = Color(0.1, 0.06, 0.16, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.6, 0.92, 0.85)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_panel"]
+bg_color = Color(0.12, 0.08, 0.19, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.88, 0.68, 0.36, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.18, 0.46, 0.28, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.56, 1, 0.6, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3112, 0.5464, 0.3952, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.648, 1, 0.68, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.2, 0.32, 0.48, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.88, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.328, 0.4288, 0.5632, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.64, 0.904, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.46, 0.24, 0.16, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.72, 0.4, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.5464, 0.3616, 0.2944, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.776, 0.52, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.28, 0.16, 0.38, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.88, 0.66, 0.98, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3952, 0.2944, 0.4792, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.904, 0.728, 0.984, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="Main" type="Node2D" unique_id=407562072]
 script = ExtResource("1_u1xfj")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(960, 540)
+
+[node name="StageBackground" type="Sprite2D" parent="."]
+z_index = -10
+material = SubResource("ShaderMaterial_stage_bg")
+position = Vector2(-24, -24)
+scale = Vector2(1.025, 1.044444)
+texture = ExtResource("3_bg_castillo")
+centered = false
+
+[node name="TrixieStageSlot" type="TextureRect" parent="."]
+z_index = -2
+offset_left = -8.0
+offset_top = 124.0
+offset_right = 512.0
+offset_bottom = 940.0
+mouse_filter = 2
+texture = ExtResource("7_trixie_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CustomerStageSlot" type="TextureRect" parent="."]
+z_index = -2
+offset_left = 1404.0
+offset_top = 108.0
+offset_right = 1924.0
+offset_bottom = 930.0
+mouse_filter = 2
+texture = ExtResource("8_sylvi_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CauldronFireGlow" type="ColorRect" parent="."]
+z_index = -1
+material = SubResource("ShaderMaterial_fire_glow")
+offset_left = 560.0
+offset_top = 869.0
+offset_right = 1200.0
+offset_bottom = 1079.0
+mouse_filter = 2
+
+[node name="CauldronAnchor" type="Node2D" parent="."]
+position = Vector2(880, 564)
+
+[node name="CauldronPreview" type="Sprite2D" parent="CauldronAnchor"]
+texture = ExtResource("6_cauldron_tex")
+centered = false
+offset = Vector2(-419, -351)
+
+[node name="PotionFlask" type="Node2D" parent="."]
+position = Vector2(1304, 238)
+
+[node name="LiquidSprite" type="Sprite2D" parent="PotionFlask"]
+z_index = 1
+material = SubResource("ShaderMaterial_flask_liquid")
+scale = Vector2(0.611111, 0.610976)
+texture = ExtResource("9_flask_mask")
+centered = false
+
+[node name="GlassSprite" type="Sprite2D" parent="PotionFlask"]
+z_index = 2
+scale = Vector2(0.611111, 0.610976)
+texture = ExtResource("10_flask_empty")
+centered = false
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+script = ExtResource("2_stage_hud")
+
+[node name="TopBar" type="PanelContainer" parent="UILayer"]
+offset_right = 1920.0
+offset_bottom = 76.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_top_bar")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 10
+
+[node name="HBox" type="HBoxContainer" parent="UILayer/TopBar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="EssenceLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.36, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 26
+text = "✦ 0"
+
+[node name="StopLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.88, 0.98, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "📍 Afueras del Castillo"
+
+[node name="WaveLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.94, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "👥 Clienta: 1 / 2"
+
+[node name="SpacerLeft" type="Control" parent="UILayer/TopBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimerLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+text = "0:55"
+horizontal_alignment = 1
+
+[node name="SpacerRight" type="Control" parent="UILayer/TopBar/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PauseButton" type="Button" parent="UILayer/TopBar/Margin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_pause_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_pause_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "⏸ PAUSA [ESC]"
+
+[node name="CauldronHudRoot" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FrenzyDock" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 952.0
+offset_right = 468.0
+offset_bottom = 1060.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_frenzy_dock")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/FrenzyDock"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FrenzyBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox"]
+custom_minimum_size = Vector2(416, 16)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_frenzy_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_frenzy_bar_fill")
+show_percentage = false
+
+[node name="FrenzyButton" type="Button" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox"]
+custom_minimum_size = Vector2(416, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_frenzy_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_frenzy_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "🔥 FRENESÍ (0%) [ESPACIO]"
+
+[node name="CustomerHeaderCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+layout_mode = 0
+offset_left = 1412.0
+offset_top = 886.0
+offset_right = 1898.0
+offset_bottom = 928.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_cust_hdr")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin"]
+layout_mode = 2
+
+[node name="CustomerNameLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.93, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 19
+text = "Sylvi"
+
+[node name="CustomerAffinityLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.64, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 17
+text = "❤ Nv.0"
+
+[node name="PatienceCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+layout_mode = 0
+offset_left = 1412.0
+offset_top = 932.0
+offset_right = 1898.0
+offset_bottom = 978.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_pat_card")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/PatienceCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/PatienceCard/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PatienceLabel" type="Label" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox"]
+custom_minimum_size = Vector2(138, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 15
+text = "⏳ 30s"
+
+[node name="PatienceBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox"]
+custom_minimum_size = Vector2(280, 18)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/background = SubResource("StyleBoxFlat_pat_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_pat_bar_fill")
+value = 100.0
+show_percentage = false
+
+[node name="ChemistryCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+layout_mode = 0
+offset_left = 1412.0
+offset_top = 984.0
+offset_right = 1898.0
+offset_bottom = 1052.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_chem_card")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/ChemistryCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="ChemVisualCanvas" type="Control" parent="UILayer/CauldronHudRoot/ChemistryCard/Margin"]
+custom_minimum_size = Vector2(450, 44)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ToastLabel" type="Label" parent="UILayer/CauldronHudRoot"]
+visible = false
+layout_mode = 0
+offset_left = 825.0
+offset_top = 86.0
+offset_right = 1245.0
+offset_bottom = 150.0
+theme_override_colors/font_color = Color(1, 0.9, 0.42, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="TrixieBubble" parent="UILayer" instance=ExtResource("12_speech_bubble")]
+visible = false
+layout_mode = 0
+offset_left = 356.0
+offset_top = 78.0
+offset_right = 816.0
+offset_bottom = 301.0
+
+[node name="CustomerBubble" parent="UILayer" instance=ExtResource("12_speech_bubble")]
+visible = false
+layout_mode = 0
+offset_left = 1418.0
+offset_top = 638.0
+offset_right = 1878.0
+offset_bottom = 861.0
+flip_tail_right = true
+default_title_color = Color(0.56, 0.12, 0.28, 1)
+
+[node name="ClosingOverlay" type="Control" parent="UILayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ClosingDialogBox" parent="UILayer/ClosingOverlay" instance=ExtResource("13_dialog_box")]
+layout_mode = 0
+offset_left = 267.0
+offset_top = 750.0
+offset_right = 1653.0
+offset_bottom = 1050.0
+
+[node name="PauseOverlay" type="ColorRect" parent="UILayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.02, 0.08, 0.84)
+
+[node name="Center" type="CenterContainer" parent="UILayer/PauseOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PausePanel" type="PanelContainer" parent="UILayer/PauseOverlay/Center"]
+custom_minimum_size = Vector2(460, 430)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pause_panel")
+
+[node name="Margin" type="MarginContainer" parent="UILayer/PauseOverlay/Center/PausePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/PauseOverlay/Center/PausePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PauseHeader" type="Label" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "PAUSA"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_resume_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_resume_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "REANUDAR"
+
+[node name="MapButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_map_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_map_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "🗺 VOLVER AL MAPA"
+
+[node name="RestartButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_restart_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_restart_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "REINICIAR PARTIDA"
+
+[node name="MenuButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_menu_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_menu_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+text = "MENÚ PRINCIPAL"

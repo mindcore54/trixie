@@ -45,25 +45,16 @@ const BASE_CUSTOMER_PATIENCE: float = 30.0
 const USE_PER_CUSTOMER_PATIENCE: bool = false
 const CUSTOMER_IMPATIENT_RATIO: float = 0.30
 const CAULDRON_TEX_PATH: String = "res://assets/props/stations/cauldron_main.png"
-const STAGE_BG_SHADER_PATH: String = "res://shaders/stage_bg_depth.gdshader"
-const CAULDRON_FIRE_SHADER_PATH: String = "res://shaders/cauldron_fire_glow.gdshader"
 const FLASK_GLASS_TEX_PATH: String = "res://assets/props/items/flask_empty.png"
 const FLASK_MASK_TEX_PATH: String = "res://assets/props/items/flask_liquid_mask.png"
-const FLASK_LIQUID_SHADER_PATH: String = "res://shaders/flask_liquid.gdshader"
 const ORB_TEX_DIR: String = "res://assets/props/items/orbs/"
 const ORB_CANVAS_MULT: float = 1.067
 const ORB_BOMB_DRAW_MULT: float = 1.467
-const DIALOG_BOX_SCENE: PackedScene = preload("res://scenes/ui/DialogBox.tscn")
-const SPEECH_BUBBLE_SCENE: PackedScene = preload("res://scenes/ui/SpeechBubble.tscn")
-const CLOSING_PARCHMENT_POS: Vector2 = Vector2(267.0, 750.0)
-const TRIXIE_BUBBLE_POS: Vector2 = Vector2(356.0, 78.0)
-const CUSTOMER_BUBBLE_POS: Vector2 = Vector2(1418.0, 638.0)
 
 const DRAG_LIFT_THRESHOLD: float = 12.0
 const HOLD_HIT_START_DELAY: float = 0.16
 const RIGHT_PURGE_HOLD_INTERVAL: float = 0.13
 const BASE_ORB_HP: int = 3
-const CLOSING_CHARS_PER_SEC: float = 54.0
 
 const TUBE_RECT: Rect2 = Rect2(1312.0, 265.0, 54.0, 445.0)
 const FLASK_RECT: Rect2 = Rect2(1304.0, 238.0, 88.0, 501.0)
@@ -208,34 +199,37 @@ var _customer_slide_t: float = 1.0
 var _customer_emotion: String = "normal"
 var _customer_emotion_timer: float = 0.0
 var _customer_react_anim: float = 0.0
-var _toast_timer: float = 0.0
 
-# In-game Cauldron Tutorial & Ephemeral Speech Bubbles
+# In-game Cauldron Tutorial & Closing Dialogue state
 var _tut_active: bool = false
 var _tut_step: CauldronTutStep = CauldronTutStep.NONE
-var _trixie_bubble: SpeechBubble = null
-var _cust_bubble: SpeechBubble = null
 
-# Closing Dialogue Overlay before smooth fade to WorldMap
+# Closing Dialogue state before smooth fade to WorldMap
 var _closing_active: bool = false
 var _closing_lines: Array[Dictionary] = []
 var _closing_idx: int = -1
-var _closing_overlay: Control
-var _closing_dialog_box: DialogBox = null
 
-# UI nodes
-var camera: Camera2D
+# Scene nodes
+@onready var camera: Camera2D = $Camera2D
+@onready var _bg_sprite: Sprite2D = $StageBackground
+@onready var _trixie_stage_slot: TextureRect = $TrixieStageSlot
+@onready var _customer_stage_slot: TextureRect = $CustomerStageSlot
+@onready var _fire_glow_rect: ColorRect = $CauldronFireGlow
+@onready var _cauldron_preview: Sprite2D = $CauldronAnchor/CauldronPreview
+@onready var _potion_flask: Node2D = $PotionFlask
+@onready var _flask_liquid_sprite: Sprite2D = $PotionFlask/LiquidSprite
+@onready var _flask_glass_sprite: Sprite2D = $PotionFlask/GlassSprite
+@onready var _hud: StageHUD = $UILayer
+
+var _trixie_stage_rect: Rect2 = Rect2(-8.0, 124.0, 520.0, 816.0)
+var _customer_stage_rect: Rect2 = Rect2(1404.0, 108.0, 520.0, 822.0)
 var _cauldron_tex: Texture2D
 var _stop_bg_tex: Texture2D = null
-var _bg_sprite: Sprite2D = null
 var _bg_shader_mat: ShaderMaterial = null
 var _bg_frenzy_mix: float = 0.0
-var _fire_glow_rect: ColorRect = null
 var _fire_shader_mat: ShaderMaterial = null
 var _flask_glass_tex: Texture2D = null
 var _flask_mask_tex: Texture2D = null
-var _flask_liquid_sprite: Sprite2D = null
-var _flask_glass_sprite: Sprite2D = null
 var _flask_liquid_mat: ShaderMaterial = null
 var _tube_display_pct: float = 0.0
 var _tube_fill_vel: float = 0.0
@@ -252,27 +246,6 @@ var _flask_target_color: Color = FLASK_NEUTRAL_COLOR
 var _orb_textures: Dictionary = {}
 var _crack_textures: Array[Texture2D] = []
 var _crack_glow_textures: Array[Texture2D] = []
-var _ui_layer: CanvasLayer
-
-var _top_essence_lbl: Label
-var _top_stop_lbl: Label
-var _top_wave_lbl: Label
-var _top_timer_lbl: Label
-var _pause_btn: Button
-
-var _cauldron_hud_root: Control
-var _frenzy_bar: ProgressBar
-var _frenzy_btn: Button
-var _cust_patience_bar: ProgressBar
-var _cust_patience_fill: StyleBoxFlat
-var _cust_patience_lbl: Label
-var _cust_name_lbl: Label
-var _cust_aff_lbl: Label
-var _chem_visual_canvas: Control
-var _toast_lbl: Label
-
-var _pause_overlay: ColorRect
-var _pause_map_btn: Button
 
 
 func _state() -> Node:
@@ -293,76 +266,38 @@ func _ready() -> void:
 	customers_catalog = st.get("customers_catalog") as Array[CustomerArchetypeData]
 	tree_nodes = st.get("tree_nodes") as Array[Dictionary]
 
-	_cauldron_tex = load(CAULDRON_TEX_PATH) as Texture2D
+	if _cauldron_preview != null:
+		_cauldron_tex = _cauldron_preview.texture
+		_cauldron_preview.visible = false
+	if _cauldron_tex == null and ResourceLoader.exists(CAULDRON_TEX_PATH):
+		_cauldron_tex = load(CAULDRON_TEX_PATH) as Texture2D
 
-	_bg_sprite = Sprite2D.new()
-	_bg_sprite.centered = false
-	_bg_sprite.z_index = -10
-	_bg_sprite.visible = false
-	if ResourceLoader.exists(STAGE_BG_SHADER_PATH):
-		var bg_shader: Shader = load(STAGE_BG_SHADER_PATH) as Shader
-		if bg_shader != null:
-			_bg_shader_mat = ShaderMaterial.new()
-			_bg_shader_mat.shader = bg_shader
-			_bg_sprite.material = _bg_shader_mat
-	add_child(_bg_sprite)
+	if _trixie_stage_slot != null:
+		_trixie_stage_rect = _trixie_stage_slot.get_rect()
+		_trixie_stage_slot.visible = false
+	if _customer_stage_slot != null:
+		_customer_stage_rect = _customer_stage_slot.get_rect()
+		_customer_stage_slot.visible = false
 
-	_fire_glow_rect = ColorRect.new()
-	_fire_glow_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fire_glow_rect.z_index = -1
-	_fire_glow_rect.color = Color.WHITE
-	_fire_glow_rect.position = Vector2(CAULDRON_CENTER.x - 320.0, CAULDRON_CENTER.y + 305.0)
-	_fire_glow_rect.size = Vector2(640.0, 210.0)
-	if ResourceLoader.exists(CAULDRON_FIRE_SHADER_PATH):
-		var fire_shader: Shader = load(CAULDRON_FIRE_SHADER_PATH) as Shader
-		if fire_shader != null:
-			_fire_shader_mat = ShaderMaterial.new()
-			_fire_shader_mat.shader = fire_shader
-			_fire_glow_rect.material = _fire_shader_mat
-		else:
+	if _bg_sprite != null:
+		_bg_sprite.visible = false
+		_bg_shader_mat = _bg_sprite.material as ShaderMaterial
+
+	if _fire_glow_rect != null:
+		_fire_shader_mat = _fire_glow_rect.material as ShaderMaterial
+		if _fire_shader_mat == null:
 			_fire_glow_rect.visible = false
-	else:
-		_fire_glow_rect.visible = false
-	add_child(_fire_glow_rect)
 
-	if ResourceLoader.exists(FLASK_GLASS_TEX_PATH):
-		_flask_glass_tex = load(FLASK_GLASS_TEX_PATH) as Texture2D
-	if ResourceLoader.exists(FLASK_MASK_TEX_PATH):
-		_flask_mask_tex = load(FLASK_MASK_TEX_PATH) as Texture2D
-	if _flask_glass_tex != null and _flask_mask_tex != null:
-		_flask_liquid_sprite = Sprite2D.new()
-		_flask_liquid_sprite.centered = false
-		_flask_liquid_sprite.z_index = 1
-		_flask_liquid_sprite.texture = _flask_mask_tex
-		_flask_liquid_sprite.position = FLASK_RECT.position
-		var mask_sz: Vector2 = _flask_mask_tex.get_size()
-		if mask_sz.x > 0.0 and mask_sz.y > 0.0:
-			_flask_liquid_sprite.scale = FLASK_RECT.size / mask_sz
-		if ResourceLoader.exists(FLASK_LIQUID_SHADER_PATH):
-			var liq_shader: Shader = load(FLASK_LIQUID_SHADER_PATH) as Shader
-			if liq_shader != null:
-				_flask_liquid_mat = ShaderMaterial.new()
-				_flask_liquid_mat.shader = liq_shader
-				_flask_liquid_sprite.material = _flask_liquid_mat
-		add_child(_flask_liquid_sprite)
-
-		_flask_glass_sprite = Sprite2D.new()
-		_flask_glass_sprite.centered = false
-		_flask_glass_sprite.z_index = 2
-		_flask_glass_sprite.texture = _flask_glass_tex
-		_flask_glass_sprite.position = FLASK_RECT.position
-		var glass_sz: Vector2 = _flask_glass_tex.get_size()
-		if glass_sz.x > 0.0 and glass_sz.y > 0.0:
-			_flask_glass_sprite.scale = FLASK_RECT.size / glass_sz
-		add_child(_flask_glass_sprite)
+	if _flask_liquid_sprite != null:
+		_flask_mask_tex = _flask_liquid_sprite.texture
+		_flask_liquid_mat = _flask_liquid_sprite.material as ShaderMaterial
+	if _flask_glass_sprite != null:
+		_flask_glass_tex = _flask_glass_sprite.texture
 
 	_load_orb_textures()
 
-	camera = Camera2D.new()
-	camera.position = VIEWPORT_SIZE * 0.5
-	add_child(camera)
 	var audio: Node = _audio()
-	if audio != null:
+	if audio != null and camera != null:
 		audio.call("register_camera", camera)
 
 	for _i: int in range(20):
@@ -375,7 +310,7 @@ func _ready() -> void:
 		})
 
 	_recalc_stats()
-	_build_ui()
+	_connect_hud()
 	_start_stop()
 
 	var fader: Node = _fader()
@@ -440,11 +375,6 @@ func _process(delta: float) -> void:
 		_fire_shader_mat.set_shader_parameter("frenzy_amount", _bg_frenzy_mix)
 	_update_flask_fluid(delta)
 
-	if _toast_timer > 0.0:
-		_toast_timer = maxf(0.0, _toast_timer - delta)
-		if _toast_timer <= 0.0 and _toast_lbl != null:
-			_toast_lbl.visible = false
-
 	if _trixie_react_anim > 0.0:
 		_trixie_react_anim = maxf(0.0, _trixie_react_anim - delta * 3.2)
 
@@ -508,8 +438,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 				return
 			if kev.keycode == KEY_ESCAPE:
-				if _pause_overlay != null and not _fading_out:
-					_pause_overlay.visible = not _pause_overlay.visible
+				if _hud != null and not _fading_out:
+					_hud.toggle_pause()
 				get_viewport().set_input_as_handled()
 				return
 			if _closing_active:
@@ -602,7 +532,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _is_modal_open() -> bool:
-	return (_pause_overlay != null and _pause_overlay.visible) or _fading_out
+	return (_hud != null and _hud.is_pause_open()) or _fading_out
 
 
 func _reset_pointer_state() -> void:
@@ -873,8 +803,8 @@ func _start_stop() -> void:
 	_shockwaves.clear()
 	_tut_active = false
 	_tut_step = CauldronTutStep.NONE
-	if _cauldron_hud_root != null:
-		_cauldron_hud_root.visible = true
+	if _hud != null:
+		_hud.set_cauldron_hud_visible(true)
 	_hide_trixie_bubble(true)
 	_hide_customer_bubble(true)
 
@@ -901,8 +831,8 @@ func _start_stop() -> void:
 				_active_customer.display_name if _active_customer != null else "la clienta",
 			])
 
-	if _pause_map_btn != null:
-		_pause_map_btn.disabled = _tut_active
+	if _hud != null:
+		_hud.set_map_button_disabled(_tut_active)
 
 
 func _setup_tutorial_initial_orbs() -> void:
@@ -968,8 +898,8 @@ func _acknowledge_basic_tutorial_summary() -> void:
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
 	_set_trixie_reaction("confiada", 2.5, "¡Corre la paciencia de Sylvi! Llena su tubo al 100%.")
-	if _pause_map_btn != null:
-		_pause_map_btn.disabled = false
+	if _hud != null:
+		_hud.set_map_button_disabled(false)
 
 
 func _start_mix_tutorial() -> void:
@@ -982,8 +912,8 @@ func _start_mix_tutorial() -> void:
 	_play_pentatonic(5, -2.0)
 	_update_tutorial_banner()
 	_set_trixie_reaction("sorprendida", 3.2, "¡Pide un color mezclado! Pausé el tiempo para enseñarte a combinarlo.")
-	if _pause_map_btn != null:
-		_pause_map_btn.disabled = true
+	if _hud != null:
+		_hud.set_map_button_disabled(true)
 
 
 func _finish_mix_tutorial() -> void:
@@ -994,15 +924,15 @@ func _finish_mix_tutorial() -> void:
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
 	_set_trixie_reaction("confiada", 2.4, "¡Perfecto! Ya dominas las mezclas. ¡A atender antes de que pierda la paciencia!")
-	if _pause_map_btn != null:
-		_pause_map_btn.disabled = false
+	if _hud != null:
+		_hud.set_map_button_disabled(false)
 
 
 func _update_tutorial_banner() -> void:
-	if _trixie_bubble == null:
+	if _hud == null:
 		return
 	if not _tut_active or _closing_active or _tut_step == CauldronTutStep.NONE:
-		if _trixie_bubble.is_tutorial_mode:
+		if _hud.is_trixie_bubble_tutorial():
 			_hide_trixie_bubble(false)
 		return
 
@@ -1046,7 +976,7 @@ func _trigger_stop_end(victory: bool) -> void:
 	_round_end_timer = 1.35 if victory else 1.15
 	_reset_pointer_state()
 	_play_pentatonic(6 if victory else 1, -2.0)
-	if _trixie_bubble != null and _trixie_bubble.is_tutorial_mode:
+	if _hud != null and _hud.is_trixie_bubble_tutorial():
 		_hide_trixie_bubble(false)
 	_set_trixie_reaction("confiada" if victory else "hollin", 2.2, "")
 
@@ -1058,8 +988,8 @@ func _begin_closing_dialogue(victory: bool) -> void:
 	_reset_pointer_state()
 	_hide_trixie_bubble(true)
 	_hide_customer_bubble(true)
-	if _cauldron_hud_root != null:
-		_cauldron_hud_root.visible = false
+	if _hud != null:
+		_hud.set_cauldron_hud_visible(false)
 
 	var raw_lines: Array = []
 	if victory:
@@ -1083,8 +1013,8 @@ func _begin_closing_dialogue(victory: bool) -> void:
 		})
 
 	_closing_idx = -1
-	if _closing_overlay != null:
-		_closing_overlay.visible = true
+	if _hud != null:
+		_hud.open_closing_overlay()
 	_advance_closing_dialogue(true)
 
 
@@ -1110,15 +1040,15 @@ func _advance_closing_dialogue(animate_entrance: bool = false) -> void:
 	else:
 		_set_trixie_reaction(emo, 8.0, "")
 
-	if _closing_dialog_box != null:
-		_closing_dialog_box.show_line(speaker_name, speaker_col, body_txt, animate_entrance)
+	if _hud != null:
+		_hud.show_closing_line(speaker_name, speaker_col, body_txt, animate_entrance)
 
 
 func _handle_closing_advance_input() -> void:
 	if not _closing_active or _fading_out:
 		return
-	if _closing_dialog_box != null and _closing_dialog_box.is_typing():
-		_closing_dialog_box.complete_typing()
+	if _hud != null and _hud.is_closing_typing():
+		_hud.complete_closing_typing()
 		return
 	_advance_closing_dialogue(false)
 
@@ -2207,10 +2137,8 @@ func _complete_customer_order() -> void:
 
 
 func _show_toast(txt: String, duration: float = 3.5) -> void:
-	_toast_timer = duration
-	if _toast_lbl != null:
-		_toast_lbl.text = txt
-		_toast_lbl.visible = true
+	if _hud != null:
+		_hud.show_toast(txt, duration)
 
 
 func _set_trixie_reaction(emotion: String, dur: float, line: String) -> void:
@@ -2237,286 +2165,81 @@ func _set_customer_reaction(emotion: String, dur: float, line: String = "") -> v
 
 
 # ==============================================================================
-# UI BUILD (CLEAN CAULDRON HUD + TOP TUTORIAL + CLOSING DIALOGUE + PAUSE)
+# HUD CONNECTION & BUBBLE/PAUSE DELEGATES
 # ==============================================================================
 
-func _build_ui() -> void:
-	_ui_layer = CanvasLayer.new()
-	_ui_layer.layer = 10
-	add_child(_ui_layer)
-
-	# Top Bar (clean single-scene HUD without duplicated Tree or Gallery buttons)
-	var top_bar: PanelContainer = PanelContainer.new()
-	top_bar.position = Vector2.ZERO
-	top_bar.size = Vector2(1920, 76)
-	var tb_sb: StyleBoxFlat = StyleBoxFlat.new()
-	tb_sb.bg_color = Color(0.08, 0.05, 0.13, 0.95)
-	tb_sb.border_color = Color(0.76, 0.58, 0.28)
-	tb_sb.border_width_bottom = 3
-	top_bar.add_theme_stylebox_override("panel", tb_sb)
-	_ui_layer.add_child(top_bar)
-
-	var tb_pad: MarginContainer = MarginContainer.new()
-	tb_pad.add_theme_constant_override("margin_left", 24)
-	tb_pad.add_theme_constant_override("margin_right", 24)
-	tb_pad.add_theme_constant_override("margin_top", 10)
-	tb_pad.add_theme_constant_override("margin_bottom", 10)
-	top_bar.add_child(tb_pad)
-
-	var tb_hbox: HBoxContainer = HBoxContainer.new()
-	tb_hbox.add_theme_constant_override("separation", 18)
-	tb_pad.add_child(tb_hbox)
-
-	_top_essence_lbl = _make_label("✦ 0", 26, Color(1.0, 0.88, 0.36))
-	_top_essence_lbl.custom_minimum_size = Vector2(210, 0)
-	_top_stop_lbl = _make_label("📍 Afueras del Castillo", 20, Color(0.96, 0.88, 0.98))
-	_top_stop_lbl.custom_minimum_size = Vector2(360, 0)
-	_top_wave_lbl = _make_label("👥 Clienta: 1 / 2", 20, Color(0.72, 0.94, 1.0))
-	_top_wave_lbl.custom_minimum_size = Vector2(230, 0)
-	tb_hbox.add_child(_top_essence_lbl)
-	tb_hbox.add_child(_top_stop_lbl)
-	tb_hbox.add_child(_top_wave_lbl)
-
-	var sp1: Control = Control.new()
-	sp1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tb_hbox.add_child(sp1)
-
-	_top_timer_lbl = _make_label("0:55", 28, Color(1.0, 0.94, 0.78))
-	_top_timer_lbl.custom_minimum_size = Vector2(180, 0)
-	_top_timer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tb_hbox.add_child(_top_timer_lbl)
-
-	var sp2: Control = Control.new()
-	sp2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tb_hbox.add_child(sp2)
-
-	_pause_btn = _make_pill_button("⏸ PAUSA [ESC]", Color(0.24, 0.16, 0.34), Color(0.84, 0.66, 0.38))
-	_pause_btn.pressed.connect(func() -> void:
-		if _pause_overlay != null and not _fading_out:
-			_pause_overlay.visible = true
+func _connect_hud() -> void:
+	if _hud == null:
+		return
+	_hud.pause_requested.connect(func() -> void:
+		if not _fading_out:
+			_hud.set_pause_visible(true)
 	)
-	tb_hbox.add_child(_pause_btn)
-
-	_build_cauldron_hud()
-	_build_speech_bubbles()
-	_build_closing_dialogue_ui()
-	_build_modals()
-
-
-func _build_cauldron_hud() -> void:
-	_cauldron_hud_root = Control.new()
-	_cauldron_hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_cauldron_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(_cauldron_hud_root)
-
-	# Left Frenzy Dock cleanly below Trixie's halfbody
-	var left_card: PanelContainer = _make_card_panel(Vector2(20, 952), Vector2(448, 108), Color(0.10, 0.06, 0.16, 0.88), Color(0.92, 0.56, 0.40, 0.85))
-	_cauldron_hud_root.add_child(left_card)
-	var lv: VBoxContainer = VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 8)
-	left_card.get_child(0).add_child(lv)
-
-	_frenzy_bar = ProgressBar.new()
-	_frenzy_bar.custom_minimum_size = Vector2(416, 16)
-	_frenzy_bar.max_value = 100.0
-	_frenzy_bar.show_percentage = false
-	var fbg: StyleBoxFlat = StyleBoxFlat.new()
-	fbg.bg_color = Color(0.08, 0.04, 0.12, 0.92)
-	fbg.set_corner_radius_all(6)
-	var ffg: StyleBoxFlat = StyleBoxFlat.new()
-	ffg.bg_color = Color(1.0, 0.32, 0.44)
-	ffg.set_corner_radius_all(6)
-	_frenzy_bar.add_theme_stylebox_override("background", fbg)
-	_frenzy_bar.add_theme_stylebox_override("fill", ffg)
-	lv.add_child(_frenzy_bar)
-
-	_frenzy_btn = _make_pill_button("🔥 FRENESÍ (0%) [ESPACIO]", Color(0.68, 0.14, 0.24), Color(1.0, 0.84, 0.38))
-	_frenzy_btn.custom_minimum_size = Vector2(416, 48)
-	_frenzy_btn.pressed.connect(try_activate_frenzy)
-	lv.add_child(_frenzy_btn)
-
-	# Right Customer Status Strip + Patience Bar + Chemistry Legend (no static dialogue box)
-	var cust_hdr_card: PanelContainer = _make_card_panel(Vector2(1412, 886), Vector2(486, 42), Color(0.10, 0.06, 0.16, 0.90), Color(0.92, 0.68, 0.82, 0.85))
-	_cauldron_hud_root.add_child(cust_hdr_card)
-	var chdr: HBoxContainer = HBoxContainer.new()
-	cust_hdr_card.get_child(0).add_child(chdr)
-
-	_cust_name_lbl = _make_label("Sylvi", 19, Color(1.0, 0.93, 0.84))
-	_cust_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_cust_aff_lbl = _make_label("❤ Nv.0", 17, Color(1.0, 0.64, 0.80))
-	chdr.add_child(_cust_name_lbl)
-	chdr.add_child(_cust_aff_lbl)
-
-	var pat_card: PanelContainer = _make_card_panel(Vector2(1412, 932), Vector2(486, 46), Color(0.10, 0.06, 0.16, 0.90), Color(0.92, 0.72, 0.36, 0.85))
-	_cauldron_hud_root.add_child(pat_card)
-	var pat_hbox: HBoxContainer = HBoxContainer.new()
-	pat_hbox.add_theme_constant_override("separation", 10)
-	pat_card.get_child(0).add_child(pat_hbox)
-
-	_cust_patience_lbl = _make_label("⏳ 30s", 15, Color(1.0, 0.92, 0.65))
-	_cust_patience_lbl.custom_minimum_size = Vector2(138, 0)
-	pat_hbox.add_child(_cust_patience_lbl)
-
-	_cust_patience_bar = ProgressBar.new()
-	_cust_patience_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_cust_patience_bar.custom_minimum_size = Vector2(280, 18)
-	_cust_patience_bar.max_value = 100.0
-	_cust_patience_bar.value = 100.0
-	_cust_patience_bar.show_percentage = false
-	var pbg: StyleBoxFlat = StyleBoxFlat.new()
-	pbg.bg_color = Color(0.08, 0.04, 0.12, 0.94)
-	pbg.set_corner_radius_all(6)
-	_cust_patience_fill = StyleBoxFlat.new()
-	_cust_patience_fill.bg_color = Color(0.32, 0.88, 0.56)
-	_cust_patience_fill.set_corner_radius_all(6)
-	_cust_patience_bar.add_theme_stylebox_override("background", pbg)
-	_cust_patience_bar.add_theme_stylebox_override("fill", _cust_patience_fill)
-	pat_hbox.add_child(_cust_patience_bar)
-
-	var chem_card: PanelContainer = _make_card_panel(Vector2(1412, 984), Vector2(486, 68), Color(0.10, 0.06, 0.16, 0.88), Color(0.76, 0.60, 0.92, 0.85))
-	_cauldron_hud_root.add_child(chem_card)
-	_chem_visual_canvas = Control.new()
-	_chem_visual_canvas.custom_minimum_size = Vector2(450, 44)
-	_chem_visual_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_chem_visual_canvas.draw.connect(_draw_chem_visual_strip)
-	chem_card.get_child(0).add_child(_chem_visual_canvas)
-
-	_toast_lbl = _make_label("", 20, Color(1.0, 0.90, 0.42))
-	_toast_lbl.position = Vector2(825, 86)
-	_toast_lbl.size = Vector2(420, 64)
-	_toast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_toast_lbl.visible = false
-	_cauldron_hud_root.add_child(_toast_lbl)
+	_hud.frenzy_requested.connect(try_activate_frenzy)
+	_hud.tutorial_ack_pressed.connect(_acknowledge_basic_tutorial_summary)
+	_hud.closing_advance_requested.connect(_handle_closing_advance_input)
+	_hud.closing_typewriter_tick.connect(func() -> void:
+		_play_pentatonic(3, -12.0)
+	)
+	_hud.return_to_map_requested.connect(_on_pause_return_to_map)
+	_hud.restart_requested.connect(_on_pause_restart)
+	_hud.main_menu_requested.connect(_on_pause_main_menu)
+	if _hud.chem_visual_canvas != null:
+		_hud.chem_visual_canvas.draw.connect(_draw_chem_visual_strip)
 
 
-func _build_speech_bubbles() -> void:
-	# Trixie parchment speech bubble (top-left above cauldron, handles tutorials & quick reactions)
-	_trixie_bubble = SPEECH_BUBBLE_SCENE.instantiate() as SpeechBubble
-	_trixie_bubble.flip_tail_right = false
-	_trixie_bubble.default_title_color = Color(0.68, 0.14, 0.34)
-	_trixie_bubble.visible = false
-	_ui_layer.add_child(_trixie_bubble)
-	_trixie_bubble.set_base_position(TRIXIE_BUBBLE_POS)
-	_trixie_bubble.ack_pressed.connect(_acknowledge_basic_tutorial_summary)
+func _on_pause_return_to_map() -> void:
+	if _fading_out or _tut_active:
+		return
+	if _hud != null:
+		_hud.set_pause_visible(false)
+	_fading_out = true
+	var fader: Node = _fader()
+	if fader != null:
+		fader.call("fade_to_scene", "res://scenes/meta/WorldMap.tscn", 0.45, 0.45)
+	else:
+		get_tree().change_scene_to_file("res://scenes/meta/WorldMap.tscn")
 
-	# Customer ephemeral speech bubble (mirrored parchment bubble pointing down-right toward customer)
-	_cust_bubble = SPEECH_BUBBLE_SCENE.instantiate() as SpeechBubble
-	_cust_bubble.flip_tail_right = true
-	_cust_bubble.default_title_color = Color(0.56, 0.12, 0.28)
-	_cust_bubble.visible = false
-	_ui_layer.add_child(_cust_bubble)
-	_cust_bubble.set_base_position(CUSTOMER_BUBBLE_POS)
+
+func _on_pause_restart() -> void:
+	if _hud != null:
+		_hud.set_pause_visible(false)
+	_state().reset_run()
+	get_tree().reload_current_scene()
+
+
+func _on_pause_main_menu() -> void:
+	if _hud != null:
+		_hud.set_pause_visible(false)
+	var fader: Node = _fader()
+	if fader != null:
+		fader.call("fade_to_scene", "res://scenes/ui/MainMenu.tscn", 0.4, 0.4)
+	else:
+		get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn")
 
 
 func _show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false, show_ack: bool = false) -> void:
-	if _trixie_bubble == null or _closing_active or text == "":
+	if _hud == null or _closing_active or text == "":
 		return
 	if _tut_active and not is_tutorial:
 		return
-	_trixie_bubble.show_message(title, text, duration, is_tutorial, show_ack)
+	_hud.show_trixie_bubble(title, text, duration, is_tutorial, show_ack)
 
 
 func _hide_trixie_bubble(instant: bool = false) -> void:
-	if _trixie_bubble != null:
-		_trixie_bubble.hide_bubble(instant)
+	if _hud != null:
+		_hud.hide_trixie_bubble(instant)
 
 
 func _show_customer_bubble(speaker_name: String, text: String, duration: float = 3.2) -> void:
-	if _cust_bubble == null or _closing_active or text == "":
+	if _hud == null or _closing_active or text == "":
 		return
-	_cust_bubble.show_message(speaker_name, text, duration, false, false)
+	_hud.show_customer_bubble(speaker_name, text, duration)
 
 
 func _hide_customer_bubble(instant: bool = false) -> void:
-	if _cust_bubble != null:
-		_cust_bubble.hide_bubble(instant)
-
-
-func _build_closing_dialogue_ui() -> void:
-	_closing_overlay = Control.new()
-	_closing_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_closing_overlay.visible = false
-	_closing_overlay.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton:
-			var mb: InputEventMouseButton = ev as InputEventMouseButton
-			if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-				_handle_closing_advance_input()
-	)
-	_ui_layer.add_child(_closing_overlay)
-
-	_closing_dialog_box = DIALOG_BOX_SCENE.instantiate() as DialogBox
-	_closing_overlay.add_child(_closing_dialog_box)
-	_closing_dialog_box.set_base_position(CLOSING_PARCHMENT_POS)
-	_closing_dialog_box.chars_per_sec = CLOSING_CHARS_PER_SEC
-	_closing_dialog_box.set_body_font_size(26)
-	_closing_dialog_box.set_continue_prompt("Clic / Espacio para ir al Mapa ▾")
-	_closing_dialog_box.typewriter_tick.connect(func(_ci: int) -> void:
-		_play_pentatonic(3, -12.0)
-	)
-
-
-func _build_modals() -> void:
-	_pause_overlay = ColorRect.new()
-	_pause_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_pause_overlay.color = Color(0.04, 0.02, 0.08, 0.84)
-	_pause_overlay.visible = false
-	_ui_layer.add_child(_pause_overlay)
-
-	var p_center: CenterContainer = CenterContainer.new()
-	p_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_pause_overlay.add_child(p_center)
-	var p_panel: PanelContainer = _make_card_panel(Vector2.ZERO, Vector2(460, 430), Color(0.12, 0.08, 0.19, 0.98), Color(0.88, 0.68, 0.36))
-	p_panel.custom_minimum_size = Vector2(460, 430)
-	p_center.add_child(p_panel)
-
-	var p_vbox: VBoxContainer = VBoxContainer.new()
-	p_vbox.add_theme_constant_override("separation", 16)
-	p_panel.get_child(0).add_child(p_vbox)
-	var p_hdr: Label = _make_label("PAUSA", 34, Color(1.0, 0.88, 0.44))
-	p_hdr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	p_vbox.add_child(p_hdr)
-
-	var res_btn: Button = _make_pill_button("REANUDAR", Color(0.18, 0.46, 0.28), Color(0.56, 1.0, 0.60))
-	res_btn.custom_minimum_size = Vector2(0, 54)
-	res_btn.pressed.connect(func() -> void: _pause_overlay.visible = false)
-
-	_pause_map_btn = _make_pill_button("🗺 VOLVER AL MAPA", Color(0.20, 0.32, 0.48), Color(0.55, 0.88, 1.0))
-	_pause_map_btn.custom_minimum_size = Vector2(0, 54)
-	_pause_map_btn.pressed.connect(func() -> void:
-		if _fading_out or _tut_active:
-			return
-		_pause_overlay.visible = false
-		_fading_out = true
-		var fader: Node = _fader()
-		if fader != null:
-			fader.call("fade_to_scene", "res://scenes/meta/WorldMap.tscn", 0.45, 0.45)
-		else:
-			get_tree().change_scene_to_file("res://scenes/meta/WorldMap.tscn")
-	)
-
-	var rst_btn: Button = _make_pill_button("REINICIAR PARTIDA", Color(0.46, 0.24, 0.16), Color(1.0, 0.72, 0.40))
-	rst_btn.custom_minimum_size = Vector2(0, 54)
-	rst_btn.pressed.connect(func() -> void:
-		_pause_overlay.visible = false
-		_state().reset_run()
-		get_tree().reload_current_scene()
-	)
-
-	var menu_btn: Button = _make_pill_button("MENÚ PRINCIPAL", Color(0.28, 0.16, 0.38), Color(0.88, 0.66, 0.98))
-	menu_btn.custom_minimum_size = Vector2(0, 54)
-	menu_btn.pressed.connect(func() -> void:
-		_pause_overlay.visible = false
-		var fader: Node = _fader()
-		if fader != null:
-			fader.call("fade_to_scene", "res://scenes/ui/MainMenu.tscn", 0.4, 0.4)
-		else:
-			get_tree().change_scene_to_file("res://scenes/ui/MainMenu.tscn")
-	)
-	p_vbox.add_child(res_btn)
-	p_vbox.add_child(_pause_map_btn)
-	p_vbox.add_child(rst_btn)
-	p_vbox.add_child(menu_btn)
+	if _hud != null:
+		_hud.hide_customer_bubble(instant)
 
 
 # ==============================================================================
@@ -2834,12 +2557,18 @@ func _draw_alchemy_orb(o: Dictionary, shake_v: Vector2, is_lifted: bool) -> void
 		draw_string(font, pos + Vector2(-r * 0.60 - 11, -r * 0.60 + 5), "x%d" % tier, HORIZONTAL_ALIGNMENT_CENTER, 22, 12, Color(1.0, 0.92, 0.52))
 
 
+func _get_flask_rect() -> Rect2:
+	var pos: Vector2 = _potion_flask.position if _potion_flask != null else FLASK_RECT.position
+	return Rect2(pos, FLASK_RECT.size)
+
+
 func _draw_vertical_potion_tube() -> void:
 	var font: Font = ThemeDB.fallback_font
+	var f_rect: Rect2 = _get_flask_rect()
 	if _flask_glass_tex != null and _flask_liquid_mat != null:
 		var pct_txt: String = "%d%%" % int(roundf(_potion_tube_pct))
-		var lbl_pos: Vector2 = Vector2(FLASK_RECT.position.x - 4.0, FLASK_RECT.end.y + 30.0)
-		var lbl_w: int = int(FLASK_RECT.size.x + 8.0)
+		var lbl_pos: Vector2 = Vector2(f_rect.position.x - 4.0, f_rect.end.y + 30.0)
+		var lbl_w: int = int(f_rect.size.x + 8.0)
 		draw_string(font, lbl_pos + Vector2(2, 2), pct_txt, HORIZONTAL_ALIGNMENT_CENTER, lbl_w, 24, Color(0.05, 0.02, 0.10, 0.90))
 		draw_string(font, lbl_pos, pct_txt, HORIZONTAL_ALIGNMENT_CENTER, lbl_w, 24, Color(1.0, 0.94, 0.78))
 		return
@@ -2906,7 +2635,8 @@ func _draw_visual_order_bubble() -> void:
 	var pulse: float = 0.5 + 0.5 * sin(_time * 4.5)
 
 	# Glowing beam connecting requested color bubble into the flask cork
-	var flask_cork: Vector2 = Vector2(FLASK_RECT.position.x + FLASK_RECT.size.x * 0.5, FLASK_RECT.position.y + 8.0)
+	var f_rect: Rect2 = _get_flask_rect()
+	var flask_cork: Vector2 = Vector2(f_rect.position.x + f_rect.size.x * 0.5, f_rect.position.y + 8.0)
 	draw_line(Vector2(1338.0, box.end.y), flask_cork, Color(liked_col.r, liked_col.g, liked_col.b, 0.55), 4.0)
 
 	# Bubble backdrop + pointer tail toward customer on the right
@@ -2944,42 +2674,43 @@ func _draw_visual_order_bubble() -> void:
 
 
 func _draw_chem_visual_strip() -> void:
-	if _chem_visual_canvas == null:
+	if _hud == null or _hud.chem_visual_canvas == null:
 		return
+	var canvas: Control = _hud.chem_visual_canvas
 	var chem: Dictionary = get_customer_chemistry()
 	var liked_k: int = int(chem["liked"])
 	var disliked_k: int = int(chem["disliked"])
 	var font: Font = ThemeDB.fallback_font
-	var cy: float = _chem_visual_canvas.size.y * 0.5
+	var cy: float = canvas.size.y * 0.5
 
-	_chem_visual_canvas.draw_string(font, Vector2(4.0, cy + 5.0), "PIDE:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.55, 1.0, 0.68))
-	_draw_mini_orb_badge(_chem_visual_canvas, Vector2(72.0, cy), 17.0, liked_k, false)
+	canvas.draw_string(font, Vector2(4.0, cy + 5.0), "PIDE:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.55, 1.0, 0.68))
+	_draw_mini_orb_badge(canvas, Vector2(72.0, cy), 17.0, liked_k, false)
 
 	if is_mixed_kind(liked_k):
 		var comps: Array[int] = get_recipe_components(liked_k)
-		_chem_visual_canvas.draw_string(font, Vector2(96.0, cy + 6.0), "=", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1.0, 0.92, 0.65))
-		_draw_mini_orb_badge(_chem_visual_canvas, Vector2(130.0, cy), 14.0, comps[0], false)
-		_chem_visual_canvas.draw_string(font, Vector2(150.0, cy + 6.0), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.92, 0.65))
-		_draw_mini_orb_badge(_chem_visual_canvas, Vector2(182.0, cy), 14.0, comps[1], false)
+		canvas.draw_string(font, Vector2(96.0, cy + 6.0), "=", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1.0, 0.92, 0.65))
+		_draw_mini_orb_badge(canvas, Vector2(130.0, cy), 14.0, comps[0], false)
+		canvas.draw_string(font, Vector2(150.0, cy + 6.0), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.92, 0.65))
+		_draw_mini_orb_badge(canvas, Vector2(182.0, cy), 14.0, comps[1], false)
 	else:
 		var neutral_k: int = int(chem["neutral"])
-		_chem_visual_canvas.draw_string(font, Vector2(106.0, cy + 5.0), "OK:", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.84, 0.88, 0.96))
-		_draw_mini_orb_badge(_chem_visual_canvas, Vector2(152.0, cy), 14.0, neutral_k, false)
+		canvas.draw_string(font, Vector2(106.0, cy + 5.0), "OK:", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.84, 0.88, 0.96))
+		_draw_mini_orb_badge(canvas, Vector2(152.0, cy), 14.0, neutral_k, false)
 
-	_chem_visual_canvas.draw_line(Vector2(276.0, 6.0), Vector2(276.0, _chem_visual_canvas.size.y - 6.0), Color(1, 1, 1, 0.16), 2.0)
-	_chem_visual_canvas.draw_string(font, Vector2(294.0, cy + 5.0), "EVITA:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.45, 0.50))
-	_draw_mini_orb_badge(_chem_visual_canvas, Vector2(374.0, cy), 17.0, disliked_k, true)
+	canvas.draw_line(Vector2(276.0, 6.0), Vector2(276.0, canvas.size.y - 6.0), Color(1, 1, 1, 0.16), 2.0)
+	canvas.draw_string(font, Vector2(294.0, cy + 5.0), "EVITA:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.45, 0.50))
+	_draw_mini_orb_badge(canvas, Vector2(374.0, cy), 17.0, disliked_k, true)
 
 
 func _draw_trixie_stage_left() -> void:
-	CharacterArt.draw_trixie_halfbody(self, Rect2(-8, 124, 520, 816), _trixie_emotion, _time, 1.0, _trixie_react_anim)
+	CharacterArt.draw_trixie_halfbody(self, _trixie_stage_rect, _trixie_emotion, _time, 1.0, _trixie_react_anim)
 
 
 func _draw_customer_stage_right() -> void:
 	var slide_off: float = (1.0 - _customer_slide_t) * 140.0
 	if _active_customer != null:
 		if CharacterArt.has_customer_halfbody(_active_customer.customer_id):
-			var stage: Rect2 = Rect2(1404 + slide_off, 108, 520, 822)
+			var stage: Rect2 = Rect2(_customer_stage_rect.position + Vector2(slide_off, 0.0), _customer_stage_rect.size)
 			CharacterArt.draw_customer_halfbody(self, stage, _active_customer.customer_id, _customer_emotion, _time, 1.0, _customer_react_anim)
 		else:
 			var stage: Rect2 = Rect2(1408 + slide_off, 150, 486, 580)
@@ -3065,63 +2796,34 @@ static func draw_expressive_waifu_bust(ci: CanvasItem, rect: Rect2, cid: StringN
 # ==============================================================================
 
 func _refresh_hud_labels() -> void:
-	if _top_essence_lbl == null:
+	if _hud == null:
 		return
-	_top_essence_lbl.text = "✦ %d" % essence_gold
 	var stop_icon: String = String(_active_stop.get("icon", "📍"))
 	var stop_name: String = String(_active_stop.get("name", "Parada"))
-	_top_stop_lbl.text = "%s %s" % [stop_icon, stop_name]
 	var shown_wave: int = mini(_wave_index + 1, _wave_customers.size())
-	_top_wave_lbl.text = "👥 Clienta: %d/%d  (✅%d ❌%d)" % [shown_wave, _wave_customers.size(), _wave_served_count, _wave_missed_count]
-
-	var p_ratio: float = clampf(customer_patience_left / maxf(1.0, customer_patience_max), 0.0, 1.0)
-	if _is_patience_paused_for_tutorial():
-		_top_timer_lbl.text = "⏸ Tutorial"
-		_top_timer_lbl.modulate = Color(1.0, 0.88, 0.42)
-	else:
-		var secs_int: int = ceili(customer_patience_left)
-		_top_timer_lbl.text = "⏳ Paciencia: %ds" % secs_int
-		_top_timer_lbl.modulate = Color(1.0, 0.38, 0.42) if p_ratio <= CUSTOMER_IMPATIENT_RATIO else Color(1.0, 0.94, 0.78)
-
-	if _cust_patience_bar != null:
-		_cust_patience_bar.value = p_ratio * 100.0
-	if _cust_patience_fill != null:
-		if _is_patience_paused_for_tutorial():
-			_cust_patience_fill.bg_color = Color(0.45, 0.82, 1.0)
-		elif p_ratio > 0.55:
-			_cust_patience_fill.bg_color = Color(0.32, 0.88, 0.56)
-		elif p_ratio > CUSTOMER_IMPATIENT_RATIO:
-			_cust_patience_fill.bg_color = Color(0.98, 0.74, 0.24)
-		else:
-			_cust_patience_fill.bg_color = Color(1.0, 0.30, 0.38)
-	if _cust_patience_lbl != null:
-		if _is_patience_paused_for_tutorial():
-			_cust_patience_lbl.text = "⏸ Pausado"
-			_cust_patience_lbl.modulate = Color(0.65, 0.92, 1.0)
-		else:
-			var p_secs: int = ceili(customer_patience_left)
-			_cust_patience_lbl.text = "⏳ Paciencia: %ds" % p_secs
-			_cust_patience_lbl.modulate = Color(1.0, 0.42, 0.46) if p_ratio <= CUSTOMER_IMPATIENT_RATIO else Color(1.0, 0.92, 0.65)
-
-	if _frenzy_bar != null:
-		_frenzy_bar.value = 100.0 if _frenzy_timer > 0.0 else _frenzy_charge
-	if _frenzy_btn != null:
-		if _frenzy_timer > 0.0:
-			_frenzy_btn.text = "🔥 ¡FRENESÍ x2 ACTIVO! (%.1fs)" % _frenzy_timer
-			_frenzy_btn.disabled = true
-		elif _frenzy_charge >= 100.0:
-			_frenzy_btn.text = "💥 ¡ACTIVAR FRENESÍ x2! [ESPACIO]"
-			_frenzy_btn.disabled = false
-		else:
-			_frenzy_btn.text = "FRENESÍ (%d%%)" % int(_frenzy_charge)
-			_frenzy_btn.disabled = true
-
-	if _active_customer != null and _cust_name_lbl != null:
+	var cust_title: String = ""
+	var aff_txt: String = ""
+	if _active_customer != null:
 		var cid: StringName = _active_customer.customer_id
-		_cust_name_lbl.text = "%s (%s)" % [_active_customer.display_name, _active_customer.species_archetype]
-		_cust_aff_lbl.text = "❤ Nv.%d · +%d✦" % [get_affinity_level(cid), _customer_order_reward]
-	if _chem_visual_canvas != null:
-		_chem_visual_canvas.queue_redraw()
+		cust_title = "%s (%s)" % [_active_customer.display_name, _active_customer.species_archetype]
+		aff_txt = "❤ Nv.%d · +%d✦" % [get_affinity_level(cid), _customer_order_reward]
+	_hud.refresh_status(
+		essence_gold,
+		stop_icon,
+		stop_name,
+		shown_wave,
+		_wave_customers.size(),
+		_wave_served_count,
+		_wave_missed_count,
+		customer_patience_left,
+		customer_patience_max,
+		_is_patience_paused_for_tutorial(),
+		CUSTOMER_IMPATIENT_RATIO,
+		_frenzy_charge,
+		_frenzy_timer,
+		cust_title,
+		aff_txt
+	)
 
 
 func _spawn_popup(world_pos: Vector2, txt: String, col: Color) -> void:
@@ -3137,61 +2839,6 @@ func _update_popups(delta: float) -> void:
 			_popups.remove_at(idx)
 			continue
 		idx += 1
-
-
-static func _make_label(txt: String, fsize: int, col: Color) -> Label:
-	var lbl: Label = Label.new()
-	lbl.text = txt
-	lbl.add_theme_font_size_override("font_size", fsize)
-	lbl.add_theme_color_override("font_color", col)
-	lbl.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.09))
-	lbl.add_theme_constant_override("outline_size", 3)
-	return lbl
-
-
-static func _make_pill_button(txt: String, bg: Color, border: Color) -> Button:
-	var btn: Button = Button.new()
-	btn.text = txt
-	btn.add_theme_font_size_override("font_size", 17)
-	btn.add_theme_color_override("font_color", Color(1.0, 0.96, 0.92))
-	var normal: StyleBoxFlat = StyleBoxFlat.new()
-	normal.bg_color = bg
-	normal.border_color = border
-	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(10)
-	normal.content_margin_left = 14
-	normal.content_margin_right = 14
-	normal.content_margin_top = 6
-	normal.content_margin_bottom = 6
-	var hover: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
-	hover.bg_color = bg.lightened(0.16)
-	hover.border_color = border.lightened(0.20)
-	var disabled: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
-	disabled.bg_color = Color(0.16, 0.14, 0.22)
-	disabled.border_color = Color(0.35, 0.32, 0.45)
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("disabled", disabled)
-	return btn
-
-
-static func _make_card_panel(pos: Vector2, sz: Vector2, bg: Color, border: Color) -> PanelContainer:
-	var panel: PanelContainer = PanelContainer.new()
-	panel.position = pos
-	panel.size = sz
-	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(12)
-	panel.add_theme_stylebox_override("panel", sb)
-	var pad: MarginContainer = MarginContainer.new()
-	pad.add_theme_constant_override("margin_left", 16)
-	pad.add_theme_constant_override("margin_right", 16)
-	pad.add_theme_constant_override("margin_top", 12)
-	pad.add_theme_constant_override("margin_bottom", 12)
-	panel.add_child(pad)
-	return panel
 
 
 # ==============================================================================
@@ -3227,11 +2874,7 @@ func run_incremental_smoke_step() -> Dictionary:
 	var stop_bg_tex_ok: bool = (_stop_bg_tex != null and _stop_bg_tex.resource_path == "res://assets/backgrounds/bg_01_castillo.jpg" and _bg_sprite != null and _bg_sprite.visible)
 	var flask_assets_ok: bool = (_flask_glass_tex != null and _flask_mask_tex != null and _flask_liquid_mat != null and _flask_glass_sprite != null and _flask_liquid_sprite != null)
 	var orb_sprites_ok: bool = (_orb_textures.size() == 8 and _crack_textures.size() == 2 and _crack_glow_textures.size() == 2)
-	var dialog_bg_tex_ok: bool = (
-		_closing_dialog_box != null and _closing_dialog_box.has_textures()
-		and _trixie_bubble != null and _trixie_bubble.has_textures()
-		and _cust_bubble != null and _cust_bubble.has_textures()
-	)
+	var dialog_bg_tex_ok: bool = (_hud != null and _hud.has_dialog_and_bubble_textures())
 	var pueblo_bg_exists_ok: bool = ResourceLoader.exists("res://assets/backgrounds/bg_02_pueblo.jpg")
 	var no_duplicate_meta_buttons_in_main: bool = (
 		get("_tab_tree_btn") == null
@@ -3300,8 +2943,8 @@ func run_incremental_smoke_step() -> Dictionary:
 	var roxy_halfbodies_distinct_ok: bool = all_roxy_ok and roxy_paths.size() == 3
 
 	var st: Node = _state()
-	var tut_step_1_ok: bool = _tut_active and _tut_step == CauldronTutStep.BASIC_BREAK_LIKED and _trixie_bubble != null and _trixie_bubble.visible and not st.mix_tutorial_done
-	var banner_above_cauldron_ok: bool = (_trixie_bubble != null and (_trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (CAULDRON_CENTER.y - CAULDRON_ELLIPSE_RY))
+	var tut_step_1_ok: bool = _tut_active and _tut_step == CauldronTutStep.BASIC_BREAK_LIKED and _hud != null and _hud.trixie_bubble != null and _hud.trixie_bubble.visible and not st.mix_tutorial_done
+	var banner_above_cauldron_ok: bool = (_hud != null and _hud.trixie_bubble != null and (_hud.trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (CAULDRON_CENTER.y - CAULDRON_ELLIPSE_RY))
 
 	# 1) Verify idle frame causes zero passive extraction AND tutorial pauses patience!
 	var tube_before: float = _potion_tube_pct
@@ -3350,7 +2993,7 @@ func run_incremental_smoke_step() -> Dictionary:
 	_orbs.append(bad_p)
 	_purge_orb_by_id(int(bad_p["id"]))
 	var purge_kept_combo: bool = (_combo == 1 and _potion_tube_pct > 15.0)
-	var tut_step_3_ok: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY and _trixie_bubble != null and _trixie_bubble.is_ack_visible())
+	var tut_step_3_ok: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY and _hud != null and _hud.trixie_bubble != null and _hud.trixie_bubble.is_ack_visible())
 
 	# Acknowledge summary -> basic tutorial done and patience starts counting down
 	_acknowledge_basic_tutorial_summary()
@@ -3442,13 +3085,13 @@ func run_incremental_smoke_step() -> Dictionary:
 	var end_triggered_gracefully: bool = round_ending and _wave_victory and not _closing_active
 	_round_end_timer = 0.0
 	_process_cauldron_gameplay(0.05)
-	var closing_opened_ok: bool = _closing_active and _closing_overlay != null and _closing_overlay.visible and _closing_lines.size() == 1 and String(_closing_lines[0].get("speaker", "")) == "trixie"
+	var closing_opened_ok: bool = _closing_active and _hud != null and _hud.is_closing_visible() and _closing_lines.size() == 1 and String(_closing_lines[0].get("speaker", "")) == "trixie"
 
 	for _step: int in range(10):
 		if not _closing_active or _fading_out:
 			break
-		if _closing_dialog_box != null:
-			_closing_dialog_box.complete_typing()
+		if _hud != null:
+			_hud.complete_closing_typing()
 		_handle_closing_advance_input()
 
 	var wave_closing_dialogue_ok: bool = (
