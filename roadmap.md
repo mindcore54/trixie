@@ -165,7 +165,8 @@
 * **2026-11-24 — Refactorización Modular (Fases 0 y 1 Completadas):**
   * **Fase 0 (Limpieza):** eliminados los 5 scripts sin uso del antiguo prototipo 2.5D de cocina (`KitchenHUD.gd`, `KitchenStation.gd`, `WitchController.gd`, `FamiliarEntity.gd`, `CustomerEntity.gd`, conservados en el historial de `main`).
   * **Fase 1 (Prefabs UI editables en Godot + Shader de sombra):** extraídos [DialogBox.tscn](scenes/ui/DialogBox.tscn) ([DialogBox.gd](scripts/ui/DialogBox.gd)) y [SpeechBubble.tscn](scenes/ui/SpeechBubble.tscn) ([SpeechBubble.gd](scripts/ui/SpeechBubble.gd)) con sombra dinámica por shader ([ui_drop_shadow.gdshader](shaders/ui_drop_shadow.gdshader), eliminando los PNG horneados de sombra) e integrados en [IntroCutscene.gd](scripts/ui/IntroCutscene.gd) y [MainGame.gd](scripts/core/MainGame.gd), bajando [MainGame.gd](scripts/core/MainGame.gd) de `3.310` a `3.064` líneas.
-  * **Validación:** [smoke_test_slice.gd](tools/smoke_test_slice.gd) superado (`INCREMENTAL SMOKE RESULT: PASS`).
+  * **Fase 2 (Pantallas simples visibles en el editor):** convertidas [MainMenu.tscn](scenes/ui/MainMenu.tscn) ([MainMenu.gd](scripts/ui/MainMenu.gd)) e [IntroCutscene.tscn](scenes/ui/IntroCutscene.tscn) ([IntroCutscene.gd](scripts/ui/IntroCutscene.gd)) en árboles de nodos reales con fondo, logo + shader, botones, modal de opciones, retrato de Trixie e instancia de [DialogBox.tscn](scenes/ui/DialogBox.tscn) editables directo en el viewport de Godot.
+  * **Validación:** [MainMenu.tscn](scenes/ui/MainMenu.tscn), [IntroCutscene.tscn](scenes/ui/IntroCutscene.tscn) y [smoke_test_slice.gd](tools/smoke_test_slice.gd) superados en headless (`INCREMENTAL SMOKE RESULT: PASS`).
 
 ---
 
