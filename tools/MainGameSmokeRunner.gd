@@ -5,11 +5,15 @@ extends RefCounted
 
 
 static func run(m: MainGame) -> Dictionary:
-	var initial_cap_ok: bool = (m.spawn_cap == 6 and m._orbs.size() == 6 and m.click_damage == 1 and not m.hold_auto_hit_unlocked)
-	var cauldron_tex_ok: bool = (m._cauldron_tex != null and m._cauldron_tex.resource_path == MainGame.CAULDRON_TEX_PATH)
+	var b: CauldronBoard = m._board
+	var w: WaveDirector = m._wave
+	var c_center: Vector2 = b.get_center() if b != null else MainGame.CAULDRON_CENTER
+
+	var initial_cap_ok: bool = (b != null and b.spawn_cap == 6 and b.orbs.size() == 6 and b.click_damage == 1 and not b.hold_auto_hit_unlocked)
+	var cauldron_tex_ok: bool = (b != null and b.cauldron_tex != null and b.cauldron_tex.resource_path == CauldronBoard.CAULDRON_TEX_PATH)
 	var stop_bg_tex_ok: bool = (m._stop_bg_tex != null and m._stop_bg_tex.resource_path == "res://assets/backgrounds/bg_01_castillo.jpg" and m._bg_sprite != null and m._bg_sprite.visible)
 	var flask_assets_ok: bool = (m._flask_view != null and m._flask_view.has_assets())
-	var orb_sprites_ok: bool = (m._orb_textures.size() == 8 and m._crack_textures.size() == 2 and m._crack_glow_textures.size() == 2)
+	var orb_sprites_ok: bool = (b != null and b.orb_textures.size() == 8 and b.crack_textures.size() == 2 and b.crack_glow_textures.size() == 2)
 	var dialog_bg_tex_ok: bool = (m._hud != null and m._hud.has_dialog_and_bubble_textures())
 	var pueblo_bg_exists_ok: bool = ResourceLoader.exists("res://assets/backgrounds/bg_02_pueblo.jpg")
 	var no_duplicate_meta_buttons_in_main: bool = (
@@ -90,152 +94,152 @@ static func run(m: MainGame) -> Dictionary:
 	var banner_above_cauldron_ok: bool = (
 		m._hud != null
 		and m._hud.trixie_bubble != null
-		and (m._hud.trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (MainGame.CAULDRON_CENTER.y - MainGame.CAULDRON_ELLIPSE_RY)
+		and (m._hud.trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (c_center.y - CauldronBoard.ELLIPSE_RY)
 	)
 
 	# 1) Verify idle frame causes zero passive extraction AND tutorial pauses patience!
-	var tube_before: float = m._potion_tube_pct
+	var tube_before: float = w.potion_tube_pct
 	var ess_before: int = m.essence_gold
-	var pat_before: float = m.customer_patience_left
+	var pat_before: float = w.customer_patience_left
 	m._process_cauldron_gameplay(5.0)
-	var no_autoclicker_ok: bool = (m._potion_tube_pct == tube_before and m.essence_gold == ess_before)
-	var tutorial_pauses_patience_ok: bool = (m.customer_patience_left == pat_before)
+	var no_autoclicker_ok: bool = (w.potion_tube_pct == tube_before and m.essence_gold == ess_before)
+	var tutorial_pauses_patience_ok: bool = (w.customer_patience_left == pat_before)
 
 	# 2) Verify 3 hits break a tier-1 orb initially (advances basic tutorial 1 -> 2)
 	var chem: Dictionary = m.get_customer_chemistry()
 	var liked_k: int = int(chem["liked"])
 	var disliked_k: int = int(chem["disliked"])
 
-	m._orbs.clear()
-	var red_orb: Dictionary = m._make_orb_dict(liked_k, MainGame.CAULDRON_CENTER, 1)
+	b.orbs.clear()
+	var red_orb: Dictionary = b.make_orb_dict(liked_k, c_center, 1)
 	var red_id: int = int(red_orb["id"])
-	m._orbs.append(red_orb)
-	var h1_broke: bool = m._hit_orb_by_id(red_id, m.click_damage, true)
-	var h2_broke: bool = m._hit_orb_by_id(red_id, m.click_damage, true)
-	var hp_before_3: int = int(m._orbs[0]["hp"]) if m._orbs.size() == 1 else -1
-	var h3_broke: bool = m._hit_orb_by_id(red_id, m.click_damage, true)
-	var three_clicks_to_break_ok: bool = (not h1_broke and not h2_broke and hp_before_3 == 1 and h3_broke and m._potion_tube_pct > 15.0 and m._combo == 1)
+	b.orbs.append(red_orb)
+	var h1_broke: bool = b.hit_orb_by_id(red_id, b.click_damage, true)
+	var h2_broke: bool = b.hit_orb_by_id(red_id, b.click_damage, true)
+	var hp_before_3: int = int(b.orbs[0]["hp"]) if b.orbs.size() == 1 else -1
+	var h3_broke: bool = b.hit_orb_by_id(red_id, b.click_damage, true)
+	var three_clicks_to_break_ok: bool = (not h1_broke and not h2_broke and hp_before_3 == 1 and h3_broke and w.potion_tube_pct > 15.0 and b.combo == 1)
 	var tut_step_2_ok: bool = (m._tutorial.step == TutorialDirector.Step.BASIC_PURGE_DISLIKED)
 
 	# 3) Verify lift-and-drop color combining & concentration mechanics
-	m._orbs.clear()
-	var mix_a: Dictionary = m._make_orb_dict(ChemistryRules.BubbleKind.RED, MainGame.CAULDRON_CENTER + Vector2(-60, 0), 1)
-	var mix_b: Dictionary = m._make_orb_dict(ChemistryRules.BubbleKind.GREEN, MainGame.CAULDRON_CENTER + Vector2(60, 0), 1)
-	m._orbs.append(mix_a)
-	m._orbs.append(mix_b)
-	var combined_color: bool = m._combine_orbs_by_id(int(mix_a["id"]), int(mix_b["id"]))
-	var lift_combine_color_ok: bool = (combined_color and m._orbs.size() >= 1 and int(m._orbs[0]["kind"]) == ChemistryRules.BubbleKind.YELLOW and int(m._orbs[0]["hp"]) == MainGame.BASE_ORB_HP)
+	b.orbs.clear()
+	var mix_a: Dictionary = b.make_orb_dict(ChemistryRules.BubbleKind.RED, c_center + Vector2(-60, 0), 1)
+	var mix_b: Dictionary = b.make_orb_dict(ChemistryRules.BubbleKind.GREEN, c_center + Vector2(60, 0), 1)
+	b.orbs.append(mix_a)
+	b.orbs.append(mix_b)
+	var combined_color: bool = b.combine_orbs_by_id(int(mix_a["id"]), int(mix_b["id"]))
+	var lift_combine_color_ok: bool = (combined_color and b.orbs.size() >= 1 and int(b.orbs[0]["kind"]) == ChemistryRules.BubbleKind.YELLOW and int(b.orbs[0]["hp"]) == CauldronBoard.BASE_ORB_HP)
 
-	m._orbs.clear()
-	var conc_a: Dictionary = m._make_orb_dict(ChemistryRules.BubbleKind.RED, MainGame.CAULDRON_CENTER + Vector2(-60, 0), 1)
-	var conc_b: Dictionary = m._make_orb_dict(ChemistryRules.BubbleKind.RED, MainGame.CAULDRON_CENTER + Vector2(60, 0), 1)
-	m._orbs.append(conc_a)
-	m._orbs.append(conc_b)
-	var combined_same: bool = m._combine_orbs_by_id(int(conc_a["id"]), int(conc_b["id"]))
-	var lift_concentrate_ok: bool = (combined_same and m._orbs.size() == 1 and int(m._orbs[0]["kind"]) == ChemistryRules.BubbleKind.RED and int(m._orbs[0]["tier"]) == 2)
+	b.orbs.clear()
+	var conc_a: Dictionary = b.make_orb_dict(ChemistryRules.BubbleKind.RED, c_center + Vector2(-60, 0), 1)
+	var conc_b: Dictionary = b.make_orb_dict(ChemistryRules.BubbleKind.RED, c_center + Vector2(60, 0), 1)
+	b.orbs.append(conc_a)
+	b.orbs.append(conc_b)
+	var combined_same: bool = b.combine_orbs_by_id(int(conc_a["id"]), int(conc_b["id"]))
+	var lift_concentrate_ok: bool = (combined_same and b.orbs.size() == 1 and int(b.orbs[0]["kind"]) == ChemistryRules.BubbleKind.RED and int(b.orbs[0]["tier"]) == 2)
 
 	# 4) Purge a Disliked orb with Right-click -> preserves combo & advances basic tutorial 2 -> 3 (summary)
-	m._orbs.clear()
-	var bad_p: Dictionary = m._make_orb_dict(disliked_k, MainGame.CAULDRON_CENTER + Vector2(90, 0), 1)
-	m._orbs.append(bad_p)
-	m._purge_orb_by_id(int(bad_p["id"]))
-	var purge_kept_combo: bool = (m._combo == 1 and m._potion_tube_pct > 15.0)
+	b.orbs.clear()
+	var bad_p: Dictionary = b.make_orb_dict(disliked_k, c_center + Vector2(90, 0), 1)
+	b.orbs.append(bad_p)
+	b.purge_orb_by_id(int(bad_p["id"]))
+	var purge_kept_combo: bool = (b.combo == 1 and w.potion_tube_pct > 15.0)
 	var tut_step_3_ok: bool = (m._tutorial.step == TutorialDirector.Step.BASIC_READY_SUMMARY and m._hud != null and m._hud.trixie_bubble != null and m._hud.trixie_bubble.is_ack_visible())
 
 	# Acknowledge summary -> basic tutorial done and patience starts counting down
 	m._acknowledge_basic_tutorial_summary()
-	var pat_pre_tick: float = m.customer_patience_left
+	var pat_pre_tick: float = w.customer_patience_left
 	m._process_cauldron_gameplay(2.0)
-	var patience_ticks_after_tut_ok: bool = (not m._tutorial.active and st.cauldron_basics_tutorial_done and m.customer_patience_left < pat_pre_tick)
+	var patience_ticks_after_tut_ok: bool = (not m._tutorial.active and st.cauldron_basics_tutorial_done and w.customer_patience_left < pat_pre_tick)
 
 	# 5) Break Disliked orb -> lowers tube, resets combo to 0, triggers nerviosa & customer impaciente
-	m._orbs.clear()
-	var bad_1: Dictionary = m._make_orb_dict(disliked_k, MainGame.CAULDRON_CENTER, 1)
+	b.orbs.clear()
+	var bad_1: Dictionary = b.make_orb_dict(disliked_k, c_center, 1)
 	bad_1["hp"] = 1
-	m._orbs.append(bad_1)
-	var tube_pre_bad: float = m._potion_tube_pct
-	m._hit_orb_by_id(int(bad_1["id"]), 1, true)
-	var disliked_lowered_tube: bool = m._potion_tube_pct < tube_pre_bad
-	var disliked_reset_combo: bool = (m._combo == 0)
+	b.orbs.append(bad_1)
+	var tube_pre_bad: float = w.potion_tube_pct
+	b.hit_orb_by_id(int(bad_1["id"]), 1, true)
+	var disliked_lowered_tube: bool = w.potion_tube_pct < tube_pre_bad
+	var disliked_reset_combo: bool = (b.combo == 0)
 	var nerviosa_ok: bool = (m._trixie_emotion == "nerviosa")
-	var cust_impaciente_ok: bool = (m._customer_emotion == "impaciente")
+	var cust_impaciente_ok: bool = (w.customer_emotion == "impaciente")
 
 	# Second consecutive Disliked backfire -> triggers hollin
-	m._orbs.clear()
-	var bad_2: Dictionary = m._make_orb_dict(disliked_k, MainGame.CAULDRON_CENTER, 1)
+	b.orbs.clear()
+	var bad_2: Dictionary = b.make_orb_dict(disliked_k, c_center, 1)
 	bad_2["hp"] = 1
-	m._orbs.append(bad_2)
-	m._hit_orb_by_id(int(bad_2["id"]), 1, true)
+	b.orbs.append(bad_2)
+	b.hit_orb_by_id(int(bad_2["id"]), 1, true)
 	var hollin_triggered: bool = (m._trixie_emotion == "hollin")
 
 	# 6) Break GOLD Star orb -> triggers sorprendida
-	m._orbs.clear()
-	var gold_o: Dictionary = m._make_orb_dict(ChemistryRules.BubbleKind.GOLD, MainGame.CAULDRON_CENTER, 1)
+	b.orbs.clear()
+	var gold_o: Dictionary = b.make_orb_dict(ChemistryRules.BubbleKind.GOLD, c_center, 1)
 	gold_o["hp"] = 1
-	m._orbs.append(gold_o)
-	m._hit_orb_by_id(int(gold_o["id"]), 1, true)
+	b.orbs.append(gold_o)
+	b.hit_orb_by_id(int(gold_o["id"]), 1, true)
 	var sorprendida_triggered: bool = (m._trixie_emotion == "sorprendida")
 
 	# 7) Complete Sylvi's order -> Velvet arrives with mixed color order & JUST-IN-TIME MIX TUTORIAL pops and pauses time!
-	m._orbs.clear()
-	var finisher: Dictionary = m._make_orb_dict(liked_k, MainGame.CAULDRON_CENTER, 3)
+	b.orbs.clear()
+	var finisher: Dictionary = b.make_orb_dict(liked_k, c_center, 3)
 	finisher["hp"] = 1
-	m._orbs.append(finisher)
-	m._hit_orb_by_id(int(finisher["id"]), 1, true)
-	var mixed_order_velvet_ok: bool = (m.orders_completed >= 1 and m._active_customer != null and m._active_customer.customer_id == &"velvet" and ChemistryRules.is_mixed_kind(int(m.get_customer_chemistry()["liked"])))
+	b.orbs.append(finisher)
+	b.hit_orb_by_id(int(finisher["id"]), 1, true)
+	var mixed_order_velvet_ok: bool = (m.orders_completed >= 1 and w.active_customer != null and w.active_customer.customer_id == &"velvet" and ChemistryRules.is_mixed_kind(int(m.get_customer_chemistry()["liked"])))
 	var mix_tut_started_ok: bool = (m._tutorial.active and m._tutorial.step == TutorialDirector.Step.MIX_DRAG_COMBINE)
-	var v_pat_before: float = m.customer_patience_left
+	var v_pat_before: float = w.customer_patience_left
 	m._process_cauldron_gameplay(4.0)
-	var mix_tut_paused_ok: bool = (m.customer_patience_left == v_pat_before)
+	var mix_tut_paused_ok: bool = (w.customer_patience_left == v_pat_before)
 
 	# Complete the contextual mix tutorial by combining RED + BLUE -> PURPLE and breaking it
 	var v_comps: Array[int] = ChemistryRules.get_recipe_components(int(m.get_customer_chemistry()["liked"]))
-	m._orbs.clear()
-	var vm_a: Dictionary = m._make_orb_dict(v_comps[0], MainGame.CAULDRON_CENTER + Vector2(-50, 0), 1)
-	var vm_b: Dictionary = m._make_orb_dict(v_comps[1], MainGame.CAULDRON_CENTER + Vector2(50, 0), 1)
-	m._orbs.append(vm_a)
-	m._orbs.append(vm_b)
-	m._combine_orbs_by_id(int(vm_a["id"]), int(vm_b["id"]))
+	b.orbs.clear()
+	var vm_a: Dictionary = b.make_orb_dict(v_comps[0], c_center + Vector2(-50, 0), 1)
+	var vm_b: Dictionary = b.make_orb_dict(v_comps[1], c_center + Vector2(50, 0), 1)
+	b.orbs.append(vm_a)
+	b.orbs.append(vm_b)
+	b.combine_orbs_by_id(int(vm_a["id"]), int(vm_b["id"]))
 	var mix_tut_step2_ok: bool = (m._tutorial.step == TutorialDirector.Step.MIX_BREAK_RESULT)
-	m._orbs[0]["hp"] = 1
-	m._hit_orb_by_id(int(m._orbs[0]["id"]), 1, true)
+	b.orbs[0]["hp"] = 1
+	b.hit_orb_by_id(int(b.orbs[0]["id"]), 1, true)
 	var mix_tut_done_ok: bool = (not m._tutorial.active and st.mix_tutorial_done)
 
 	# 8) Append temporary 3rd customer (&"seraphina") to test Frenzy + Velvet serve + Seraphina patience timeout
-	m._wave_customers.append(&"seraphina")
+	w.wave_customers.append(&"seraphina")
 
 	# Trigger Frenzy on Velvet -> sonrojada on both girls
-	m._orbs.clear()
-	var v_bad: Dictionary = m._make_orb_dict(int(m.get_customer_chemistry()["disliked"]), MainGame.CAULDRON_CENTER, 1)
-	m._orbs.append(v_bad)
-	if m._frenzy_charge < 100.0:
-		m._frenzy_charge = 100.0
+	b.orbs.clear()
+	var v_bad: Dictionary = b.make_orb_dict(int(m.get_customer_chemistry()["disliked"]), c_center, 1)
+	b.orbs.append(v_bad)
+	if b.frenzy_charge < 100.0:
+		b.frenzy_charge = 100.0
 	var frenzy_triggered: bool = m.try_activate_frenzy()
 	var sonrojada_triggered: bool = (m._trixie_emotion == "sonrojada")
-	var cust_sonrojada_ok: bool = (m._customer_emotion == "sonrojada")
+	var cust_sonrojada_ok: bool = (w.customer_emotion == "sonrojada")
 
 	# Serve Velvet -> Seraphina arrives
 	var v_liked: int = int(m.get_customer_chemistry()["liked"])
-	m._orbs.clear()
-	var v_fin: Dictionary = m._make_orb_dict(v_liked, MainGame.CAULDRON_CENTER, 3)
+	b.orbs.clear()
+	var v_fin: Dictionary = b.make_orb_dict(v_liked, c_center, 3)
 	v_fin["hp"] = 1
-	m._orbs.append(v_fin)
-	m._hit_orb_by_id(int(v_fin["id"]), 1, true)
-	var seraphina_arrived_ok: bool = (m._active_customer != null and m._active_customer.customer_id == &"seraphina" and m._wave_served_count == 2)
+	b.orbs.append(v_fin)
+	b.hit_orb_by_id(int(v_fin["id"]), 1, true)
+	var seraphina_arrived_ok: bool = (w.active_customer != null and w.active_customer.customer_id == &"seraphina" and w.wave_served_count == 2)
 
 	# Drain Seraphina's patience -> customer leaves, missed count=1, combo=0, 2/3 served -> wave victory & closing dialogue!
-	m._combo = 3
-	m.customer_patience_left = 0.05
+	b.combo = 3
+	w.customer_patience_left = 0.05
 	m._process_cauldron_gameplay(0.2)
-	var customer_timeout_advances_ok: bool = (seraphina_arrived_ok and m._wave_missed_count == 1 and m._combo == 0)
+	var customer_timeout_advances_ok: bool = (seraphina_arrived_ok and w.wave_missed_count == 1 and b.combo == 0)
 
-	var end_triggered_gracefully: bool = m.round_ending and m._wave_victory and not m._closing_active
-	m._round_end_timer = 0.0
+	var end_triggered_gracefully: bool = w.round_ending and w.wave_victory and not w.closing_active
+	w.round_end_timer = 0.0
 	m._process_cauldron_gameplay(0.05)
-	var closing_opened_ok: bool = m._closing_active and m._hud != null and m._hud.is_closing_visible() and m._closing_lines.size() == 1 and String(m._closing_lines[0].get("speaker", "")) == "trixie"
+	var closing_opened_ok: bool = w.closing_active and m._hud != null and m._hud.is_closing_visible() and w.closing_lines.size() == 1 and String(w.closing_lines[0].get("speaker", "")) == "trixie"
 
 	for _step: int in range(10):
-		if not m._closing_active or m._fading_out:
+		if not w.closing_active or m._fading_out:
 			break
 		if m._hud != null:
 			m._hud.complete_closing_typing()
@@ -253,16 +257,16 @@ static func run(m: MainGame) -> Dictionary:
 	var rolled_kinds: Dictionary = {}
 	var roll_valid: bool = true
 	for _r: int in range(10):
-		var c_chem: Dictionary = m._roll_order_chemistry_for_customer(&"sylvi", false)
+		var c_chem: Dictionary = ChemistryRules.roll_order_chemistry(&"sylvi", false, false, false, w.last_order_liked_kind)
 		var lk: int = int(c_chem["liked"])
 		var dk: int = int(c_chem["disliked"])
-		m._last_order_liked_kind = lk
+		w.last_order_liked_kind = lk
 		rolled_kinds[lk] = true
 		if ChemistryRules.is_mixed_kind(lk) and ChemistryRules.get_recipe_components(lk).has(dk):
 			roll_valid = false
 	var varied_customer_orders_ok: bool = (rolled_kinds.size() >= 2 and roll_valid)
 
-	var mona_c: CustomerArchetypeData = m._find_customer_by_id(&"mona")
+	var mona_c: CustomerArchetypeData = w.find_customer_by_id(m.customers_catalog, &"mona")
 	var mona_elf_archetype_ok: bool = (
 		mona_c != null
 		and mona_c.species_archetype.contains("Elfa")

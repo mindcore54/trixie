@@ -245,9 +245,6 @@ func _draw_stage() -> void:
 				_stage_canvas.draw_circle(Vector2(px, sy - 16), 14.0, pcol)
 		_stage_canvas.draw_rect(Rect2(0, 660, 1920, 420), Color(0.36, 0.30, 0.30))
 
-	if _show_remedios:
-		var r_dim: float = 1.0 if _active_speaker == "remedios" else 0.58
-		var r_scale: float = 1.85 if _active_speaker == "remedios" else 1.72
-		CharacterArt.draw_granny_full(_stage_canvas, Vector2(1400, 835), r_scale, _remedios_emotion, _time, r_dim)
+	# Espacio derecho en blanco hasta rehacer la escena de introducción.
 
 	_stage_canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
