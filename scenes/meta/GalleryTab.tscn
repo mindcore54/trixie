@@ -1,0 +1,439 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/meta/GalleryTab.gd" id="1_gallery_tab"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sel_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.22, 0.14, 0.32, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92, 0.62, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sel_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3448, 0.2776, 0.4288, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.936, 0.696, 0.856, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16, 0.14, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.32, 0.45, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_left_card"]
+bg_color = Color(0.12, 0.07, 0.18, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.96, 0.62, 0.84, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gift_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.54, 0.16, 0.36, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.82, 0.42, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gift_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.6136, 0.2944, 0.4624, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.856, 0.536, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_right_card"]
+bg_color = Color(0.11, 0.07, 0.17, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.84, 0.66, 0.36, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_back_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.18, 0.34, 0.5, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.54, 0.88, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_back_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3112, 0.4456, 0.58, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.632, 0.904, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lightbox_panel"]
+bg_color = Color(0.12, 0.07, 0.18, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.82, 0.4, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.46, 0.18, 0.3, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.72, 0.42, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.5464, 0.3112, 0.412, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.776, 0.536, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="GalleryTab" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_gallery_tab")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.07, 0.04, 0.12, 0.98)
+
+[node name="CharacterSelectorRow" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 98.0
+offset_right = 1864.0
+offset_bottom = 154.0
+theme_override_constants/separation = 14
+
+[node name="BtnSylvi" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🌿 Sylvi"
+
+[node name="BtnVelvet" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🦇 Velvet"
+
+[node name="BtnSeraphina" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🛡 Seraphina"
+
+[node name="BtnMona" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "✨ Mona"
+
+[node name="BtnRoxy" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🐺 Roxy"
+
+[node name="BtnTrixie" type="Button" parent="CharacterSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_sel_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_sel_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🔥 Trixie"
+
+[node name="LeftPortraitCard" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 174.0
+offset_right = 636.0
+offset_bottom = 1034.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_left_card")
+
+[node name="Pad" type="MarginContainer" parent="LeftPortraitCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="LeftPortraitCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PortraitCanvas" type="Control" parent="LeftPortraitCard/Pad/VBox"]
+custom_minimum_size = Vector2(520, 440)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="LeftPortraitCard/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+text = "Sylvi"
+
+[node name="AffinityLabel" type="Label" parent="LeftPortraitCard/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.56, 0.82, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "❤ Afinidad Nv.0 (0/3)"
+
+[node name="LinesLabel" type="Label" parent="LeftPortraitCard/Pad/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.94, 0.9, 0.96, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="GiftButton" type="Button" parent="LeftPortraitCard/Pad/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_gift_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_gift_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🎁 REGALAR ELIXIR (40✦ -> +2❤)"
+
+[node name="RightScenesCard" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 660.0
+offset_top = 174.0
+offset_right = 1864.0
+offset_bottom = 1034.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_right_card")
+
+[node name="Pad" type="MarginContainer" parent="RightScenesCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="RightScenesCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="HeaderLabel" type="Label" parent="RightScenesCard/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+text = "GALERÍA DE ILUSTRACIONES Y ESCENAS PICANTES"
+
+[node name="CardsBox" type="HBoxContainer" parent="RightScenesCard/Pad/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="BackButton" type="Button" parent="RightScenesCard/Pad/VBox"]
+custom_minimum_size = Vector2(0, 66)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_back_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_back_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🗺 VOLVER AL MAPA"
+
+[node name="LightboxLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="LightboxOverlay" type="ColorRect" parent="LightboxLayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.02, 0.06, 0.92)
+
+[node name="Center" type="CenterContainer" parent="LightboxLayer/LightboxOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="LightboxLayer/LightboxOverlay/Center"]
+custom_minimum_size = Vector2(1140, 840)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lightbox_panel")
+
+[node name="Pad" type="MarginContainer" parent="LightboxLayer/LightboxOverlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="LightboxTitleLabel" type="Label" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="LightboxCanvas" type="Control" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LightboxCaptionLabel" type="Label" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.88, 0.94, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CloseCenter" type="CenterContainer" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad/VBox"]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="LightboxLayer/LightboxOverlay/Center/Panel/Pad/VBox/CloseCenter"]
+custom_minimum_size = Vector2(260, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_close_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "CERRAR VISOR [ESC]"

@@ -1,0 +1,284 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/meta/SkillTreeTab.gd" id="1_tree_tab"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tut"]
+bg_color = Color(0.16, 0.08, 0.26, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.86, 0.34, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail"]
+bg_color = Color(0.11, 0.07, 0.18, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.82, 0.64, 0.32, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_buy_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.58, 0.22, 0.4, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.84, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_buy_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.6472, 0.3448, 0.496, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.872, 0.488, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16, 0.14, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.32, 0.45, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_back_normal"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.18, 0.34, 0.5, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.54, 0.88, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_back_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.3112, 0.4456, 0.58, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.632, 0.904, 1, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="SkillTreeTab" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tree_tab")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.04, 0.11, 0.98)
+
+[node name="TreeCanvas" type="Control" parent="."]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+
+[node name="BranchAlchemyLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 54.0
+offset_top = 102.0
+offset_right = 460.0
+offset_bottom = 136.0
+theme_override_colors/font_color = Color(1, 0.46, 0.56, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+text = "✨ RAMA ALQUIMIA Y CADENAS"
+
+[node name="BranchCauldronLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 815.0
+offset_top = 92.0
+offset_right = 1260.0
+offset_bottom = 126.0
+theme_override_colors/font_color = Color(0.38, 0.92, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+text = "⚡ RAMA CALDERO Y REACCIONES"
+
+[node name="BranchFamiliarsLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 1500.0
+offset_top = 102.0
+offset_right = 1880.0
+offset_bottom = 136.0
+theme_override_colors/font_color = Color(0.82, 0.54, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+text = "🐱 RAMA FAMILIARES Y TIEMPO"
+
+[node name="BranchCustomersLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 54.0
+offset_top = 836.0
+offset_right = 460.0
+offset_bottom = 870.0
+theme_override_colors/font_color = Color(1, 0.62, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+text = "💋 RAMA CLIENTAS Y VICTORIA"
+
+[node name="TutorialBanner" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 54.0
+offset_top = 146.0
+offset_right = 584.0
+offset_bottom = 294.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tut")
+
+[node name="Pad" type="MarginContainer" parent="TutorialBanner"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="TutorialBanner/Pad"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="TutorialBanner/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.38, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "👆 ¡Sube Toque Continuo!"
+
+[node name="BodyLabel" type="Label" parent="TutorialBanner/Pad/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.95, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 3
+
+[node name="BottomDetailCard" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 882.0
+offset_right = 1880.0
+offset_bottom = 1056.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
+
+[node name="Pad" type="MarginContainer" parent="BottomDetailCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="BottomDetailCard/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="InfoCol" type="VBoxContainer" parent="BottomDetailCard/Pad/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="InfoTitleLabel" type="Label" parent="BottomDetailCard/Pad/HBox/InfoCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.42, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 26
+text = "Selecciona un nodo del árbol"
+
+[node name="InfoDescLabel" type="Label" parent="BottomDetailCard/Pad/HBox/InfoCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.92, 0.98, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+
+[node name="InfoStatsLabel" type="Label" parent="BottomDetailCard/Pad/HBox/InfoCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+
+[node name="BuyButton" type="Button" parent="BottomDetailCard/Pad/HBox"]
+custom_minimum_size = Vector2(290, 92)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_buy_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_buy_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "MEJORAR"
+
+[node name="BackButton" type="Button" parent="BottomDetailCard/Pad/HBox"]
+custom_minimum_size = Vector2(300, 92)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_back_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_back_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+text = "🗺 VOLVER AL MAPA"
