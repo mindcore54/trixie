@@ -5,12 +5,8 @@ extends Control
 
 const SCRIPT_PATH: String = "res://data/dialogues/intro_cutscene.json"
 const CHARS_PER_SEC: float = 52.0
-const DIALOG_BG_TEX_PATH: String = "res://assets/ui/hud/dialog_bg.png"
-const DIALOG_SHADOW_TEX_PATH: String = "res://assets/ui/hud/dialog_bg_shadow.png"
 const INTRO_PARCHMENT_POS: Vector2 = Vector2(267.0, 750.0)
-const INTRO_PARCHMENT_SIZE: Vector2 = Vector2(1386.0, 300.0)
-const DIALOG_SHADOW_PAD: Vector2 = Vector2(24.0, 24.0)
-const DIALOG_SHADOW_OFFSET: Vector2 = Vector2(10.0, 14.0)
+const DIALOG_BOX_SCENE: PackedScene = preload("res://scenes/ui/DialogBox.tscn")
 
 var _beats: Array = []
 var _idx: int = -1
@@ -21,29 +17,17 @@ var _show_remedios: bool = false
 var _trixie_emotion: String = "normal"
 var _remedios_emotion: String = "normal"
 var _active_speaker: String = ""
-var _full_text: String = ""
-var _shown_chars: float = 0.0
 var _transitioning: bool = false
 var _shake_timer: float = 0.0
 var _caption_mode: bool = false
 
-var _dialog_bg_tex: Texture2D = null
-var _dialog_shadow_tex: Texture2D = null
-var _parchment_tween: Tween = null
-var _parchment_box: Control
-var _speaker_lbl: Label
-var _text_lbl: Label
-var _continue_lbl: Label
+var _dialog_box: DialogBox = null
 var _caption_lbl: Label
 var _skip_btn: Button
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	if ResourceLoader.exists(DIALOG_BG_TEX_PATH):
-		_dialog_bg_tex = load(DIALOG_BG_TEX_PATH) as Texture2D
-	if ResourceLoader.exists(DIALOG_SHADOW_TEX_PATH):
-		_dialog_shadow_tex = load(DIALOG_SHADOW_TEX_PATH) as Texture2D
 	_load_beats()
 	_build_ui()
 	_advance()
@@ -60,36 +44,16 @@ func _load_beats() -> void:
 
 func _build_ui() -> void:
 	# Chipped parchment dialogue panel at bottom
-	_parchment_box = Control.new()
-	_parchment_box.position = INTRO_PARCHMENT_POS
-	_parchment_box.size = INTRO_PARCHMENT_SIZE
-	_parchment_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_parchment_box.draw.connect(_draw_parchment)
-	_parchment_box.visible = false
-	add_child(_parchment_box)
-
-	_speaker_lbl = Label.new()
-	_speaker_lbl.position = Vector2(78, 38)
-	_speaker_lbl.add_theme_font_size_override("font_size", 28)
-	_speaker_lbl.add_theme_color_override("font_color", Color(0.56, 0.12, 0.24))
-	_parchment_box.add_child(_speaker_lbl)
-
-	_text_lbl = Label.new()
-	_text_lbl.position = Vector2(78, 88)
-	_text_lbl.size = Vector2(1230, 142)
-	_text_lbl.add_theme_font_size_override("font_size", 28)
-	_text_lbl.add_theme_color_override("font_color", Color(0.18, 0.10, 0.07))
-	_text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_parchment_box.add_child(_text_lbl)
-
-	_continue_lbl = Label.new()
-	_continue_lbl.text = "Clic / Espacio para continuar ▾"
-	_continue_lbl.position = Vector2(948, 238)
-	_continue_lbl.size = Vector2(360, 28)
-	_continue_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_continue_lbl.add_theme_font_size_override("font_size", 18)
-	_continue_lbl.add_theme_color_override("font_color", Color(0.45, 0.26, 0.16))
-	_parchment_box.add_child(_continue_lbl)
+	_dialog_box = DIALOG_BOX_SCENE.instantiate() as DialogBox
+	add_child(_dialog_box)
+	_dialog_box.set_base_position(INTRO_PARCHMENT_POS)
+	_dialog_box.chars_per_sec = CHARS_PER_SEC
+	_dialog_box.set_body_font_size(28)
+	_dialog_box.set_continue_prompt("Clic / Espacio para continuar ▾")
+	_dialog_box.visible = false
+	_dialog_box.typewriter_tick.connect(func(_ci: int) -> void:
+		AudioJuiceManager.play_pentatonic(3 if _active_speaker == "trixie" else 1, -12.0)
+	)
 
 	# Fullscreen centered caption label for black-screen narrative beats
 	_caption_lbl = Label.new()
@@ -120,16 +84,6 @@ func _process(delta: float) -> void:
 	_time += delta
 	if _shake_timer > 0.0:
 		_shake_timer = maxf(0.0, _shake_timer - delta)
-	if not _caption_mode and _shown_chars < float(_full_text.length()):
-		var prev_i: int = int(_shown_chars)
-		_shown_chars = minf(float(_full_text.length()), _shown_chars + CHARS_PER_SEC * delta)
-		var cur_i: int = int(_shown_chars)
-		_text_lbl.visible_characters = cur_i
-		if cur_i > prev_i and cur_i % 4 == 0:
-			AudioJuiceManager.play_pentatonic(3 if _active_speaker == "trixie" else 1, -12.0)
-	_continue_lbl.visible = not _caption_mode and _shown_chars >= float(_full_text.length())
-	if _continue_lbl.visible:
-		_continue_lbl.modulate.a = 0.55 + 0.45 * absf(sin(_time * 4.0))
 	queue_redraw()
 
 
@@ -153,9 +107,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_advance_input() -> void:
 	if _transitioning or SceneFader.is_busy():
 		return
-	if not _caption_mode and _shown_chars < float(_full_text.length()):
-		_shown_chars = float(_full_text.length())
-		_text_lbl.visible_characters = -1
+	if not _caption_mode and _dialog_box != null and _dialog_box.is_typing():
+		_dialog_box.complete_typing()
 		return
 	_advance()
 
@@ -192,27 +145,22 @@ func _advance() -> void:
 		return
 
 	# Dialogue beat
-	var was_hidden: bool = not _parchment_box.visible
+	var was_hidden: bool = _dialog_box != null and not _dialog_box.visible
 	_caption_mode = false
 	_caption_lbl.visible = false
-	_parchment_box.visible = true
-	if was_hidden:
-		_animate_parchment_in()
 	_active_speaker = String(beat.get("speaker", "trixie"))
 	var emo: String = String(beat.get("emotion", "normal"))
+	var speaker_name: String = "Trixie"
+	var speaker_col: Color = Color(0.68, 0.14, 0.34)
 	if _active_speaker == "trixie":
 		_trixie_emotion = emo
-		_speaker_lbl.text = "Trixie"
-		_speaker_lbl.add_theme_color_override("font_color", Color(0.68, 0.14, 0.34))
 	else:
 		_remedios_emotion = emo
-		_speaker_lbl.text = "Doña Remedios"
-		_speaker_lbl.add_theme_color_override("font_color", Color(0.32, 0.24, 0.50))
+		speaker_name = "Doña Remedios"
+		speaker_col = Color(0.32, 0.24, 0.50)
 
-	_full_text = String(beat.get("text", ""))
-	_text_lbl.text = _full_text
-	_shown_chars = 0.0
-	_text_lbl.visible_characters = 0
+	if _dialog_box != null:
+		_dialog_box.show_line(speaker_name, speaker_col, String(beat.get("text", "")), was_hidden)
 	if bool(beat.get("shake", false)):
 		_shake_timer = 0.35
 		AudioJuiceManager.play_pentatonic(0, 0.0)
@@ -223,7 +171,8 @@ func _show_caption_beat(txt: String) -> void:
 	if _idx > 0:
 		await SceneFader.fade_out(0.45)
 	_caption_mode = true
-	_parchment_box.visible = false
+	if _dialog_box != null:
+		_dialog_box.hide_box()
 	_caption_lbl.text = txt
 	_caption_lbl.visible = true
 	await SceneFader.fade_in(0.45)
@@ -233,7 +182,8 @@ func _show_caption_beat(txt: String) -> void:
 func _change_bg_with_fade(new_bg: String) -> void:
 	_transitioning = true
 	await SceneFader.fade_out(0.45)
-	_parchment_box.visible = false
+	if _dialog_box != null:
+		_dialog_box.hide_box()
 	_bg_mode = new_bg
 	_caption_mode = false
 	_caption_lbl.visible = false
@@ -304,41 +254,3 @@ func _draw() -> void:
 		CharacterArt.draw_granny_full(self, Vector2(1400, 835), r_scale, _remedios_emotion, _time, r_dim)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _animate_parchment_in() -> void:
-	if _parchment_box == null:
-		return
-	if _parchment_tween != null and _parchment_tween.is_valid():
-		_parchment_tween.kill()
-	_parchment_box.position = INTRO_PARCHMENT_POS + Vector2(-150.0, 90.0)
-	_parchment_box.modulate.a = 0.0
-	_parchment_tween = create_tween()
-	_parchment_tween.set_parallel(true)
-	_parchment_tween.tween_property(_parchment_box, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_parchment_tween.tween_property(_parchment_box, "position", INTRO_PARCHMENT_POS, 0.72).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-
-
-func _draw_parchment() -> void:
-	if _dialog_bg_tex != null:
-		if _dialog_shadow_tex != null:
-			_parchment_box.draw_texture_rect(
-				_dialog_shadow_tex,
-				Rect2(-DIALOG_SHADOW_PAD + DIALOG_SHADOW_OFFSET, _parchment_box.size + DIALOG_SHADOW_PAD * 2.0),
-				false,
-				Color(1.0, 1.0, 1.0, 0.56)
-			)
-		_parchment_box.draw_texture_rect(_dialog_bg_tex, Rect2(Vector2.ZERO, _parchment_box.size), false)
-		return
-
-	var w: float = _parchment_box.size.x
-	var h: float = _parchment_box.size.y
-	var pts: PackedVector2Array = PackedVector2Array([
-		Vector2(14, 6), Vector2(340, 4), Vector2(360, 14), Vector2(380, 4),
-		Vector2(w - 28, 8), Vector2(w - 8, 28), Vector2(w - 14, 110), Vector2(w - 4, 130),
-		Vector2(w - 12, h - 14), Vector2(w - 120, h - 6), Vector2(w - 140, h - 18), Vector2(w - 162, h - 6),
-		Vector2(210, h - 8), Vector2(188, h - 16), Vector2(168, h - 6), Vector2(14, h - 10),
-		Vector2(4, 140), Vector2(16, 120), Vector2(6, 36)
-	])
-	_parchment_box.draw_colored_polygon(pts, Color(0.93, 0.84, 0.68, 0.97))
-	_parchment_box.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.32, 0.18, 0.11), 4.0)

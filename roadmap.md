@@ -162,6 +162,10 @@
   * Actualizado [dialog_bg.png](assets/ui/hud/dialog_bg.png) a formato panorámico **1386×300 px** con sombra gaussiana regenerada y entrada suave (`0.55s` fade-in de opacidad + aterrizaje `TRANS_EXPO` `0.72s`) en [IntroCutscene.gd](scripts/ui/IntroCutscene.gd) y [MainGame.gd](scripts/core/MainGame.gd).
   * Exportado [speech_bubble.png](assets/ui/hud/speech_bubble.png) (**480×233 px** + sombra) y sustituida la caja fija de clienta + banner morado de tutorial por **bocadillos de pergamino**: burbuja izquierda de **Trixie** (tutoriales breves pausados y reacciones efímeras) y burbuja derecha espejada para **clientas** al llegar, impacientarse o recibir su elixir.
   * Simplificado el cierre de cada parada en [GameCatalog.gd](scripts/core/GameCatalog.gd) y [MainGame.gd](scripts/core/MainGame.gd): la última clienta suelta su bocadillo normal, se oculta el HUD del caldero y **Trixie** remata con **1 sola línea** en `dialog_bg.png` antes de volver al Mapa.
+* **2026-11-24 — Refactorización Modular (Fases 0 y 1 Completadas):**
+  * **Fase 0 (Limpieza):** eliminados los 5 scripts sin uso del antiguo prototipo 2.5D de cocina (`KitchenHUD.gd`, `KitchenStation.gd`, `WitchController.gd`, `FamiliarEntity.gd`, `CustomerEntity.gd`, conservados en el historial de `main`).
+  * **Fase 1 (Prefabs UI editables en Godot):** extraídos [DialogBox.tscn](scenes/ui/DialogBox.tscn) ([DialogBox.gd](scripts/ui/DialogBox.gd)) y [SpeechBubble.tscn](scenes/ui/SpeechBubble.tscn) ([SpeechBubble.gd](scripts/ui/SpeechBubble.gd)) e integrados en [IntroCutscene.gd](scripts/ui/IntroCutscene.gd) y [MainGame.gd](scripts/core/MainGame.gd), bajando [MainGame.gd](scripts/core/MainGame.gd) de `3.310` a `3.064` líneas y dejando ambos componentes visibles y editables en el editor.
+  * **Validación:** [smoke_test_slice.gd](tools/smoke_test_slice.gd) superado (`INCREMENTAL SMOKE RESULT: PASS`).
 
 ---
 

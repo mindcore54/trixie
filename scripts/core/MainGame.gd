@@ -53,18 +53,9 @@ const FLASK_LIQUID_SHADER_PATH: String = "res://shaders/flask_liquid.gdshader"
 const ORB_TEX_DIR: String = "res://assets/props/items/orbs/"
 const ORB_CANVAS_MULT: float = 1.067
 const ORB_BOMB_DRAW_MULT: float = 1.467
-const DIALOG_BG_TEX_PATH: String = "res://assets/ui/hud/dialog_bg.png"
-const DIALOG_SHADOW_TEX_PATH: String = "res://assets/ui/hud/dialog_bg_shadow.png"
+const DIALOG_BOX_SCENE: PackedScene = preload("res://scenes/ui/DialogBox.tscn")
+const SPEECH_BUBBLE_SCENE: PackedScene = preload("res://scenes/ui/SpeechBubble.tscn")
 const CLOSING_PARCHMENT_POS: Vector2 = Vector2(267.0, 750.0)
-const CLOSING_PARCHMENT_SIZE: Vector2 = Vector2(1386.0, 300.0)
-const DIALOG_SHADOW_PAD: Vector2 = Vector2(24.0, 24.0)
-const DIALOG_SHADOW_OFFSET: Vector2 = Vector2(10.0, 14.0)
-const SPEECH_BUBBLE_TEX_PATH: String = "res://assets/ui/hud/speech_bubble.png"
-const SPEECH_BUBBLE_SHADOW_TEX_PATH: String = "res://assets/ui/hud/speech_bubble_shadow.png"
-const SPEECH_BUBBLE_SIZE: Vector2 = Vector2(460.0, 223.0)
-const SPEECH_BUBBLE_BODY_H: float = 180.0
-const SPEECH_BUBBLE_SHADOW_PAD: Vector2 = Vector2(18.0, 18.0)
-const SPEECH_BUBBLE_SHADOW_OFFSET: Vector2 = Vector2(6.0, 9.0)
 const TRIXIE_BUBBLE_POS: Vector2 = Vector2(356.0, 78.0)
 const CUSTOMER_BUBBLE_POS: Vector2 = Vector2(1418.0, 638.0)
 
@@ -222,33 +213,15 @@ var _toast_timer: float = 0.0
 # In-game Cauldron Tutorial & Ephemeral Speech Bubbles
 var _tut_active: bool = false
 var _tut_step: CauldronTutStep = CauldronTutStep.NONE
-var _trixie_bubble: Control
-var _trixie_bubble_title: Label
-var _trixie_bubble_body: Label
-var _trixie_bubble_ack_btn: Button
-var _trixie_bubble_tween: Tween = null
-var _trixie_bubble_timer: float = 0.0
-var _trixie_bubble_is_tutorial: bool = false
-var _trixie_bubble_showing: bool = false
-
-var _cust_bubble: Control
-var _cust_bubble_name: Label
-var _cust_bubble_body: Label
-var _cust_bubble_tween: Tween = null
-var _cust_bubble_timer: float = 0.0
-var _cust_bubble_showing: bool = false
+var _trixie_bubble: SpeechBubble = null
+var _cust_bubble: SpeechBubble = null
 
 # Closing Dialogue Overlay before smooth fade to WorldMap
 var _closing_active: bool = false
 var _closing_lines: Array[Dictionary] = []
 var _closing_idx: int = -1
-var _closing_full_text: String = ""
-var _closing_shown_chars: float = 0.0
 var _closing_overlay: Control
-var _closing_parchment: Control
-var _closing_speaker_lbl: Label
-var _closing_text_lbl: Label
-var _closing_continue_lbl: Label
+var _closing_dialog_box: DialogBox = null
 
 # UI nodes
 var camera: Camera2D
@@ -279,11 +252,6 @@ var _flask_target_color: Color = FLASK_NEUTRAL_COLOR
 var _orb_textures: Dictionary = {}
 var _crack_textures: Array[Texture2D] = []
 var _crack_glow_textures: Array[Texture2D] = []
-var _dialog_bg_tex: Texture2D = null
-var _dialog_shadow_tex: Texture2D = null
-var _speech_bubble_tex: Texture2D = null
-var _speech_bubble_shadow_tex: Texture2D = null
-var _closing_tween: Tween = null
 var _ui_layer: CanvasLayer
 
 var _top_essence_lbl: Label
@@ -389,14 +357,6 @@ func _ready() -> void:
 		add_child(_flask_glass_sprite)
 
 	_load_orb_textures()
-	if ResourceLoader.exists(DIALOG_BG_TEX_PATH):
-		_dialog_bg_tex = load(DIALOG_BG_TEX_PATH) as Texture2D
-	if ResourceLoader.exists(DIALOG_SHADOW_TEX_PATH):
-		_dialog_shadow_tex = load(DIALOG_SHADOW_TEX_PATH) as Texture2D
-	if ResourceLoader.exists(SPEECH_BUBBLE_TEX_PATH):
-		_speech_bubble_tex = load(SPEECH_BUBBLE_TEX_PATH) as Texture2D
-	if ResourceLoader.exists(SPEECH_BUBBLE_SHADOW_TEX_PATH):
-		_speech_bubble_shadow_tex = load(SPEECH_BUBBLE_SHADOW_TEX_PATH) as Texture2D
 
 	camera = Camera2D.new()
 	camera.position = VIEWPORT_SIZE * 0.5
@@ -484,7 +444,6 @@ func _process(delta: float) -> void:
 		_toast_timer = maxf(0.0, _toast_timer - delta)
 		if _toast_timer <= 0.0 and _toast_lbl != null:
 			_toast_lbl.visible = false
-	_update_speech_bubbles(delta)
 
 	if _trixie_react_anim > 0.0:
 		_trixie_react_anim = maxf(0.0, _trixie_react_anim - delta * 3.2)
@@ -520,9 +479,7 @@ func _process(delta: float) -> void:
 	if _customer_slide_t < 1.0:
 		_customer_slide_t = minf(1.0, _customer_slide_t + delta * 3.4)
 
-	if _closing_active:
-		_process_closing_dialogue(delta)
-	elif not _is_modal_open():
+	if not _closing_active and not _is_modal_open():
 		_process_cauldron_gameplay(delta)
 
 	_refresh_hud_labels()
@@ -1045,7 +1002,7 @@ func _update_tutorial_banner() -> void:
 	if _trixie_bubble == null:
 		return
 	if not _tut_active or _closing_active or _tut_step == CauldronTutStep.NONE:
-		if _trixie_bubble_is_tutorial:
+		if _trixie_bubble.is_tutorial_mode:
 			_hide_trixie_bubble(false)
 		return
 
@@ -1089,7 +1046,7 @@ func _trigger_stop_end(victory: bool) -> void:
 	_round_end_timer = 1.35 if victory else 1.15
 	_reset_pointer_state()
 	_play_pentatonic(6 if victory else 1, -2.0)
-	if _trixie_bubble_is_tutorial:
+	if _trixie_bubble != null and _trixie_bubble.is_tutorial_mode:
 		_hide_trixie_bubble(false)
 	_set_trixie_reaction("confiada" if victory else "hollin", 2.2, "")
 
@@ -1128,24 +1085,10 @@ func _begin_closing_dialogue(victory: bool) -> void:
 	_closing_idx = -1
 	if _closing_overlay != null:
 		_closing_overlay.visible = true
-	_animate_closing_parchment_in()
-	_advance_closing_dialogue()
+	_advance_closing_dialogue(true)
 
 
-func _animate_closing_parchment_in() -> void:
-	if _closing_parchment == null:
-		return
-	if _closing_tween != null and _closing_tween.is_valid():
-		_closing_tween.kill()
-	_closing_parchment.position = CLOSING_PARCHMENT_POS + Vector2(-150.0, 90.0)
-	_closing_parchment.modulate.a = 0.0
-	_closing_tween = create_tween()
-	_closing_tween.set_parallel(true)
-	_closing_tween.tween_property(_closing_parchment, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_closing_tween.tween_property(_closing_parchment, "position", CLOSING_PARCHMENT_POS, 0.72).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-
-
-func _advance_closing_dialogue() -> void:
+func _advance_closing_dialogue(animate_entrance: bool = false) -> void:
 	_closing_idx += 1
 	if _closing_idx >= _closing_lines.size():
 		_finish_stop_and_fade_to_map()
@@ -1154,47 +1097,30 @@ func _advance_closing_dialogue() -> void:
 	var line_d: Dictionary = _closing_lines[_closing_idx]
 	var spk: String = String(line_d.get("speaker", "trixie"))
 	var emo: String = String(line_d.get("emotion", "normal"))
-	_closing_full_text = String(line_d.get("text", ""))
-	_closing_shown_chars = 0.0
+	var body_txt: String = String(line_d.get("text", ""))
+	var speaker_name: String = "Trixie"
+	var speaker_col: Color = Color(0.68, 0.14, 0.34)
 
 	if spk == "customer":
-		var cname: String = _last_served_customer.display_name if _last_served_customer != null else (_active_customer.display_name if _active_customer != null else "Clienta")
+		speaker_name = _last_served_customer.display_name if _last_served_customer != null else (_active_customer.display_name if _active_customer != null else "Clienta")
 		if _last_served_customer != null:
 			_active_customer = _last_served_customer
-		_closing_speaker_lbl.text = cname
-		_closing_speaker_lbl.add_theme_color_override("font_color", Color(0.56, 0.12, 0.28))
+		speaker_col = Color(0.56, 0.12, 0.28)
 		_set_customer_reaction(emo, 8.0, "")
 	else:
-		_closing_speaker_lbl.text = "Trixie"
-		_closing_speaker_lbl.add_theme_color_override("font_color", Color(0.68, 0.14, 0.34))
 		_set_trixie_reaction(emo, 8.0, "")
 
-	_closing_text_lbl.text = _closing_full_text
-	_closing_text_lbl.visible_characters = 0
-	_closing_continue_lbl.visible = false
-
-
-func _process_closing_dialogue(delta: float) -> void:
-	if _closing_shown_chars < float(_closing_full_text.length()):
-		var prev_i: int = int(_closing_shown_chars)
-		_closing_shown_chars = minf(float(_closing_full_text.length()), _closing_shown_chars + CLOSING_CHARS_PER_SEC * delta)
-		var cur_i: int = int(_closing_shown_chars)
-		_closing_text_lbl.visible_characters = cur_i
-		if cur_i > prev_i and cur_i % 4 == 0:
-			_play_pentatonic(3, -12.0)
-	else:
-		_closing_continue_lbl.visible = true
-		_closing_continue_lbl.modulate.a = 0.55 + 0.45 * absf(sin(_time * 4.0))
+	if _closing_dialog_box != null:
+		_closing_dialog_box.show_line(speaker_name, speaker_col, body_txt, animate_entrance)
 
 
 func _handle_closing_advance_input() -> void:
 	if not _closing_active or _fading_out:
 		return
-	if _closing_shown_chars < float(_closing_full_text.length()):
-		_closing_shown_chars = float(_closing_full_text.length())
-		_closing_text_lbl.visible_characters = -1
+	if _closing_dialog_box != null and _closing_dialog_box.is_typing():
+		_closing_dialog_box.complete_typing()
 		return
-	_advance_closing_dialogue()
+	_advance_closing_dialogue(false)
 
 
 func _finish_stop_and_fade_to_map() -> void:
@@ -2466,95 +2392,21 @@ func _build_cauldron_hud() -> void:
 
 func _build_speech_bubbles() -> void:
 	# Trixie parchment speech bubble (top-left above cauldron, handles tutorials & quick reactions)
-	_trixie_bubble = Control.new()
-	_trixie_bubble.position = TRIXIE_BUBBLE_POS
-	_trixie_bubble.size = SPEECH_BUBBLE_SIZE
-	_trixie_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_trixie_bubble.draw.connect(_draw_trixie_bubble)
+	_trixie_bubble = SPEECH_BUBBLE_SCENE.instantiate() as SpeechBubble
+	_trixie_bubble.flip_tail_right = false
+	_trixie_bubble.default_title_color = Color(0.68, 0.14, 0.34)
 	_trixie_bubble.visible = false
 	_ui_layer.add_child(_trixie_bubble)
-
-	_trixie_bubble_title = Label.new()
-	_trixie_bubble_title.position = Vector2(36, 18)
-	_trixie_bubble_title.size = Vector2(388, 26)
-	_trixie_bubble_title.add_theme_font_size_override("font_size", 18)
-	_trixie_bubble_title.add_theme_color_override("font_color", Color(0.68, 0.14, 0.34))
-	_trixie_bubble.add_child(_trixie_bubble_title)
-
-	_trixie_bubble_body = Label.new()
-	_trixie_bubble_body.position = Vector2(36, 46)
-	_trixie_bubble_body.size = Vector2(388, 118)
-	_trixie_bubble_body.add_theme_font_size_override("font_size", 19)
-	_trixie_bubble_body.add_theme_color_override("font_color", Color(0.18, 0.10, 0.07))
-	_trixie_bubble_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_trixie_bubble.add_child(_trixie_bubble_body)
-
-	_trixie_bubble_ack_btn = _make_pill_button("¡LISTO! ▶", Color(0.18, 0.52, 0.30), Color(0.56, 1.0, 0.62))
-	_trixie_bubble_ack_btn.position = Vector2(288, 120)
-	_trixie_bubble_ack_btn.custom_minimum_size = Vector2(138, 42)
-	_trixie_bubble_ack_btn.size = Vector2(138, 42)
-	_trixie_bubble_ack_btn.visible = false
-	_trixie_bubble_ack_btn.pressed.connect(_acknowledge_basic_tutorial_summary)
-	_trixie_bubble.add_child(_trixie_bubble_ack_btn)
+	_trixie_bubble.set_base_position(TRIXIE_BUBBLE_POS)
+	_trixie_bubble.ack_pressed.connect(_acknowledge_basic_tutorial_summary)
 
 	# Customer ephemeral speech bubble (mirrored parchment bubble pointing down-right toward customer)
-	_cust_bubble = Control.new()
-	_cust_bubble.position = CUSTOMER_BUBBLE_POS
-	_cust_bubble.size = SPEECH_BUBBLE_SIZE
-	_cust_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_cust_bubble.draw.connect(_draw_customer_bubble)
+	_cust_bubble = SPEECH_BUBBLE_SCENE.instantiate() as SpeechBubble
+	_cust_bubble.flip_tail_right = true
+	_cust_bubble.default_title_color = Color(0.56, 0.12, 0.28)
 	_cust_bubble.visible = false
 	_ui_layer.add_child(_cust_bubble)
-
-	_cust_bubble_name = Label.new()
-	_cust_bubble_name.position = Vector2(36, 18)
-	_cust_bubble_name.size = Vector2(388, 26)
-	_cust_bubble_name.add_theme_font_size_override("font_size", 18)
-	_cust_bubble_name.add_theme_color_override("font_color", Color(0.56, 0.12, 0.28))
-	_cust_bubble.add_child(_cust_bubble_name)
-
-	_cust_bubble_body = Label.new()
-	_cust_bubble_body.position = Vector2(36, 48)
-	_cust_bubble_body.size = Vector2(388, 114)
-	_cust_bubble_body.add_theme_font_size_override("font_size", 19)
-	_cust_bubble_body.add_theme_color_override("font_color", Color(0.18, 0.10, 0.07))
-	_cust_bubble_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_cust_bubble.add_child(_cust_bubble_body)
-
-
-func _draw_speech_bubble_art(ctrl: Control, flip_x: bool, tint: Color) -> void:
-	if flip_x:
-		ctrl.draw_set_transform(Vector2(SPEECH_BUBBLE_SIZE.x, 0.0), 0.0, Vector2(-1.0, 1.0))
-	if _speech_bubble_tex != null:
-		if _speech_bubble_shadow_tex != null:
-			var sh_off: Vector2 = Vector2(-SPEECH_BUBBLE_SHADOW_OFFSET.x, SPEECH_BUBBLE_SHADOW_OFFSET.y) if flip_x else SPEECH_BUBBLE_SHADOW_OFFSET
-			ctrl.draw_texture_rect(
-				_speech_bubble_shadow_tex,
-				Rect2(-SPEECH_BUBBLE_SHADOW_PAD + sh_off, SPEECH_BUBBLE_SIZE + SPEECH_BUBBLE_SHADOW_PAD * 2.0),
-				false,
-				Color(1.0, 1.0, 1.0, 0.48)
-			)
-		ctrl.draw_texture_rect(_speech_bubble_tex, Rect2(Vector2.ZERO, SPEECH_BUBBLE_SIZE), false, tint)
-	else:
-		var pts: PackedVector2Array = PackedVector2Array([
-			Vector2(10, 8), Vector2(SPEECH_BUBBLE_SIZE.x - 10, 8),
-			Vector2(SPEECH_BUBBLE_SIZE.x - 10, SPEECH_BUBBLE_BODY_H),
-			Vector2(106, SPEECH_BUBBLE_BODY_H), Vector2(44, SPEECH_BUBBLE_SIZE.y - 6),
-			Vector2(60, SPEECH_BUBBLE_BODY_H), Vector2(10, SPEECH_BUBBLE_BODY_H),
-		])
-		ctrl.draw_colored_polygon(pts, Color(0.93, 0.84, 0.68, 0.97) * tint)
-		ctrl.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.32, 0.18, 0.11), 4.0)
-	if flip_x:
-		ctrl.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _draw_trixie_bubble() -> void:
-	var tint: Color = Color(1.0, 0.97, 0.88) if _trixie_bubble_is_tutorial else Color.WHITE
-	_draw_speech_bubble_art(_trixie_bubble, false, tint)
-
-
-func _draw_customer_bubble() -> void:
-	_draw_speech_bubble_art(_cust_bubble, true, Color.WHITE)
+	_cust_bubble.set_base_position(CUSTOMER_BUBBLE_POS)
 
 
 func _show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false, show_ack: bool = false) -> void:
@@ -2562,105 +2414,23 @@ func _show_trixie_bubble(title: String, text: String, duration: float, is_tutori
 		return
 	if _tut_active and not is_tutorial:
 		return
-	var was_hidden: bool = not _trixie_bubble_showing or not _trixie_bubble.visible
-	_trixie_bubble_is_tutorial = is_tutorial
-	_trixie_bubble_showing = true
-	_trixie_bubble_timer = -1.0 if is_tutorial else maxf(1.8, duration)
-	_trixie_bubble_title.text = title
-	_trixie_bubble_title.add_theme_color_override("font_color", Color(0.62, 0.30, 0.04) if is_tutorial else Color(0.68, 0.14, 0.34))
-	_trixie_bubble_body.text = text
-	_trixie_bubble_body.size = Vector2(246, 118) if show_ack else Vector2(388, 118)
-	_trixie_bubble_ack_btn.visible = show_ack
-	_trixie_bubble.queue_redraw()
-	if _trixie_bubble_tween != null and _trixie_bubble_tween.is_valid():
-		_trixie_bubble_tween.kill()
-	_trixie_bubble.visible = true
-	if was_hidden:
-		_trixie_bubble.position = TRIXIE_BUBBLE_POS + Vector2(-24.0, 18.0)
-		_trixie_bubble.modulate.a = 0.0
-	else:
-		_trixie_bubble.position = TRIXIE_BUBBLE_POS + Vector2(0.0, 8.0)
-	_trixie_bubble_tween = create_tween()
-	_trixie_bubble_tween.set_parallel(true)
-	_trixie_bubble_tween.tween_property(_trixie_bubble, "modulate:a", 1.0, 0.28).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_trixie_bubble_tween.tween_property(_trixie_bubble, "position", TRIXIE_BUBBLE_POS, 0.38).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_trixie_bubble.show_message(title, text, duration, is_tutorial, show_ack)
 
 
 func _hide_trixie_bubble(instant: bool = false) -> void:
-	if _trixie_bubble == null:
-		return
-	_trixie_bubble_showing = false
-	_trixie_bubble_timer = 0.0
-	_trixie_bubble_is_tutorial = false
-	if _trixie_bubble_ack_btn != null:
-		_trixie_bubble_ack_btn.visible = false
-	if _trixie_bubble_tween != null and _trixie_bubble_tween.is_valid():
-		_trixie_bubble_tween.kill()
-	if instant or not _trixie_bubble.visible:
-		_trixie_bubble.visible = false
-		_trixie_bubble.modulate.a = 1.0
-		_trixie_bubble.position = TRIXIE_BUBBLE_POS
-		return
-	_trixie_bubble_tween = create_tween()
-	_trixie_bubble_tween.tween_property(_trixie_bubble, "modulate:a", 0.0, 0.26).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	_trixie_bubble_tween.tween_callback(func() -> void:
-		if is_instance_valid(_trixie_bubble) and not _trixie_bubble_showing:
-			_trixie_bubble.visible = false
-	)
+	if _trixie_bubble != null:
+		_trixie_bubble.hide_bubble(instant)
 
 
 func _show_customer_bubble(speaker_name: String, text: String, duration: float = 3.2) -> void:
 	if _cust_bubble == null or _closing_active or text == "":
 		return
-	var was_hidden: bool = not _cust_bubble_showing or not _cust_bubble.visible
-	_cust_bubble_showing = true
-	_cust_bubble_timer = maxf(1.8, duration)
-	_cust_bubble_name.text = speaker_name
-	_cust_bubble_body.text = text
-	_cust_bubble.queue_redraw()
-	if _cust_bubble_tween != null and _cust_bubble_tween.is_valid():
-		_cust_bubble_tween.kill()
-	_cust_bubble.visible = true
-	if was_hidden:
-		_cust_bubble.position = CUSTOMER_BUBBLE_POS + Vector2(24.0, 18.0)
-		_cust_bubble.modulate.a = 0.0
-	else:
-		_cust_bubble.position = CUSTOMER_BUBBLE_POS + Vector2(0.0, 8.0)
-	_cust_bubble_tween = create_tween()
-	_cust_bubble_tween.set_parallel(true)
-	_cust_bubble_tween.tween_property(_cust_bubble, "modulate:a", 1.0, 0.28).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_cust_bubble_tween.tween_property(_cust_bubble, "position", CUSTOMER_BUBBLE_POS, 0.38).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_cust_bubble.show_message(speaker_name, text, duration, false, false)
 
 
 func _hide_customer_bubble(instant: bool = false) -> void:
-	if _cust_bubble == null:
-		return
-	_cust_bubble_showing = false
-	_cust_bubble_timer = 0.0
-	if _cust_bubble_tween != null and _cust_bubble_tween.is_valid():
-		_cust_bubble_tween.kill()
-	if instant or not _cust_bubble.visible:
-		_cust_bubble.visible = false
-		_cust_bubble.modulate.a = 1.0
-		_cust_bubble.position = CUSTOMER_BUBBLE_POS
-		return
-	_cust_bubble_tween = create_tween()
-	_cust_bubble_tween.tween_property(_cust_bubble, "modulate:a", 0.0, 0.26).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	_cust_bubble_tween.tween_callback(func() -> void:
-		if is_instance_valid(_cust_bubble) and not _cust_bubble_showing:
-			_cust_bubble.visible = false
-	)
-
-
-func _update_speech_bubbles(delta: float) -> void:
-	if _trixie_bubble_showing and not _trixie_bubble_is_tutorial and _trixie_bubble_timer > 0.0:
-		_trixie_bubble_timer -= delta
-		if _trixie_bubble_timer <= 0.0:
-			_hide_trixie_bubble(false)
-	if _cust_bubble_showing and _cust_bubble_timer > 0.0:
-		_cust_bubble_timer -= delta
-		if _cust_bubble_timer <= 0.0:
-			_hide_customer_bubble(false)
+	if _cust_bubble != null:
+		_cust_bubble.hide_bubble(instant)
 
 
 func _build_closing_dialogue_ui() -> void:
@@ -2675,60 +2445,15 @@ func _build_closing_dialogue_ui() -> void:
 	)
 	_ui_layer.add_child(_closing_overlay)
 
-	_closing_parchment = Control.new()
-	_closing_parchment.position = CLOSING_PARCHMENT_POS
-	_closing_parchment.size = CLOSING_PARCHMENT_SIZE
-	_closing_parchment.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_closing_parchment.draw.connect(_draw_closing_parchment)
-	_closing_overlay.add_child(_closing_parchment)
-
-	_closing_speaker_lbl = Label.new()
-	_closing_speaker_lbl.position = Vector2(78, 38)
-	_closing_speaker_lbl.add_theme_font_size_override("font_size", 28)
-	_closing_speaker_lbl.add_theme_color_override("font_color", Color(0.68, 0.14, 0.34))
-	_closing_parchment.add_child(_closing_speaker_lbl)
-
-	_closing_text_lbl = Label.new()
-	_closing_text_lbl.position = Vector2(78, 88)
-	_closing_text_lbl.size = Vector2(1230, 142)
-	_closing_text_lbl.add_theme_font_size_override("font_size", 26)
-	_closing_text_lbl.add_theme_color_override("font_color", Color(0.18, 0.10, 0.07))
-	_closing_text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_closing_parchment.add_child(_closing_text_lbl)
-
-	_closing_continue_lbl = Label.new()
-	_closing_continue_lbl.text = "Clic / Espacio para ir al Mapa ▾"
-	_closing_continue_lbl.position = Vector2(948, 238)
-	_closing_continue_lbl.size = Vector2(360, 28)
-	_closing_continue_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_closing_continue_lbl.add_theme_font_size_override("font_size", 18)
-	_closing_continue_lbl.add_theme_color_override("font_color", Color(0.45, 0.26, 0.16))
-	_closing_parchment.add_child(_closing_continue_lbl)
-
-
-func _draw_closing_parchment() -> void:
-	if _dialog_bg_tex != null:
-		if _dialog_shadow_tex != null:
-			_closing_parchment.draw_texture_rect(
-				_dialog_shadow_tex,
-				Rect2(-DIALOG_SHADOW_PAD + DIALOG_SHADOW_OFFSET, _closing_parchment.size + DIALOG_SHADOW_PAD * 2.0),
-				false,
-				Color(1.0, 1.0, 1.0, 0.56)
-			)
-		_closing_parchment.draw_texture_rect(_dialog_bg_tex, Rect2(Vector2.ZERO, _closing_parchment.size), false)
-		return
-
-	var w: float = _closing_parchment.size.x
-	var h: float = _closing_parchment.size.y
-	var pts: PackedVector2Array = PackedVector2Array([
-		Vector2(14, 6), Vector2(300, 4), Vector2(320, 14), Vector2(340, 4),
-		Vector2(w - 28, 8), Vector2(w - 8, 28), Vector2(w - 14, 110), Vector2(w - 4, 130),
-		Vector2(w - 12, h - 14), Vector2(w - 120, h - 6), Vector2(w - 140, h - 18), Vector2(w - 162, h - 6),
-		Vector2(210, h - 8), Vector2(188, h - 16), Vector2(168, h - 6), Vector2(14, h - 10),
-		Vector2(4, 140), Vector2(16, 120), Vector2(6, 36),
-	])
-	_closing_parchment.draw_colored_polygon(pts, Color(0.93, 0.84, 0.68, 0.97))
-	_closing_parchment.draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.32, 0.18, 0.11), 4.0)
+	_closing_dialog_box = DIALOG_BOX_SCENE.instantiate() as DialogBox
+	_closing_overlay.add_child(_closing_dialog_box)
+	_closing_dialog_box.set_base_position(CLOSING_PARCHMENT_POS)
+	_closing_dialog_box.chars_per_sec = CLOSING_CHARS_PER_SEC
+	_closing_dialog_box.set_body_font_size(26)
+	_closing_dialog_box.set_continue_prompt("Clic / Espacio para ir al Mapa ▾")
+	_closing_dialog_box.typewriter_tick.connect(func(_ci: int) -> void:
+		_play_pentatonic(3, -12.0)
+	)
 
 
 func _build_modals() -> void:
@@ -3502,7 +3227,11 @@ func run_incremental_smoke_step() -> Dictionary:
 	var stop_bg_tex_ok: bool = (_stop_bg_tex != null and _stop_bg_tex.resource_path == "res://assets/backgrounds/bg_01_castillo.jpg" and _bg_sprite != null and _bg_sprite.visible)
 	var flask_assets_ok: bool = (_flask_glass_tex != null and _flask_mask_tex != null and _flask_liquid_mat != null and _flask_glass_sprite != null and _flask_liquid_sprite != null)
 	var orb_sprites_ok: bool = (_orb_textures.size() == 8 and _crack_textures.size() == 2 and _crack_glow_textures.size() == 2)
-	var dialog_bg_tex_ok: bool = (_dialog_bg_tex != null and _dialog_shadow_tex != null and _speech_bubble_tex != null and _speech_bubble_shadow_tex != null)
+	var dialog_bg_tex_ok: bool = (
+		_closing_dialog_box != null and _closing_dialog_box.has_textures()
+		and _trixie_bubble != null and _trixie_bubble.has_textures()
+		and _cust_bubble != null and _cust_bubble.has_textures()
+	)
 	var pueblo_bg_exists_ok: bool = ResourceLoader.exists("res://assets/backgrounds/bg_02_pueblo.jpg")
 	var no_duplicate_meta_buttons_in_main: bool = (
 		get("_tab_tree_btn") == null
@@ -3572,7 +3301,7 @@ func run_incremental_smoke_step() -> Dictionary:
 
 	var st: Node = _state()
 	var tut_step_1_ok: bool = _tut_active and _tut_step == CauldronTutStep.BASIC_BREAK_LIKED and _trixie_bubble != null and _trixie_bubble.visible and not st.mix_tutorial_done
-	var banner_above_cauldron_ok: bool = (_trixie_bubble != null and (_trixie_bubble.position.y + SPEECH_BUBBLE_BODY_H) < (CAULDRON_CENTER.y - CAULDRON_ELLIPSE_RY))
+	var banner_above_cauldron_ok: bool = (_trixie_bubble != null and (_trixie_bubble.base_position.y + SpeechBubble.BODY_HEIGHT) < (CAULDRON_CENTER.y - CAULDRON_ELLIPSE_RY))
 
 	# 1) Verify idle frame causes zero passive extraction AND tutorial pauses patience!
 	var tube_before: float = _potion_tube_pct
@@ -3621,7 +3350,7 @@ func run_incremental_smoke_step() -> Dictionary:
 	_orbs.append(bad_p)
 	_purge_orb_by_id(int(bad_p["id"]))
 	var purge_kept_combo: bool = (_combo == 1 and _potion_tube_pct > 15.0)
-	var tut_step_3_ok: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY and _trixie_bubble_ack_btn != null and _trixie_bubble_ack_btn.visible)
+	var tut_step_3_ok: bool = (_tut_step == CauldronTutStep.BASIC_READY_SUMMARY and _trixie_bubble != null and _trixie_bubble.is_ack_visible())
 
 	# Acknowledge summary -> basic tutorial done and patience starts counting down
 	_acknowledge_basic_tutorial_summary()
@@ -3718,7 +3447,8 @@ func run_incremental_smoke_step() -> Dictionary:
 	for _step: int in range(10):
 		if not _closing_active or _fading_out:
 			break
-		_closing_shown_chars = float(_closing_full_text.length())
+		if _closing_dialog_box != null:
+			_closing_dialog_box.complete_typing()
 		_handle_closing_advance_input()
 
 	var wave_closing_dialogue_ok: bool = (
