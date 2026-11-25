@@ -793,31 +793,16 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"description": "Primer puesto ambulante frente a las murallas del castillo. Ideal para calentar el caldero, probar mezclas de colores y atender a Sylvi y Velvet.",
 			"closing_victory_lines": [
 				{
-					"speaker": "customer",
-					"emotion": "sonrojada",
-					"text": "¡Mmm, este elixir sí que despierta los sentidos! Nos volveremos a ver en la ruta, brujita.",
-				},
-				{
 					"speaker": "trixie",
 					"emotion": "confiada",
-					"text": "¡Uf, primer puesto superado sin volar por los aires! Aunque casi me tropiezo cargando el cucharón...",
-				},
-				{
-					"speaker": "trixie",
-					"emotion": "normal",
-					"text": "¡Hora de recoger el caldero y abrir el Mapa! Allí podré mejorar mi magia en el Árbol de Habilidades antes de seguir.",
+					"text": "¡Uf, pude terminar! Primer puesto superado sin volar por los aires... ¡ahora a descansar y mejorar el caldero en el Mapa!",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "hollin",
-					"text": "¡Puf...! Se cansaron de esperar y se marcharon antes de tiempo. Por suerte conservo toda la Esencia reunida.",
-				},
-				{
-					"speaker": "trixie",
-					"emotion": "confiada",
-					"text": "¡Vamos al Mapa para mejorar el caldero en el Árbol de Habilidades y atender más rápido!",
+					"text": "¡Puf...! Se cansaron de esperar y toca intentarlo de nuevo. Por suerte conservo toda la Esencia para mejorar en el Mapa.",
 				},
 			],
 		},
@@ -842,21 +827,16 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"description": "Plaza bulliciosa con 3 clientas seguidas. Llegan pedidos de Sylvi, Velvet y la exigente paladín Seraphina (+25% Esencia).",
 			"closing_victory_lines": [
 				{
-					"speaker": "customer",
-					"emotion": "sonrojada",
-					"text": "A-aprobado por la Orden... pero no vayas contando lo mucho que me gustó tu mezcla.",
-				},
-				{
 					"speaker": "trixie",
 					"emotion": "confiada",
-					"text": "¡Jaja, qué clientas más intensas! Ya cae la tarde y mis tacones no dan más... ¡toca descansar antes de tomar el sendero!",
+					"text": "¡Uf, plaza superada! Qué clientas más intensas... ¡toca descansar un poco y seguir la ruta en el Mapa!",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "nerviosa",
-					"text": "¡Uff, cuántas clientas impacientes en el mercado! Conservaré la Esencia para subir más mejoras en el Árbol.",
+					"text": "¡Uff, cuántas clientas impacientes! Toca mejorar el caldero en el Mapa y volver a intentarlo.",
 				},
 			],
 		},
@@ -880,26 +860,16 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"description": "Árboles sin hojas y cielo cerrado. ¡Trixie tomó un desvío equivocado y debe encantar con pociones a 4 clientas bajo la mirada de la Jefa Goblin!",
 			"closing_victory_lines": [
 				{
-					"speaker": "customer",
-					"emotion": "sonrojada",
-					"text": "¡Hmph! Para haberte perdido en este bosque, tus brebajes saben peligrosamente bien.",
-				},
-				{
 					"speaker": "trixie",
 					"emotion": "sorprendida",
-					"text": "¡Lo logré! ¡La Jefa Goblin quedó fascinada y hasta nos prestó su choza para dormir!",
-				},
-				{
-					"speaker": "trixie",
-					"emotion": "confiada",
-					"text": "Mañana podremos elegir en el Mapa: internarnos en el Bosque Profundo o bajar por el Arroyo en balsa mágica.",
+					"text": "¡Lo logré! Hasta la Jefa Goblin quedó encantada... ¡ahora a descansar y elegir desvío en el Mapa!",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "hollin",
-					"text": "¡Se cansaron de esperar y casi termino decorando su olla gigante! Salí con toda mi Esencia intacta: hora de mejorar antes de volver.",
+					"text": "¡Casi termino en su olla gigante! Salí con la Esencia intacta: toca mejorar en el Mapa y reintentar.",
 				},
 			],
 		},
@@ -924,20 +894,15 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"closing_victory_lines": [
 				{
 					"speaker": "trixie",
-					"emotion": "sorprendida",
-					"text": "¡Mira quién salió entre las flores brillantes! ¡Es Lyra!",
-				},
-				{
-					"speaker": "trixie",
 					"emotion": "sonrojada",
-					"text": "¡Con Lyra viajando con nosotras la botica ambulante se vuelve imparable! Vamos al Mapa para ver el siguiente tramo.",
+					"text": "¡Con Lyra uniéndose a nosotras la botica es imparable! Descansemos y sigamos el camino en el Mapa.",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "nerviosa",
-					"text": "¡Estas esporas marean y las clientas perdieron la paciencia! Volvamos al Mapa a mejorar el caldero para impresionar a Lyra.",
+					"text": "¡Estas esporas me marearon y perdimos el ritmo! Volvamos al Mapa a mejorar el caldero y reintentar.",
 				},
 			],
 		},
@@ -962,20 +927,15 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"closing_victory_lines": [
 				{
 					"speaker": "trixie",
-					"emotion": "sorprendida",
-					"text": "¡O-oye! ¡La corriente está acelerando! ¡El caldero se desliza por la balsa...!",
-				},
-				{
-					"speaker": "trixie",
 					"emotion": "hollin",
-					"text": "¡WOOOOSH! ¡Una cascadaaaa! *Splash*... Bueno, llegamos empapadas pero con el bolso lleno de Esencia.",
+					"text": "¡Woooosh! Empapada tras la cascada, pero con el bolso lleno de Esencia... ¡ahora a secarme y ver el Mapa!",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "hollin",
-					"text": "¡La balsa dio tres vueltas seguidas y varias clientas se fueron molestas! Me llevo la Esencia ganada al Mapa antes de intentar domar el río otra vez.",
+					"text": "¡La balsa dio demasiadas vueltas y se fueron molestas! Volvamos al Mapa a mejorar antes de reintentar el río.",
 				},
 			],
 		},
@@ -999,21 +959,16 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"description": "Tras dejar atrás el bosque y la cascada, Trixie despliega su caldero en la gran feria nocturna frente a las cinco clientas VIP.",
 			"closing_victory_lines": [
 				{
-					"speaker": "customer",
-					"emotion": "sonrojada",
-					"text": "¡Increíble! Toda la feria habla de tus elixires... y de tu encanto detrás del caldero.",
-				},
-				{
 					"speaker": "trixie",
 					"emotion": "sonrojada",
-					"text": "¡Las cinco clientas encantadas en una sola noche! ¡Nos vemos en el Mapa para desbloquear el Árbol entero y la Galería!",
+					"text": "¡Uf, pude terminar la gran feria nocturna! Cinco clientas encantadas... ¡ahora sí a descansar y revisar el Mapa!",
 				},
 			],
 			"closing_timeout_lines": [
 				{
 					"speaker": "trixie",
 					"emotion": "nerviosa",
-					"text": "¡Cinco clientas con poca paciencia son pura adrenalina! Mejoremos un poco más en el Mapa y volvamos a arrasar la feria.",
+					"text": "¡Cinco clientas juntas son pura adrenalina! Toca mejorar un poco más en el Mapa y volver a arrasar la feria.",
 				},
 			],
 		},

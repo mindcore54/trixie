@@ -158,6 +158,11 @@
   * Implementados **tutoriales pausados contextuales**: el tutorial inicial explica romper (`3 clics`), purgar `❌` con Clic Der y paciencia/Frenesí con el tiempo 100% pausado; la mecánica de **mezclar colores** salta únicamente cuando llega la primera clienta que exige un color compuesto (`Velvet`). En el Mapa ([WorldMap.gd](scripts/meta/WorldMap.gd)), Trixie guía al **Árbol de Habilidades** y obliga a subir **Toque Continuo** antes de viajar a la Parada 2.
   * **Pedidos visuales y rediseño de Mona:** añadido globo visual de pedido sobre el tubo con receta gráfica de mezcla, tubo pre-teñido, tira visual de orbes en la ficha de la clienta y colores de pedido variados dinámicamente entre visitas; cambiado el arquetipo de **Mona** de "Bruja Rival" a **Elfa Noble Tsundere** y redactado el prompt de Concept Art de **Velvet (#2 — Súcubo Ejecutiva)** en [prompts_characters.md](docs/prompts_characters.md).
 
+* **2026-11-24 — Pergamino Panorámico, Bocadillos Efímeros In-Game y Cierre de 1 Línea:**
+  * Actualizado [dialog_bg.png](assets/ui/hud/dialog_bg.png) a formato panorámico **1386×300 px** con sombra gaussiana regenerada y entrada suave (`0.55s` fade-in de opacidad + aterrizaje `TRANS_EXPO` `0.72s`) en [IntroCutscene.gd](scripts/ui/IntroCutscene.gd) y [MainGame.gd](scripts/core/MainGame.gd).
+  * Exportado [speech_bubble.png](assets/ui/hud/speech_bubble.png) (**480×233 px** + sombra) y sustituida la caja fija de clienta + banner morado de tutorial por **bocadillos de pergamino**: burbuja izquierda de **Trixie** (tutoriales breves pausados y reacciones efímeras) y burbuja derecha espejada para **clientas** al llegar, impacientarse o recibir su elixir.
+  * Simplificado el cierre de cada parada en [GameCatalog.gd](scripts/core/GameCatalog.gd) y [MainGame.gd](scripts/core/MainGame.gd): la última clienta suelta su bocadillo normal, se oculta el HUD del caldero y **Trixie** remata con **1 sola línea** en `dialog_bg.png` antes de volver al Mapa.
+
 ---
 
 <details>

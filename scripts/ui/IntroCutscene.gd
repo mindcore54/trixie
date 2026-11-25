@@ -7,8 +7,8 @@ const SCRIPT_PATH: String = "res://data/dialogues/intro_cutscene.json"
 const CHARS_PER_SEC: float = 52.0
 const DIALOG_BG_TEX_PATH: String = "res://assets/ui/hud/dialog_bg.png"
 const DIALOG_SHADOW_TEX_PATH: String = "res://assets/ui/hud/dialog_bg_shadow.png"
-const INTRO_PARCHMENT_POS: Vector2 = Vector2(360.0, 750.0)
-const INTRO_PARCHMENT_SIZE: Vector2 = Vector2(1200.0, 300.0)
+const INTRO_PARCHMENT_POS: Vector2 = Vector2(267.0, 750.0)
+const INTRO_PARCHMENT_SIZE: Vector2 = Vector2(1386.0, 300.0)
 const DIALOG_SHADOW_PAD: Vector2 = Vector2(24.0, 24.0)
 const DIALOG_SHADOW_OFFSET: Vector2 = Vector2(10.0, 14.0)
 
@@ -69,14 +69,14 @@ func _build_ui() -> void:
 	add_child(_parchment_box)
 
 	_speaker_lbl = Label.new()
-	_speaker_lbl.position = Vector2(74, 38)
+	_speaker_lbl.position = Vector2(78, 38)
 	_speaker_lbl.add_theme_font_size_override("font_size", 28)
 	_speaker_lbl.add_theme_color_override("font_color", Color(0.56, 0.12, 0.24))
 	_parchment_box.add_child(_speaker_lbl)
 
 	_text_lbl = Label.new()
-	_text_lbl.position = Vector2(74, 88)
-	_text_lbl.size = Vector2(1052, 142)
+	_text_lbl.position = Vector2(78, 88)
+	_text_lbl.size = Vector2(1230, 142)
 	_text_lbl.add_theme_font_size_override("font_size", 28)
 	_text_lbl.add_theme_color_override("font_color", Color(0.18, 0.10, 0.07))
 	_text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -84,7 +84,7 @@ func _build_ui() -> void:
 
 	_continue_lbl = Label.new()
 	_continue_lbl.text = "Clic / Espacio para continuar ▾"
-	_continue_lbl.position = Vector2(766, 238)
+	_continue_lbl.position = Vector2(948, 238)
 	_continue_lbl.size = Vector2(360, 28)
 	_continue_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_continue_lbl.add_theme_font_size_override("font_size", 18)
@@ -233,6 +233,7 @@ func _show_caption_beat(txt: String) -> void:
 func _change_bg_with_fade(new_bg: String) -> void:
 	_transitioning = true
 	await SceneFader.fade_out(0.45)
+	_parchment_box.visible = false
 	_bg_mode = new_bg
 	_caption_mode = false
 	_caption_lbl.visible = false
@@ -310,12 +311,12 @@ func _animate_parchment_in() -> void:
 		return
 	if _parchment_tween != null and _parchment_tween.is_valid():
 		_parchment_tween.kill()
-	_parchment_box.position = INTRO_PARCHMENT_POS + Vector2(-260.0, 155.0)
+	_parchment_box.position = INTRO_PARCHMENT_POS + Vector2(-150.0, 90.0)
 	_parchment_box.modulate.a = 0.0
 	_parchment_tween = create_tween()
 	_parchment_tween.set_parallel(true)
-	_parchment_tween.tween_property(_parchment_box, "modulate:a", 1.0, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_parchment_tween.tween_property(_parchment_box, "position", INTRO_PARCHMENT_POS, 0.38).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	_parchment_tween.tween_property(_parchment_box, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_parchment_tween.tween_property(_parchment_box, "position", INTRO_PARCHMENT_POS, 0.72).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 
 
 func _draw_parchment() -> void:
