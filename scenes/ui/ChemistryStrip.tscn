@@ -1,0 +1,146 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ChemistryStrip.gd" id="1_chem_strip"]
+[ext_resource type="Texture2D" path="res://assets/props/items/orbs/orb_red.png" id="2_orb_red"]
+[ext_resource type="Texture2D" path="res://assets/props/items/orbs/orb_green.png" id="3_orb_green"]
+[ext_resource type="Texture2D" path="res://assets/props/items/orbs/orb_blue.png" id="4_orb_blue"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cross_badge"]
+bg_color = Color(0.88, 0.12, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="ChemistryStrip" type="HBoxContainer"]
+custom_minimum_size = Vector2(450, 44)
+offset_right = 450.0
+offset_bottom = 44.0
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+script = ExtResource("1_chem_strip")
+
+[node name="PideLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.68, 1)
+theme_override_font_sizes/font_size = 14
+text = "PIDE:"
+
+[node name="LikedOrb" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_orb_red")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SingleGroup" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="OkLabel" type="Label" parent="SingleGroup"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.88, 0.96, 1)
+theme_override_font_sizes/font_size = 13
+text = "OK:"
+
+[node name="NeutralOrb" type="TextureRect" parent="SingleGroup"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_orb_green")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MixedGroup" type="HBoxContainer" parent="."]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="EqLabel" type="Label" parent="MixedGroup"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "="
+
+[node name="CompOrbA" type="TextureRect" parent="MixedGroup"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_orb_red")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlusLabel" type="Label" parent="MixedGroup"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
+theme_override_font_sizes/font_size = 16
+text = "+"
+
+[node name="CompOrbB" type="TextureRect" parent="MixedGroup"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_orb_blue")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Spacer" type="Control" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Divider" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(2, 30)
+layout_mode = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0.16)
+
+[node name="EvitaLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.5, 1)
+theme_override_font_sizes/font_size = 14
+text = "EVITA:"
+
+[node name="DislikedSlot" type="Control" parent="."]
+custom_minimum_size = Vector2(38, 38)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="DislikedOrb" type="TextureRect" parent="DislikedSlot"]
+modulate = Color(0.76, 0.7, 0.82, 1)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_orb_blue")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CrossBadge" type="Panel" parent="DislikedSlot"]
+layout_mode = 0
+offset_left = 22.0
+offset_top = -2.0
+offset_right = 38.0
+offset_bottom = 14.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_cross_badge")
+
+[node name="CrossLabel" type="Label" parent="DislikedSlot/CrossBadge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "✕"
+horizontal_alignment = 1
+vertical_alignment = 1

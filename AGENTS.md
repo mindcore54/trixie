@@ -47,7 +47,12 @@ Tienes **agencia completa** para:
   * Bancos de diálogos picantes y afinidad en JSON (`res://data/dialogues/*.json`)
 * **Objetivo:** Cuando el desarrollador dibuje una bruja o clienta nueva, integrarla al juego debe tomar minutos creando un `.tres` sin tocar la lógica central.
 
-### 3.3 Skills y MCP de Godot
+### 3.3 Escenas Reales, Componentización Equilibrada y Cero Código Muerto
+* **Cero Nodos "Fantasma" (WYSIWYG Real):** Nunca ocultar un nodo de vista previa en `_ready()` para redibujarlo por debajo con `_draw()`. Lo que el desarrollador acomoda, escala, ordena (`z_index`) o viste con shaders en el editor de Godot debe ser el mismo nodo real que se renderiza al ejecutar (`F6`).
+* **Componentización con Criterio:** Separar elementos visuales o funcionales independientes en sus propias escenas `.tscn` (p. ej. `OrderBubble.tscn`, `PotionFlask.tscn`, `CauldronBoard.tscn`, `WitchStageSlot.tscn`, `CustomerStageSlot.tscn`) para mantener cada script legible y evitar monolitos, **sin sobre-ingeniería** ni crear scripts innecesarios para trivialidades.
+* **Cero Código Muerto ni Fallbacks Obsoletos:** Cada vez que un placeholder o dibujo procedural sea reemplazado por un asset o componente real (en `Main`, `WorldMap` o cualquier pantalla futura), eliminar el código procedural viejo que ya no se usa. **Si existe código potencialmente muerto sobre el que haya duda de si borrarlo, consultar siempre al desarrollador antes de eliminarlo.**
+
+### 3.4 Skills y MCP de Godot
 * Consulta y sigue las buenas prácticas instaladas en `.agents/skills/` (`godot-gdscript-patterns`, `godot-architecture`, `godot-ui`, `godot-shaders-vfx`, `godot-audio`, `trixie-art-pipeline`, etc.).
 * Usa el servidor MCP `godot` para inspeccionar el proyecto, crear/editar escenas y verificar la integridad antes de reportar hitos.
 

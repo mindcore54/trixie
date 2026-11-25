@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/core/CauldronBoard.gd" id="1_cauldron_board"]
+[ext_resource type="Shader" path="res://shaders/cauldron_fire_glow.gdshader" id="2_fire_shader"]
+[ext_resource type="Texture2D" path="res://assets/props/stations/cauldron_main.png" id="3_cauldron_tex"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fire_glow"]
+resource_local_to_scene = true
+shader = ExtResource("2_fire_shader")
+shader_parameter/frenzy_amount = 0.0
+shader_parameter/intensity = 0.72
+
+[node name="CauldronBoard" type="Node2D"]
+script = ExtResource("1_cauldron_board")
+
+[node name="FireGlow" type="ColorRect" parent="."]
+z_index = -1
+material = SubResource("ShaderMaterial_fire_glow")
+offset_left = -505.0
+offset_top = 236.0
+offset_right = 135.0
+offset_bottom = 446.0
+scale = Vector2(1.6415886, 1.6415886)
+mouse_filter = 2
+
+[node name="BrothLayer" type="Node2D" parent="."]
+
+[node name="CauldronSprite" type="Sprite2D" parent="."]
+texture = ExtResource("3_cauldron_tex")
+centered = false
+offset = Vector2(-419, -351)
+
+[node name="OrbsLayer" type="Node2D" parent="."]
+
+[node name="ComboBox" type="VBoxContainer" parent="."]
+z_index = 2
+offset_left = 238.0
+offset_top = -364.0
+offset_right = 408.0
+offset_bottom = -280.0
+mouse_filter = 2
+theme_override_constants/separation = -4
+
+[node name="ComboTitleLabel" type="Label" parent="ComboBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.36, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 24
+text = "COMBO"
+horizontal_alignment = 1
+
+[node name="ComboValueLabel" type="Label" parent="ComboBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.56, 0.28, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 42
+text = "x3!"
+horizontal_alignment = 1

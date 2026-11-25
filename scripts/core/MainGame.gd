@@ -47,24 +47,24 @@ var _popups: Array[Dictionary] = []
 var _trixie_emotion: String = "normal"
 var _trixie_emotion_timer: float = 0.0
 var _trixie_react_anim: float = 0.0
-var _trixie_stage_rect: Rect2 = Rect2(-8.0, 124.0, 520.0, 816.0)
-var _customer_stage_rect: Rect2 = Rect2(1404.0, 108.0, 520.0, 822.0)
+var _shown_liked_orb_hint: bool = false
+var _shown_ingredient_tip: bool = false
 
 var _stop_bg_tex: Texture2D = null
 var _bg_shader_mat: ShaderMaterial = null
 var _bg_frenzy_mix: float = 0.0
-var _fire_shader_mat: ShaderMaterial = null
+var _popup_layer: Node2D = null
 
 var _wave: WaveDirector = WaveDirector.new()
 var _tutorial: TutorialDirector = TutorialDirector.new()
 
 @onready var camera: Camera2D = $Camera2D
 @onready var _bg_sprite: Sprite2D = $StageBackground
-@onready var _trixie_stage_slot: TextureRect = $TrixieStageSlot
-@onready var _customer_stage_slot: TextureRect = $CustomerStageSlot
-@onready var _fire_glow_rect: ColorRect = $CauldronFireGlow
+@onready var _trixie_stage_slot: WitchStageSlot = $TrixieStageSlot
+@onready var _customer_stage_slot: CustomerStageSlot = $CustomerStageSlot
 @onready var _board: CauldronBoard = $CauldronAnchor
 @onready var _flask_view: PotionFlaskView = $PotionFlask
+@onready var _order_bubble: OrderBubble = get_node_or_null("OrderBubble") as OrderBubble
 @onready var _hud: StageHUD = $UILayer
 
 
@@ -86,19 +86,15 @@ func _ready() -> void:
 	customers_catalog = st.get("customers_catalog") as Array[CustomerArchetypeData]
 	tree_nodes = st.get("tree_nodes") as Array[Dictionary]
 
-	if _trixie_stage_slot != null:
-		_trixie_stage_rect = _trixie_stage_slot.get_rect()
-		_trixie_stage_slot.visible = false
-	if _customer_stage_slot != null:
-		_customer_stage_rect = _customer_stage_slot.get_rect()
-		_customer_stage_slot.visible = false
 	if _bg_sprite != null:
 		_bg_sprite.visible = false
 		_bg_shader_mat = _bg_sprite.material as ShaderMaterial
-	if _fire_glow_rect != null:
-		_fire_shader_mat = _fire_glow_rect.material as ShaderMaterial
-		if _fire_shader_mat == null:
-			_fire_glow_rect.visible = false
+
+	_popup_layer = Node2D.new()
+	_popup_layer.name = "PopupLayer"
+	_popup_layer.z_index = 5
+	add_child(_popup_layer)
+	_popup_layer.draw.connect(_on_popup_layer_draw)
 
 	var audio: Node = _audio()
 	if audio != null and camera != null:
@@ -143,14 +139,11 @@ func _connect_hud() -> void:
 			_hud.set_pause_visible(true)
 	)
 	_hud.frenzy_requested.connect(try_activate_frenzy)
-	_hud.tutorial_ack_pressed.connect(_acknowledge_basic_tutorial_summary)
 	_hud.closing_advance_requested.connect(_handle_closing_advance_input)
 	_hud.closing_typewriter_tick.connect(func() -> void: _play_pentatonic(3, -12.0))
 	_hud.return_to_map_requested.connect(_on_pause_return_to_map)
 	_hud.restart_requested.connect(_on_pause_restart)
 	_hud.main_menu_requested.connect(_on_pause_main_menu)
-	if _hud.chem_visual_canvas != null:
-		_hud.chem_visual_canvas.draw.connect(_draw_chem_visual_strip)
 
 
 func _run_cmdline_smoke_and_quit() -> void:
@@ -171,8 +164,8 @@ func _process(delta: float) -> void:
 	_bg_frenzy_mix = lerpf(_bg_frenzy_mix, target_frenzy, clampf(delta * 5.0, 0.0, 1.0))
 	if _bg_shader_mat != null:
 		_bg_shader_mat.set_shader_parameter("frenzy_amount", _bg_frenzy_mix)
-	if _fire_shader_mat != null:
-		_fire_shader_mat.set_shader_parameter("frenzy_amount", _bg_frenzy_mix)
+	if _board != null:
+		_board.set_frenzy_visual(_bg_frenzy_mix)
 	if _flask_view != null:
 		var shake_val: float = _board.cauldron_shake if _board != null else 0.0
 		_flask_view.step_fluid(delta, _wave.potion_tube_pct, shake_val)
@@ -196,6 +189,20 @@ func _process(delta: float) -> void:
 
 	_refresh_hud_labels()
 	queue_redraw()
+	if _trixie_stage_slot != null:
+		_trixie_stage_slot.update_witch(_trixie_emotion, _time, _trixie_react_anim)
+	if _customer_stage_slot != null:
+		var c: CustomerArchetypeData = _wave.active_customer
+		if c != null:
+			_customer_stage_slot.update_customer(c.customer_id, _wave.customer_emotion, _time, _wave.customer_react_anim, _wave.customer_slide_t)
+		else:
+			_customer_stage_slot.clear_customer()
+	if _board != null:
+		var broth_col: Color = _flask_view.broth_current_color if _flask_view != null else PotionFlaskView.BROTH_NEUTRAL_COLOR
+		_board.sync_visuals(broth_col, _time, _tutorial, _wave.round_ending, _wave.closing_active)
+	_refresh_order_bubble()
+	if _popup_layer != null:
+		_popup_layer.queue_redraw()
 
 
 func _input(event: InputEvent) -> void:
@@ -232,10 +239,6 @@ func _unhandled_input(event: InputEvent) -> void:
 					get_viewport().set_input_as_handled()
 				return
 			if _is_modal_open():
-				return
-			if _tutorial.is_waiting_summary_ack() and (kev.keycode == KEY_ENTER or kev.keycode == KEY_KP_ENTER):
-				_acknowledge_basic_tutorial_summary()
-				get_viewport().set_input_as_handled()
 				return
 			if kev.keycode == KEY_SPACE:
 				try_activate_frenzy()
@@ -319,6 +322,10 @@ func _start_stop() -> void:
 	st.rounds_played += 1
 	_wave.start_stop(st.get_active_map_node(), st.rounds_played)
 	_fading_out = false
+	_shown_liked_orb_hint = false
+	_shown_ingredient_tip = false
+	if _order_bubble != null:
+		_order_bubble.reset_order()
 	_apply_stop_background()
 	_recalc_stats()
 
@@ -329,6 +336,7 @@ func _start_stop() -> void:
 		_hud.set_cauldron_hud_visible(true)
 		_hud.hide_trixie_bubble(true)
 		_hud.hide_customer_bubble(true)
+		_hud.reset_chemistry_cache()
 
 	_pick_customer_by_id(_wave.wave_customers[0], true)
 
@@ -371,12 +379,11 @@ func _advance_cauldron_tutorial(next_step: TutorialDirector.Step) -> void:
 	_update_tutorial_banner()
 
 
-func _acknowledge_basic_tutorial_summary() -> void:
-	if not _tutorial.acknowledge_basics_summary(_state()):
-		return
+func _finish_basic_tutorial() -> void:
+	_tutorial.finish_basics(_state())
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
-	_set_trixie_reaction("confiada", 2.5, "¡Corre la paciencia de Sylvi! Llena su tubo al 100%.")
+	_set_trixie_reaction("confiada", 2.5, "¡Bien! ¡Ahora llena su frasco al 100%!")
 	if _hud != null:
 		_hud.set_map_button_disabled(false)
 
@@ -412,7 +419,7 @@ func _update_tutorial_banner() -> void:
 			_hud.hide_trixie_bubble(false)
 		return
 	var payload: Dictionary = _tutorial.get_banner_payload(get_customer_chemistry())
-	_show_trixie_bubble(String(payload["title"]), String(payload["body"]), -1.0, true, bool(payload["show_ack"]))
+	_show_trixie_bubble(String(payload["title"]), String(payload["body"]), -1.0, true)
 
 
 func _process_cauldron_gameplay(delta: float) -> void:
@@ -501,9 +508,17 @@ func _on_board_orb_shattered_good(pos: Vector2, kind: int, tier: int, rel: Strin
 	elif rel == &"liked" and (tier >= 2 or ChemistryRules.is_mixed_kind(kind)):
 		_set_trixie_reaction("confiada", 1.7, "¡%s pulverizado! ¡Cómo sube el elixir!" % ChemistryRules.get_element_name(kind))
 	elif rel == &"liked":
-		_set_trixie_reaction("confiada", 1.5, "¡Bien triturado! Sigue buscando los afines.")
+		var liked_line: String = ""
+		if not _shown_liked_orb_hint and not _tutorial.active and not _wave.closing_active:
+			_shown_liked_orb_hint = true
+			liked_line = "¡Bien triturado! Sigue buscando los afines."
+		_set_trixie_reaction("confiada", 1.5, liked_line)
 	elif rel == &"ingredient":
-		_set_trixie_reaction("normal", 1.5, "Tip: ¡arrastra %s sobre el otro color para mezclar!" % ChemistryRules.get_element_name(kind))
+		var ing_line: String = ""
+		if not _shown_ingredient_tip and not _tutorial.active and not _wave.closing_active:
+			_shown_ingredient_tip = true
+			ing_line = "Tip: ¡arrastra %s sobre el otro color para mezclar!" % ChemistryRules.get_element_name(kind)
+		_set_trixie_reaction("normal", 1.5, ing_line)
 
 	var c: CustomerArchetypeData = _wave.active_customer
 	if (rel == &"liked" and (tier >= 2 or ChemistryRules.is_mixed_kind(kind) or combo_val >= 2)) or kind == BubbleKind.GOLD:
@@ -537,7 +552,7 @@ func _on_board_orb_purged(pos: Vector2, rel: StringName, recycled_ess: int) -> v
 	else:
 		_spawn_popup(pos, "Purgado", Color(0.80, 0.84, 0.94))
 	if _tutorial.active and _tutorial.step == TutorialDirector.Step.BASIC_PURGE_DISLIKED and rel == &"disliked":
-		_advance_cauldron_tutorial(TutorialDirector.Step.BASIC_READY_SUMMARY)
+		_finish_basic_tutorial()
 
 
 func _on_board_bomb_detonated(bpos: Vector2, _hit_count: int) -> void:
@@ -589,9 +604,14 @@ func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
 	var next_c: CustomerArchetypeData = _wave.find_customer_by_id(customers_catalog, cid)
 	if next_c == null:
 		return
+	if _order_bubble != null:
+		_order_bubble.reset_order()
+	if _hud != null:
+		_hud.reset_chemistry_cache()
 	var info: Dictionary = _wave.pick_customer(next_c, first_order, _state(), order_bonus_mult, get_node_level(&"reloj_arena"))
 	if _flask_view != null:
 		_flask_view.reset_for_new_customer(first_order)
+	_refresh_order_bubble()
 	_show_customer_bubble(next_c.display_name, String(info["greeting_line"]), 3.2)
 	if bool(info["start_mix_tutorial"]):
 		_start_mix_tutorial()
@@ -750,7 +770,7 @@ func _set_trixie_reaction(emotion: String, dur: float, line: String) -> void:
 	_trixie_emotion = emotion
 	_trixie_emotion_timer = dur
 	if line != "" and not _tutorial.active and not _wave.closing_active:
-		_show_trixie_bubble("Trixie", line, clampf(dur, 2.4, 3.6), false, false)
+		_show_trixie_bubble("Trixie", line, clampf(dur, 2.4, 3.6), false)
 
 
 func _set_customer_reaction(emotion: String, dur: float, line: String = "") -> void:
@@ -760,12 +780,12 @@ func _set_customer_reaction(emotion: String, dur: float, line: String = "") -> v
 		_hud.show_customer_bubble(cname, shown, clampf(dur, 2.4, 3.6))
 
 
-func _show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false, show_ack: bool = false) -> void:
+func _show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false) -> void:
 	if _hud == null or _wave.closing_active or text == "":
 		return
 	if _tutorial.active and not is_tutorial:
 		return
-	_hud.show_trixie_bubble(title, text, duration, is_tutorial, show_ack)
+	_hud.show_trixie_bubble(title, text, duration, is_tutorial)
 
 
 func _show_customer_bubble(speaker_name: String, text: String, duration: float = 3.2) -> void:
@@ -828,70 +848,31 @@ func _draw() -> void:
 	if _stop_bg_tex == null:
 		draw_rect(Rect2(0, 0, 1920, 1080), _wave.stop_bg_tint)
 
-	CharacterArt.draw_trixie_halfbody(self, _trixie_stage_rect, _trixie_emotion, _time, 1.0, _trixie_react_anim)
-	_draw_customer_stage_right()
 
-	if _flask_view != null:
-		var chem: Dictionary = get_customer_chemistry()
-		var liked_col: Color = ChemistryRules.get_element_color(int(chem["liked"]))
-		_flask_view.draw_potion_tube(self, _wave.potion_tube_pct, liked_col)
-		if _wave.active_customer != null and _board != null:
-			_flask_view.draw_order_bubble(self, chem, _time, _board.draw_mini_orb_badge)
+func _refresh_order_bubble() -> void:
+	var should_show: bool = (not _wave.closing_active and _wave.active_customer != null)
+	if _order_bubble != null:
+		_order_bubble.visible = should_show
+	if not should_show or _board == null:
+		return
+	var chem: Dictionary = get_customer_chemistry()
+	if _order_bubble != null:
+		_order_bubble.set_order(int(chem["liked"]), _board.orb_textures)
+	if _hud != null:
+		_hud.update_chemistry(chem, _board.orb_textures)
 
-	if _board != null:
-		var broth_col: Color = _flask_view.broth_current_color if _flask_view != null else PotionFlaskView.BROTH_NEUTRAL_COLOR
-		_board.draw_board(self, broth_col, _time, _tutorial, _wave.round_ending, _wave.closing_active)
 
+func _on_popup_layer_draw() -> void:
+	if _popup_layer == null:
+		return
 	var font: Font = ThemeDB.fallback_font
 	for p: Dictionary in _popups:
 		var pos: Vector2 = p["pos"] as Vector2
 		var txt: String = p["text"] as String
 		var pcol: Color = p["color"] as Color
 		var alpha: float = clampf(float(p["life"]), 0.0, 1.0)
-		draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(0.04, 0.02, 0.08, alpha))
-		draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(pcol.r, pcol.g, pcol.b, alpha))
-
-
-func _draw_customer_stage_right() -> void:
-	var slide_off: float = (1.0 - _wave.customer_slide_t) * 140.0
-	var c: CustomerArchetypeData = _wave.active_customer
-	if c == null:
-		return
-	if CharacterArt.has_customer_halfbody(c.customer_id):
-		var stage: Rect2 = Rect2(_customer_stage_rect.position + Vector2(slide_off, 0.0), _customer_stage_rect.size)
-		CharacterArt.draw_customer_halfbody(self, stage, c.customer_id, _wave.customer_emotion, _time, 1.0, _wave.customer_react_anim)
-	else:
-		var stage: Rect2 = Rect2(1408 + slide_off, 150, 486, 580)
-		CharacterArt.draw_expressive_waifu_bust(self, stage, c.customer_id, _wave.customer_spicy_mode or _wave.customer_emotion == "sonrojada" or _wave.customer_flash_timer > 0.0, _time)
-
-
-func _draw_chem_visual_strip() -> void:
-	if _hud == null or _hud.chem_visual_canvas == null or _board == null:
-		return
-	var canvas: Control = _hud.chem_visual_canvas
-	var chem: Dictionary = get_customer_chemistry()
-	var liked_k: int = int(chem["liked"])
-	var disliked_k: int = int(chem["disliked"])
-	var font: Font = ThemeDB.fallback_font
-	var cy: float = canvas.size.y * 0.5
-
-	canvas.draw_string(font, Vector2(4.0, cy + 5.0), "PIDE:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.55, 1.0, 0.68))
-	_board.draw_mini_orb_badge(canvas, Vector2(72.0, cy), 17.0, liked_k, false)
-
-	if ChemistryRules.is_mixed_kind(liked_k):
-		var comps: Array[int] = ChemistryRules.get_recipe_components(liked_k)
-		canvas.draw_string(font, Vector2(96.0, cy + 6.0), "=", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1.0, 0.92, 0.65))
-		_board.draw_mini_orb_badge(canvas, Vector2(130.0, cy), 14.0, comps[0], false)
-		canvas.draw_string(font, Vector2(150.0, cy + 6.0), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1.0, 0.92, 0.65))
-		_board.draw_mini_orb_badge(canvas, Vector2(182.0, cy), 14.0, comps[1], false)
-	else:
-		var neutral_k: int = int(chem["neutral"])
-		canvas.draw_string(font, Vector2(106.0, cy + 5.0), "OK:", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.84, 0.88, 0.96))
-		_board.draw_mini_orb_badge(canvas, Vector2(152.0, cy), 14.0, neutral_k, false)
-
-	canvas.draw_line(Vector2(276.0, 6.0), Vector2(276.0, canvas.size.y - 6.0), Color(1, 1, 1, 0.16), 2.0)
-	canvas.draw_string(font, Vector2(294.0, cy + 5.0), "EVITA:", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1.0, 0.45, 0.50))
-	_board.draw_mini_orb_badge(canvas, Vector2(374.0, cy), 17.0, disliked_k, true)
+		_popup_layer.draw_string(font, pos + Vector2(2, 2), txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(0.04, 0.02, 0.08, alpha))
+		_popup_layer.draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_CENTER, -1, 22, Color(pcol.r, pcol.g, pcol.b, alpha))
 
 
 static func draw_expressive_waifu_bust(ci: CanvasItem, rect: Rect2, cid: StringName, spicy: bool, t: float) -> void:

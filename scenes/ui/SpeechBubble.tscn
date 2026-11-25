@@ -12,42 +12,6 @@ shader_parameter/shadow_offset = Vector2(6, 9)
 shader_parameter/blur_radius = 9.0
 shader_parameter/render_size = Vector2(460, 223)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ack_normal"]
-bg_color = Color(0.18, 0.52, 0.3, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.56, 1, 0.62, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ack_pressed"]
-bg_color = Color(0.14, 0.42, 0.24, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.56, 1, 0.62, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ack_hover"]
-bg_color = Color(0.24, 0.62, 0.38, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.56, 1, 0.62, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
 [node name="SpeechBubble" type="Control" unique_id=1672422940]
 layout_mode = 3
 anchors_preset = 0
@@ -88,18 +52,3 @@ theme_override_colors/font_color = Color(0.18, 0.1, 0.07, 1)
 theme_override_font_sizes/font_size = 19
 text = "¡Bocadillo de ejemplo para editar en Godot!"
 autowrap_mode = 3
-
-[node name="AckButton" type="Button" parent="." unique_id=186737275]
-visible = false
-custom_minimum_size = Vector2(138, 42)
-layout_mode = 0
-offset_left = 288.0
-offset_top = 120.0
-offset_right = 426.0
-offset_bottom = 162.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_ack_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_ack_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_ack_hover")
-text = "¡LISTO! ▶"

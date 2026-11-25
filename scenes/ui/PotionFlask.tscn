@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/core/PotionFlaskView.gd" id="1_flask_view"]
+[ext_resource type="Shader" path="res://shaders/flask_liquid.gdshader" id="2_flask_shader"]
+[ext_resource type="Texture2D" path="res://assets/props/items/flask_liquid_mask.png" id="3_flask_mask"]
+[ext_resource type="Texture2D" path="res://assets/props/items/flask_empty.png" id="4_flask_empty"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flask_liquid"]
+resource_local_to_scene = true
+shader = ExtResource("2_flask_shader")
+shader_parameter/fill_ratio = 0.0
+shader_parameter/liquid_color = Color(0.98, 0.28, 0.34, 1)
+shader_parameter/mask_top = 0.1646
+shader_parameter/mask_bottom = 0.9829
+shader_parameter/slosh_amp = 0.0
+shader_parameter/slosh_tilt = 0.0
+shader_parameter/pour_glow = 0.0
+shader_parameter/flash_amount = 0.0
+shader_parameter/flash_negative = 0.0
+
+[node name="PotionFlask" type="Node2D"]
+script = ExtResource("1_flask_view")
+
+[node name="LiquidSprite" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_flask_liquid")
+scale = Vector2(0.611111, 0.610976)
+texture = ExtResource("3_flask_mask")
+centered = false
+
+[node name="GlassSprite" type="Sprite2D" parent="."]
+z_index = 1
+scale = Vector2(0.611111, 0.610976)
+texture = ExtResource("4_flask_empty")
+centered = false
+
+[node name="PercentLabel" type="Label" parent="."]
+z_index = 2
+offset_left = -8.0
+offset_top = 508.0
+offset_right = 96.0
+offset_bottom = 542.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.1, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 24
+text = "0%"
+horizontal_alignment = 1

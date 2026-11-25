@@ -2,13 +2,10 @@
 class_name SpeechBubble
 extends Control
 ## Reusable parchment speech bubble prefab with optional right-flipped tail,
-## tutorial highlight + ack button, and smooth pop-in / fade-out transitions.
-
-signal ack_pressed()
+## tutorial highlight, and smooth pop-in / fade-out transitions.
 
 const BODY_HEIGHT: float = 180.0
 const BODY_WIDTH_FULL: float = 388.0
-const BODY_WIDTH_WITH_ACK: float = 246.0
 
 @export var flip_tail_right: bool = false:
 	set(value):
@@ -23,7 +20,6 @@ const BODY_WIDTH_WITH_ACK: float = 246.0
 @onready var _bg_rect: TextureRect = $Background
 @onready var _title_lbl: Label = $TitleLabel
 @onready var _body_lbl: Label = $BodyLabel
-@onready var _ack_btn: Button = $AckButton
 
 var base_position: Vector2 = Vector2.ZERO
 var _base_position_set: bool = false
@@ -42,8 +38,6 @@ func _ready() -> void:
 		return
 	if not _base_position_set:
 		base_position = position
-	if _ack_btn != null:
-		_ack_btn.pressed.connect(func() -> void: ack_pressed.emit())
 
 
 func _process(delta: float) -> void:
@@ -68,7 +62,7 @@ func set_base_position(pos: Vector2) -> void:
 	position = pos
 
 
-func show_message(title: String, body: String, duration: float = 3.2, tutorial_mode: bool = false, show_ack: bool = false) -> void:
+func show_message(title: String, body: String, duration: float = 3.2, tutorial_mode: bool = false) -> void:
 	if body == "":
 		return
 	var was_hidden: bool = not is_showing or not visible
@@ -80,9 +74,7 @@ func show_message(title: String, body: String, duration: float = 3.2, tutorial_m
 		_title_lbl.add_theme_color_override("font_color", tutorial_title_color if tutorial_mode else default_title_color)
 	if _body_lbl != null:
 		_body_lbl.text = body
-		_body_lbl.size = Vector2(BODY_WIDTH_WITH_ACK if show_ack else BODY_WIDTH_FULL, 118.0)
-	if _ack_btn != null:
-		_ack_btn.visible = show_ack
+		_body_lbl.size = Vector2(BODY_WIDTH_FULL, 118.0)
 	if _bg_rect != null:
 		_bg_rect.modulate = tutorial_bg_tint if tutorial_mode else Color.WHITE
 	if _tween != null and _tween.is_valid():
@@ -104,8 +96,6 @@ func hide_bubble(instant: bool = false) -> void:
 	is_showing = false
 	_timer = 0.0
 	is_tutorial_mode = false
-	if _ack_btn != null:
-		_ack_btn.visible = false
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	if instant or not visible:
@@ -126,10 +116,6 @@ func tick(delta: float) -> void:
 		_timer -= delta
 		if _timer <= 0.0:
 			hide_bubble(false)
-
-
-func is_ack_visible() -> bool:
-	return _ack_btn != null and _ack_btn.visible
 
 
 func has_textures() -> bool:

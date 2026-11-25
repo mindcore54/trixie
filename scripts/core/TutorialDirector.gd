@@ -7,9 +7,8 @@ enum Step {
 	NONE = 0,
 	BASIC_BREAK_LIKED = 1,
 	BASIC_PURGE_DISLIKED = 2,
-	BASIC_READY_SUMMARY = 3,
-	MIX_DRAG_COMBINE = 4,
-	MIX_BREAK_RESULT = 5,
+	MIX_DRAG_COMBINE = 3,
+	MIX_BREAK_RESULT = 4,
 }
 
 var active: bool = false
@@ -23,10 +22,6 @@ func reset() -> void:
 
 func is_pausing_patience() -> bool:
 	return active and step != Step.NONE
-
-
-func is_waiting_summary_ack() -> bool:
-	return active and step == Step.BASIC_READY_SUMMARY
 
 
 func start_basics() -> void:
@@ -46,13 +41,10 @@ func advance_to(next_step: Step) -> bool:
 	return true
 
 
-func acknowledge_basics_summary(state: Node) -> bool:
-	if not is_waiting_summary_ack():
-		return false
+func finish_basics(state: Node) -> void:
 	state.cauldron_basics_tutorial_done = true
 	state.cauldron_tutorial_done = true
 	reset()
-	return true
 
 
 func finish_mix(state: Node) -> void:
@@ -68,12 +60,6 @@ func get_step_reaction(s: Step) -> Dictionary:
 				"dur": 3.0,
 				"line": "¡Bien! Ahora purga el orbe con ❌ usando Clic Derecho sin romper el combo.",
 			}
-		Step.BASIC_READY_SUMMARY:
-			return {
-				"emotion": "confiada",
-				"dur": 3.2,
-				"line": "¡Eso es todo lo básico! Revisa el resumen arriba y pulsa ¡ENTENDIDO! para iniciar.",
-			}
 		Step.MIX_BREAK_RESULT:
 			return {
 				"emotion": "confiada",
@@ -86,19 +72,15 @@ func get_step_reaction(s: Step) -> Dictionary:
 func get_banner_payload(chem: Dictionary) -> Dictionary:
 	var tut_title: String = "✨ Tutorial · Pausado"
 	var tut_body: String = ""
-	var show_ack: bool = (step == Step.BASIC_READY_SUMMARY)
 	match step:
 		Step.BASIC_BREAK_LIKED:
 			var liked_k: int = int(chem["liked"])
-			tut_title = "✨ Tutorial 1/3 · Pausado"
+			tut_title = "✨ Tutorial 1/2 · Pausado"
 			tut_body = "Haz 3 CLICS IZQ en un orbe %s para llenar el matraz." % ChemistryRules.get_element_name(liked_k)
 		Step.BASIC_PURGE_DISLIKED:
 			var disliked_k: int = int(chem["disliked"])
-			tut_title = "✨ Tutorial 2/3 · Pausado"
+			tut_title = "✨ Tutorial 2/2 · Pausado"
 			tut_body = "Haz CLIC DER en el orbe %s ❌ para purgarlo sin perder combo." % ChemistryRules.get_element_name(disliked_k)
-		Step.BASIC_READY_SUMMARY:
-			tut_title = "✨ ¡Lista! (3/3)"
-			tut_body = "Cuida la Paciencia y usa [ESPACIO] al cargar Frenesí."
 		Step.MIX_DRAG_COMBINE:
 			var liked_m: int = int(chem["liked"])
 			var comps: Array[int] = ChemistryRules.get_recipe_components(liked_m)
@@ -115,7 +97,6 @@ func get_banner_payload(chem: Dictionary) -> Dictionary:
 	return {
 		"title": tut_title,
 		"body": tut_body,
-		"show_ack": show_ack,
 	}
 
 
@@ -132,7 +113,7 @@ func draw_orb_guide(
 	round_ending: bool,
 	closing_active: bool
 ) -> void:
-	if not active or round_ending or closing_active or step == Step.NONE or step == Step.BASIC_READY_SUMMARY:
+	if not active or round_ending or closing_active or step == Step.NONE:
 		return
 
 	var pulse: float = 0.5 + 0.5 * sin(time_sec * 7.5)

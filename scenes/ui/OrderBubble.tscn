@@ -1,0 +1,122 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/OrderBubble.gd" id="1_order_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/asking_bubble.png" id="2_asking_bubble"]
+[ext_resource type="Shader" path="res://shaders/ui_drop_shadow.gdshader" id="3_shadow_shader"]
+[ext_resource type="Texture2D" path="res://assets/props/items/orbs/orb_red.png" id="4_orb_preview"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_order_bubble_shadow"]
+resource_local_to_scene = true
+shader = ExtResource("3_shadow_shader")
+shader_parameter/shadow_color = Color(0.04, 0.02, 0.07, 0.48)
+shader_parameter/shadow_offset = Vector2(5, 7)
+shader_parameter/blur_radius = 8.0
+shader_parameter/render_size = Vector2(164, 164)
+
+[node name="OrderBubble" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 164.0
+offset_bottom = 164.0
+mouse_filter = 2
+script = ExtResource("1_order_script")
+
+[node name="BackgroundTexture" type="TextureRect" parent="."]
+material = SubResource("ShaderMaterial_order_bubble_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_asking_bubble")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SingleOrderOrb" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -62.0
+offset_top = -61.0
+offset_right = 8.0
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.7575758, 1.7575758)
+mouse_filter = 2
+texture = ExtResource("4_orb_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MixedOrderGroup" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MixedResultOrb" type="TextureRect" parent="MixedOrderGroup"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -36.0
+offset_top = -64.0
+offset_right = 36.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_orb_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RecipeRow" type="HBoxContainer" parent="MixedOrderGroup"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -66.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="CompOrbA" type="TextureRect" parent="MixedOrderGroup/RecipeRow"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_orb_preview")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlusLabel" type="Label" parent="MixedOrderGroup/RecipeRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.24, 0.12, 0.08, 1)
+theme_override_font_sizes/font_size = 24
+text = "+"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CompOrbB" type="TextureRect" parent="MixedOrderGroup/RecipeRow"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_orb_preview")
+expand_mode = 1
+stretch_mode = 5

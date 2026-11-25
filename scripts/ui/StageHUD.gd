@@ -5,7 +5,6 @@ extends CanvasLayer
 
 signal pause_requested()
 signal frenzy_requested()
-signal tutorial_ack_pressed()
 signal closing_advance_requested()
 signal closing_typewriter_tick()
 signal return_to_map_requested()
@@ -25,7 +24,7 @@ signal main_menu_requested()
 @onready var _cust_aff_lbl: Label = $CauldronHudRoot/CustomerHeaderCard/Margin/HBox/CustomerAffinityLabel
 @onready var _cust_patience_lbl: Label = $CauldronHudRoot/PatienceCard/Margin/HBox/PatienceLabel
 @onready var _cust_patience_bar: ProgressBar = $CauldronHudRoot/PatienceCard/Margin/HBox/PatienceBar
-@onready var chem_visual_canvas: Control = $CauldronHudRoot/ChemistryCard/Margin/ChemVisualCanvas
+@onready var chemistry_strip: ChemistryStrip = $CauldronHudRoot/ChemistryCard/Margin/ChemistryStrip
 @onready var _toast_lbl: Label = $CauldronHudRoot/ToastLabel
 
 @onready var trixie_bubble: SpeechBubble = $TrixieBubble
@@ -54,7 +53,6 @@ func _ready() -> void:
 	if trixie_bubble != null:
 		trixie_bubble.set_base_position(trixie_bubble.position)
 		trixie_bubble.hide_bubble(true)
-		trixie_bubble.ack_pressed.connect(func() -> void: tutorial_ack_pressed.emit())
 
 	if customer_bubble != null:
 		customer_bubble.set_base_position(customer_bubble.position)
@@ -102,6 +100,16 @@ func _process(delta: float) -> void:
 			_toast_lbl.visible = false
 
 
+func reset_chemistry_cache() -> void:
+	if chemistry_strip != null:
+		chemistry_strip.reset_cache()
+
+
+func update_chemistry(chem: Dictionary, orb_textures: Dictionary) -> void:
+	if chemistry_strip != null:
+		chemistry_strip.set_chemistry(chem, orb_textures)
+
+
 func set_cauldron_hud_visible(show_hud: bool) -> void:
 	if _cauldron_hud_root != null:
 		_cauldron_hud_root.visible = show_hud
@@ -114,9 +122,9 @@ func show_toast(txt: String, duration: float = 3.5) -> void:
 		_toast_lbl.visible = true
 
 
-func show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false, show_ack: bool = false) -> void:
+func show_trixie_bubble(title: String, text: String, duration: float, is_tutorial: bool = false) -> void:
 	if trixie_bubble != null:
-		trixie_bubble.show_message(title, text, duration, is_tutorial, show_ack)
+		trixie_bubble.show_message(title, text, duration, is_tutorial)
 
 
 func hide_trixie_bubble(instant: bool = false) -> void:
@@ -130,7 +138,7 @@ func is_trixie_bubble_tutorial() -> bool:
 
 func show_customer_bubble(speaker_name: String, text: String, duration: float = 3.2) -> void:
 	if customer_bubble != null:
-		customer_bubble.show_message(speaker_name, text, duration, false, false)
+		customer_bubble.show_message(speaker_name, text, duration, false)
 
 
 func hide_customer_bubble(instant: bool = false) -> void:
@@ -262,5 +270,3 @@ func refresh_status(
 		_cust_name_lbl.text = customer_title
 	if affinity_text != "" and _cust_aff_lbl != null:
 		_cust_aff_lbl.text = affinity_text
-	if chem_visual_canvas != null:
-		chem_visual_canvas.queue_redraw()

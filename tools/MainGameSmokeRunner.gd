@@ -138,16 +138,12 @@ static func run(m: MainGame) -> Dictionary:
 	var combined_same: bool = b.combine_orbs_by_id(int(conc_a["id"]), int(conc_b["id"]))
 	var lift_concentrate_ok: bool = (combined_same and b.orbs.size() == 1 and int(b.orbs[0]["kind"]) == ChemistryRules.BubbleKind.RED and int(b.orbs[0]["tier"]) == 2)
 
-	# 4) Purge a Disliked orb with Right-click -> preserves combo & advances basic tutorial 2 -> 3 (summary)
+	# 4) Purge a Disliked orb with Right-click -> preserves combo & finishes basic tutorial immediately
 	b.orbs.clear()
 	var bad_p: Dictionary = b.make_orb_dict(disliked_k, c_center + Vector2(90, 0), 1)
 	b.orbs.append(bad_p)
 	b.purge_orb_by_id(int(bad_p["id"]))
 	var purge_kept_combo: bool = (b.combo == 1 and w.potion_tube_pct > 15.0)
-	var tut_step_3_ok: bool = (m._tutorial.step == TutorialDirector.Step.BASIC_READY_SUMMARY and m._hud != null and m._hud.trixie_bubble != null and m._hud.trixie_bubble.is_ack_visible())
-
-	# Acknowledge summary -> basic tutorial done and patience starts counting down
-	m._acknowledge_basic_tutorial_summary()
 	var pat_pre_tick: float = w.customer_patience_left
 	m._process_cauldron_gameplay(2.0)
 	var patience_ticks_after_tut_ok: bool = (not m._tutorial.active and st.cauldron_basics_tutorial_done and w.customer_patience_left < pat_pre_tick)
@@ -307,7 +303,7 @@ static func run(m: MainGame) -> Dictionary:
 		"seraphina_halfbodies_distinct_ok": seraphina_halfbodies_distinct_ok,
 		"mona_halfbodies_distinct_ok": mona_halfbodies_distinct_ok,
 		"roxy_halfbodies_distinct_ok": roxy_halfbodies_distinct_ok,
-		"cauldron_tutorial_flow_ok": tut_step_1_ok and banner_above_cauldron_ok and tut_step_2_ok and tut_step_3_ok and patience_ticks_after_tut_ok,
+		"cauldron_tutorial_flow_ok": tut_step_1_ok and banner_above_cauldron_ok and tut_step_2_ok and patience_ticks_after_tut_ok,
 		"tutorial_pauses_patience_ok": tutorial_pauses_patience_ok,
 		"mix_tutorial_contextual_ok": mix_tut_started_ok and mix_tut_paused_ok and mix_tut_step2_ok and mix_tut_done_ok,
 		"customer_timeout_advances_ok": customer_timeout_advances_ok,

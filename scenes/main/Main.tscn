@@ -1,29 +1,24 @@
 [gd_scene format=3 uid="uid://c80d40421b606"]
 
-[ext_resource type="Script" path="res://scripts/core/MainGame.gd" id="1_u1xfj"]
-[ext_resource type="Script" path="res://scripts/ui/StageHUD.gd" id="2_stage_hud"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/bg_01_castillo.jpg" id="3_bg_castillo"]
-[ext_resource type="Shader" path="res://shaders/stage_bg_depth.gdshader" id="4_bg_shader"]
-[ext_resource type="Shader" path="res://shaders/cauldron_fire_glow.gdshader" id="5_fire_shader"]
-[ext_resource type="Texture2D" path="res://assets/props/stations/cauldron_main.png" id="6_cauldron_tex"]
-[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/halfbody/trixie_halfbody_normal.png" id="7_trixie_preview"]
-[ext_resource type="Texture2D" path="res://assets/characters/customers/sylvi/halfbody/sylvi_halfbody_normal.png" id="8_sylvi_preview"]
-[ext_resource type="Texture2D" path="res://assets/props/items/flask_liquid_mask.png" id="9_flask_mask"]
-[ext_resource type="Texture2D" path="res://assets/props/items/flask_empty.png" id="10_flask_empty"]
-[ext_resource type="Shader" path="res://shaders/flask_liquid.gdshader" id="11_flask_shader"]
+[ext_resource type="Script" uid="uid://chwsngjnusx3r" path="res://scripts/core/MainGame.gd" id="1_u1xfj"]
+[ext_resource type="Script" uid="uid://3hpxqd7fibon" path="res://scripts/ui/StageHUD.gd" id="2_stage_hud"]
+[ext_resource type="Texture2D" uid="uid://bdg617io454oy" path="res://assets/backgrounds/bg_01_castillo.jpg" id="3_bg_castillo"]
+[ext_resource type="Shader" uid="uid://dcwfi75os03db" path="res://shaders/stage_bg_depth.gdshader" id="4_bg_shader"]
 [ext_resource type="PackedScene" uid="uid://7pjca6y8yrpa" path="res://scenes/ui/SpeechBubble.tscn" id="12_speech_bubble"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DialogBox.tscn" id="13_dialog_box"]
-[ext_resource type="Script" path="res://scripts/core/PotionFlaskView.gd" id="14_flask_view"]
-[ext_resource type="Script" path="res://scripts/core/CauldronBoard.gd" id="15_cauldron_board"]
+[ext_resource type="PackedScene" path="res://scenes/ui/OrderBubble.tscn" id="16_order_bubble"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PotionFlask.tscn" id="17_potion_flask"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/WitchStageSlot.tscn" id="18_witch_slot"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/CustomerStageSlot.tscn" id="19_customer_slot"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/CauldronBoard.tscn" id="20_cauldron_board"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ChemistryStrip.tscn" id="21_chemistry_strip"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stage_bg"]
 shader = ExtResource("4_bg_shader")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_fire_glow"]
-shader = ExtResource("5_fire_shader")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_flask_liquid"]
-shader = ExtResource("11_flask_shader")
+shader_parameter/blur_radius = 2.0
+shader_parameter/darken = 0.16
+shader_parameter/vignette_strength = 0.28
+shader_parameter/frenzy_amount = 0.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top_bar"]
 bg_color = Color(0.08, 0.05, 0.13, 0.95)
@@ -330,10 +325,10 @@ corner_radius_bottom_left = 10
 [node name="Main" type="Node2D" unique_id=407562072]
 script = ExtResource("1_u1xfj")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1605169212]
 position = Vector2(960, 540)
 
-[node name="StageBackground" type="Sprite2D" parent="."]
+[node name="StageBackground" type="Sprite2D" parent="." unique_id=1255407795]
 z_index = -10
 material = SubResource("ShaderMaterial_stage_bg")
 position = Vector2(-24, -24)
@@ -341,84 +336,55 @@ scale = Vector2(1.025, 1.044444)
 texture = ExtResource("3_bg_castillo")
 centered = false
 
-[node name="TrixieStageSlot" type="TextureRect" parent="."]
-z_index = -2
-offset_left = -8.0
-offset_top = 124.0
-offset_right = 512.0
-offset_bottom = 940.0
-mouse_filter = 2
-texture = ExtResource("7_trixie_preview")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="CustomerStageSlot" type="TextureRect" parent="."]
-z_index = -2
-offset_left = 1404.0
-offset_top = 108.0
-offset_right = 1924.0
-offset_bottom = 930.0
-mouse_filter = 2
-texture = ExtResource("8_sylvi_preview")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="CauldronFireGlow" type="ColorRect" parent="."]
-z_index = -1
-material = SubResource("ShaderMaterial_fire_glow")
-offset_left = 560.0
-offset_top = 869.0
-offset_right = 1200.0
-offset_bottom = 1079.0
-mouse_filter = 2
-
-[node name="CauldronAnchor" type="Node2D" parent="."]
-position = Vector2(880, 564)
-script = ExtResource("15_cauldron_board")
-
-[node name="CauldronPreview" type="Sprite2D" parent="CauldronAnchor"]
-texture = ExtResource("6_cauldron_tex")
-centered = false
-offset = Vector2(-419, -351)
-
-[node name="PotionFlask" type="Node2D" parent="."]
-position = Vector2(1304, 238)
-script = ExtResource("14_flask_view")
-
-[node name="LiquidSprite" type="Sprite2D" parent="PotionFlask"]
+[node name="TrixieStageSlot" parent="." unique_id=280296743 instance=ExtResource("18_witch_slot")]
 z_index = 1
-material = SubResource("ShaderMaterial_flask_liquid")
-scale = Vector2(0.611111, 0.610976)
-texture = ExtResource("9_flask_mask")
-centered = false
+offset_left = -132.0
+offset_top = 95.0
+offset_right = 687.0
+offset_bottom = 1100.0
 
-[node name="GlassSprite" type="Sprite2D" parent="PotionFlask"]
+[node name="CustomerStageSlot" parent="." unique_id=574381154 instance=ExtResource("19_customer_slot")]
+z_index = 1
+offset_left = 1267.0
+offset_top = 98.0
+offset_right = 2028.0
+offset_bottom = 1110.0
+
+[node name="CauldronAnchor" parent="." unique_id=1395715565 instance=ExtResource("20_cauldron_board")]
+position = Vector2(937, 564)
+
+[node name="PotionFlask" parent="." unique_id=1014326545 instance=ExtResource("17_potion_flask")]
 z_index = 2
-scale = Vector2(0.611111, 0.610976)
-texture = ExtResource("10_flask_empty")
-centered = false
+position = Vector2(1338, 310)
 
-[node name="UILayer" type="CanvasLayer" parent="."]
+[node name="OrderBubble" parent="." unique_id=1947431725 instance=ExtResource("16_order_bubble")]
+z_index = 3
+offset_left = 1226.0
+offset_top = 900.0
+offset_right = 1390.0
+offset_bottom = 1064.0
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1297690437]
 layer = 10
 script = ExtResource("2_stage_hud")
 
-[node name="TopBar" type="PanelContainer" parent="UILayer"]
+[node name="TopBar" type="PanelContainer" parent="UILayer" unique_id=632952540]
 offset_right = 1920.0
 offset_bottom = 76.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_top_bar")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/TopBar"]
+[node name="Margin" type="MarginContainer" parent="UILayer/TopBar" unique_id=405172338]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 10
 
-[node name="HBox" type="HBoxContainer" parent="UILayer/TopBar/Margin"]
+[node name="HBox" type="HBoxContainer" parent="UILayer/TopBar/Margin" unique_id=1310575053]
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="EssenceLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+[node name="EssenceLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1507518248]
 custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.36, 1)
@@ -427,7 +393,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 26
 text = "✦ 0"
 
-[node name="StopLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+[node name="StopLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=151414440]
 custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.88, 0.98, 1)
@@ -436,7 +402,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 20
 text = "📍 Afueras del Castillo"
 
-[node name="WaveLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+[node name="WaveLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1653606838]
 custom_minimum_size = Vector2(230, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.94, 1, 1)
@@ -445,11 +411,11 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 20
 text = "👥 Clienta: 1 / 2"
 
-[node name="SpacerLeft" type="Control" parent="UILayer/TopBar/Margin/HBox"]
+[node name="SpacerLeft" type="Control" parent="UILayer/TopBar/Margin/HBox" unique_id=2098232296]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TimerLabel" type="Label" parent="UILayer/TopBar/Margin/HBox"]
+[node name="TimerLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1432925001]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
@@ -459,11 +425,11 @@ theme_override_font_sizes/font_size = 28
 text = "0:55"
 horizontal_alignment = 1
 
-[node name="SpacerRight" type="Control" parent="UILayer/TopBar/Margin/HBox"]
+[node name="SpacerRight" type="Control" parent="UILayer/TopBar/Margin/HBox" unique_id=145637357]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="PauseButton" type="Button" parent="UILayer/TopBar/Margin/HBox"]
+[node name="PauseButton" type="Button" parent="UILayer/TopBar/Margin/HBox" unique_id=1449346960]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
 theme_override_font_sizes/font_size = 17
@@ -472,7 +438,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_pause_btn_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "⏸ PAUSA [ESC]"
 
-[node name="CauldronHudRoot" type="Control" parent="UILayer"]
+[node name="CauldronHudRoot" type="Control" parent="UILayer" unique_id=1678248723]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -481,7 +447,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="FrenzyDock" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+[node name="FrenzyDock" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=1776394591]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 952.0
@@ -489,25 +455,25 @@ offset_right = 468.0
 offset_bottom = 1060.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_frenzy_dock")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/FrenzyDock"]
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/FrenzyDock" unique_id=1975290728]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="VBox" type="VBoxContainer" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin"]
+[node name="VBox" type="VBoxContainer" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin" unique_id=528630667]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="FrenzyBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox"]
+[node name="FrenzyBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox" unique_id=1658735411]
 custom_minimum_size = Vector2(416, 16)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_frenzy_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_frenzy_bar_fill")
 show_percentage = false
 
-[node name="FrenzyButton" type="Button" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox"]
+[node name="FrenzyButton" type="Button" parent="UILayer/CauldronHudRoot/FrenzyDock/Margin/VBox" unique_id=916007981]
 custom_minimum_size = Vector2(416, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
@@ -517,7 +483,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_frenzy_btn_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "🔥 FRENESÍ (0%) [ESPACIO]"
 
-[node name="CustomerHeaderCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+[node name="CustomerHeaderCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=972291974]
 layout_mode = 0
 offset_left = 1412.0
 offset_top = 886.0
@@ -525,17 +491,17 @@ offset_right = 1898.0
 offset_bottom = 928.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_cust_hdr")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard"]
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard" unique_id=411633719]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin"]
+[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin" unique_id=1194392519]
 layout_mode = 2
 
-[node name="CustomerNameLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox"]
+[node name="CustomerNameLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox" unique_id=1636760180]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.93, 0.84, 1)
@@ -544,7 +510,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 19
 text = "Sylvi"
 
-[node name="CustomerAffinityLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox"]
+[node name="CustomerAffinityLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox" unique_id=1701010627]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.64, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
@@ -552,7 +518,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 17
 text = "❤ Nv.0"
 
-[node name="PatienceCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+[node name="PatienceCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=2096060010]
 layout_mode = 0
 offset_left = 1412.0
 offset_top = 932.0
@@ -560,18 +526,18 @@ offset_right = 1898.0
 offset_bottom = 978.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_pat_card")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/PatienceCard"]
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/PatienceCard" unique_id=687174775]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/PatienceCard/Margin"]
+[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/PatienceCard/Margin" unique_id=735750085]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PatienceLabel" type="Label" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox"]
+[node name="PatienceLabel" type="Label" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox" unique_id=1681573322]
 custom_minimum_size = Vector2(138, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
@@ -580,7 +546,7 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 15
 text = "⏳ 30s"
 
-[node name="PatienceBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox"]
+[node name="PatienceBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox" unique_id=1208493922]
 custom_minimum_size = Vector2(280, 18)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -589,7 +555,7 @@ theme_override_styles/fill = SubResource("StyleBoxFlat_pat_bar_fill")
 value = 100.0
 show_percentage = false
 
-[node name="ChemistryCard" type="PanelContainer" parent="UILayer/CauldronHudRoot"]
+[node name="ChemistryCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=135847071]
 layout_mode = 0
 offset_left = 1412.0
 offset_top = 984.0
@@ -597,19 +563,17 @@ offset_right = 1898.0
 offset_bottom = 1052.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_chem_card")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/ChemistryCard"]
+[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/ChemistryCard" unique_id=1892308226]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="ChemVisualCanvas" type="Control" parent="UILayer/CauldronHudRoot/ChemistryCard/Margin"]
-custom_minimum_size = Vector2(450, 44)
+[node name="ChemistryStrip" parent="UILayer/CauldronHudRoot/ChemistryCard/Margin" unique_id=1914661380 instance=ExtResource("21_chemistry_strip")]
 layout_mode = 2
-mouse_filter = 2
 
-[node name="ToastLabel" type="Label" parent="UILayer/CauldronHudRoot"]
+[node name="ToastLabel" type="Label" parent="UILayer/CauldronHudRoot" unique_id=1695737888]
 visible = false
 layout_mode = 0
 offset_left = 825.0
@@ -623,25 +587,23 @@ theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="TrixieBubble" parent="UILayer" instance=ExtResource("12_speech_bubble")]
+[node name="TrixieBubble" parent="UILayer" unique_id=727944183 instance=ExtResource("12_speech_bubble")]
 visible = false
-layout_mode = 0
 offset_left = 356.0
 offset_top = 78.0
 offset_right = 816.0
 offset_bottom = 301.0
 
-[node name="CustomerBubble" parent="UILayer" instance=ExtResource("12_speech_bubble")]
+[node name="CustomerBubble" parent="UILayer" unique_id=227039360 instance=ExtResource("12_speech_bubble")]
 visible = false
-layout_mode = 0
-offset_left = 1418.0
-offset_top = 638.0
-offset_right = 1878.0
-offset_bottom = 861.0
+offset_left = 1053.0
+offset_top = 78.0
+offset_right = 1513.0
+offset_bottom = 301.0
 flip_tail_right = true
 default_title_color = Color(0.56, 0.12, 0.28, 1)
 
-[node name="ClosingOverlay" type="Control" parent="UILayer"]
+[node name="ClosingOverlay" type="Control" parent="UILayer" unique_id=519922082]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -650,14 +612,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ClosingDialogBox" parent="UILayer/ClosingOverlay" instance=ExtResource("13_dialog_box")]
+[node name="ClosingDialogBox" parent="UILayer/ClosingOverlay" unique_id=1790814519 instance=ExtResource("13_dialog_box")]
 layout_mode = 0
 offset_left = 267.0
 offset_top = 750.0
 offset_right = 1653.0
 offset_bottom = 1050.0
 
-[node name="PauseOverlay" type="ColorRect" parent="UILayer"]
+[node name="PauseOverlay" type="ColorRect" parent="UILayer" unique_id=1797422429]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
@@ -666,7 +628,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.04, 0.02, 0.08, 0.84)
 
-[node name="Center" type="CenterContainer" parent="UILayer/PauseOverlay"]
+[node name="Center" type="CenterContainer" parent="UILayer/PauseOverlay" unique_id=43400744]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -674,23 +636,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PausePanel" type="PanelContainer" parent="UILayer/PauseOverlay/Center"]
+[node name="PausePanel" type="PanelContainer" parent="UILayer/PauseOverlay/Center" unique_id=637207115]
 custom_minimum_size = Vector2(460, 430)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_pause_panel")
 
-[node name="Margin" type="MarginContainer" parent="UILayer/PauseOverlay/Center/PausePanel"]
+[node name="Margin" type="MarginContainer" parent="UILayer/PauseOverlay/Center/PausePanel" unique_id=403962442]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="VBox" type="VBoxContainer" parent="UILayer/PauseOverlay/Center/PausePanel/Margin"]
+[node name="VBox" type="VBoxContainer" parent="UILayer/PauseOverlay/Center/PausePanel/Margin" unique_id=746114497]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="PauseHeader" type="Label" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+[node name="PauseHeader" type="Label" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=808371737]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
 theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
@@ -699,7 +661,7 @@ theme_override_font_sizes/font_size = 34
 text = "PAUSA"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+[node name="ResumeButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=1360508650]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
@@ -709,7 +671,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_resume_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "REANUDAR"
 
-[node name="MapButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+[node name="MapButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=269841221]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
@@ -719,7 +681,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_map_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "🗺 VOLVER AL MAPA"
 
-[node name="RestartButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+[node name="RestartButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=292859733]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
@@ -729,7 +691,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_restart_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "REINICIAR PARTIDA"
 
-[node name="MenuButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox"]
+[node name="MenuButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=1849879750]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)

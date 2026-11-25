@@ -29,7 +29,21 @@ const HOLD_HIT_START_DELAY: float = 0.16
 const RIGHT_PURGE_HOLD_INTERVAL: float = 0.13
 const BASE_ORB_HP: int = 3
 
-@onready var _preview_sprite: Sprite2D = $CauldronPreview
+@onready var _fire_glow: ColorRect = get_node_or_null("FireGlow") as ColorRect
+@onready var _broth_layer: Node2D = get_node_or_null("BrothLayer") as Node2D
+@onready var _cauldron_sprite: Sprite2D = get_node_or_null("CauldronSprite") as Sprite2D
+@onready var _orbs_layer: Node2D = get_node_or_null("OrbsLayer") as Node2D
+@onready var _combo_box: Control = get_node_or_null("ComboBox") as Control
+@onready var _combo_value_lbl: Label = get_node_or_null("ComboBox/ComboValueLabel") as Label
+
+var _fire_shader_mat: ShaderMaterial = null
+var _cauldron_base_pos: Vector2 = Vector2.ZERO
+var _render_broth_color: Color = Color(0.11, 0.09, 0.22)
+var _render_time: float = 0.0
+var _render_tutorial: TutorialDirector = null
+var _render_round_ending: bool = false
+var _render_closing_active: bool = false
+var _frame_shake: Vector2 = Vector2.ZERO
 
 var get_chemistry_fn: Callable = Callable()
 var is_tube_empty_fn: Callable = Callable()
@@ -96,11 +110,22 @@ var right_purge_accum: float = 0.0
 
 func _ready() -> void:
 	mouse_pos = get_center()
-	if _preview_sprite != null:
-		cauldron_tex = _preview_sprite.texture
-		_preview_sprite.visible = false
+	if _cauldron_sprite != null:
+		_cauldron_base_pos = _cauldron_sprite.position
+		cauldron_tex = _cauldron_sprite.texture
+		_cauldron_sprite.visible = true
 	if cauldron_tex == null and ResourceLoader.exists(CAULDRON_TEX_PATH):
 		cauldron_tex = load(CAULDRON_TEX_PATH) as Texture2D
+		if _cauldron_sprite != null:
+			_cauldron_sprite.texture = cauldron_tex
+	if _fire_glow != null:
+		_fire_shader_mat = _fire_glow.material as ShaderMaterial
+	if _combo_box != null:
+		_combo_box.visible = false
+	if _broth_layer != null:
+		_broth_layer.draw.connect(_on_broth_layer_draw)
+	if _orbs_layer != null:
+		_orbs_layer.draw.connect(_on_orbs_layer_draw)
 	_load_orb_textures()
 	for _i: int in range(20):
 		ambient_steam.append({
@@ -1075,30 +1100,60 @@ func get_shake_offset() -> Vector2:
 	return Vector2.ZERO
 
 
-func draw_board(ci: CanvasItem, broth_current_color: Color, time_sec: float, tutorial: TutorialDirector, round_ending: bool, closing_active: bool) -> void:
-	var shake_v: Vector2 = get_shake_offset()
-	var c_pos: Vector2 = get_center() + shake_v
+func set_frenzy_visual(mix: float) -> void:
+	if _fire_shader_mat != null:
+		_fire_shader_mat.set_shader_parameter("frenzy_amount", mix)
 
-	# Layer 1: Broth liquid tucked slightly wider than inner opening so foreground rim overlaps cleanly
-	var liq_col: Color = broth_current_color.lightened(0.08 + 0.04 * sin(time_sec * 8.0)) if frenzy_timer > 0.0 else broth_current_color
+
+func sync_visuals(broth_current_color: Color, time_sec: float, tutorial: TutorialDirector, round_ending: bool, closing_active: bool) -> void:
+	_render_broth_color = broth_current_color
+	_render_time = time_sec
+	_render_tutorial = tutorial
+	_render_round_ending = round_ending
+	_render_closing_active = closing_active
+	_frame_shake = get_shake_offset()
+
+	if _cauldron_sprite != null:
+		_cauldron_sprite.position = _cauldron_base_pos + _frame_shake
+	if _combo_box != null:
+		var show_combo: bool = (combo > 0 and not closing_active)
+		_combo_box.visible = show_combo
+		if show_combo and _combo_value_lbl != null:
+			_combo_value_lbl.text = "x%d!" % combo
+	if _broth_layer != null:
+		_broth_layer.queue_redraw()
+	if _orbs_layer != null:
+		_orbs_layer.queue_redraw()
+
+
+func _on_broth_layer_draw() -> void:
+	if _broth_layer == null:
+		return
+	var ci: CanvasItem = _broth_layer
+	var c_pos: Vector2 = _frame_shake
+	var liq_col: Color = _render_broth_color.lightened(0.08 + 0.04 * sin(_render_time * 8.0)) if frenzy_timer > 0.0 else _render_broth_color
 	_draw_filled_ellipse(ci, c_pos, ELLIPSE_RX * 1.035, ELLIPSE_RY * 1.035, liq_col)
 	_draw_filled_ellipse(ci, c_pos + Vector2(0.0, 16.0), ELLIPSE_RX * 0.93, ELLIPSE_RY * 0.89, liq_col.lightened(0.10))
 	var ripple_base: Color = liq_col.lightened(0.48)
 	var ripple_col: Color = Color(1.0, 0.45, 0.78, 0.52) if frenzy_timer > 0.0 else Color(ripple_base.r, ripple_base.g, ripple_base.b, 0.30)
-	_draw_ellipse_arc(ci, c_pos + Vector2(0.0, 10.0), ELLIPSE_RX * 0.84, ELLIPSE_RY * 0.80, time_sec * 0.32, time_sec * 0.32 + TAU * 0.55, ripple_col, 2.5)
-	_draw_ellipse_arc(ci, c_pos + Vector2(0.0, 10.0), ELLIPSE_RX * 0.62, ELLIPSE_RY * 0.58, -time_sec * 0.24, -time_sec * 0.24 + TAU * 0.45, Color(ripple_col.r, ripple_col.g, ripple_col.b, ripple_col.a * 0.75), 2.0)
+	_draw_ellipse_arc(ci, c_pos + Vector2(0.0, 10.0), ELLIPSE_RX * 0.84, ELLIPSE_RY * 0.80, _render_time * 0.32, _render_time * 0.32 + TAU * 0.55, ripple_col, 2.5)
+	_draw_ellipse_arc(ci, c_pos + Vector2(0.0, 10.0), ELLIPSE_RX * 0.62, ELLIPSE_RY * 0.58, -_render_time * 0.24, -_render_time * 0.24 + TAU * 0.45, Color(ripple_col.r, ripple_col.g, ripple_col.b, ripple_col.a * 0.75), 2.0)
 
 	var steam_base: Color = liq_col.lightened(0.56)
 	for st: Dictionary in ambient_steam:
-		var spos: Vector2 = c_pos + Vector2(float(st["x"]), float(st["y"]))
-		if is_inside_ellipse(spos, 18.0):
-			var a: float = 0.10 + 0.08 * sin(time_sec * 2.0 + float(st["phase"]))
+		var world_spos: Vector2 = get_center() + Vector2(float(st["x"]), float(st["y"]))
+		if is_inside_ellipse(world_spos, 18.0):
+			var spos: Vector2 = c_pos + Vector2(float(st["x"]), float(st["y"]))
+			var a: float = 0.10 + 0.08 * sin(_render_time * 2.0 + float(st["phase"]))
 			ci.draw_circle(spos, float(st["r"]), Color(steam_base.r, steam_base.g, steam_base.b, a))
 
-	# Layer 3: Foreground cauldron rim & handles drawn over the broth
-	if cauldron_tex != null:
-		ci.draw_texture_rect(cauldron_tex, Rect2(c_pos - CAULDRON_HOLE_OFFSET, CAULDRON_DRAW_SIZE), false)
 
+func _on_orbs_layer_draw() -> void:
+	if _orbs_layer == null:
+		return
+	var ci: CanvasItem = _orbs_layer
+	var draw_off: Vector2 = -position + _frame_shake
+	var time_sec: float = _render_time
 	var font: Font = ThemeDB.fallback_font
 
 	# Layer 4: Orbs Y-sorted with subtle depth scale
@@ -1111,19 +1166,19 @@ func draw_board(ci: CanvasItem, broth_current_color: Color, time_sec: float, tut
 		return float((a["pos"] as Vector2).y) < float((b["pos"] as Vector2).y)
 	)
 	for o: Dictionary in sorted_orbs:
-		draw_alchemy_orb(ci, o, shake_v, false, time_sec)
+		draw_alchemy_orb(ci, o, draw_off, false, time_sec)
 
 	if is_lifting and lifted_orb_id != -1:
 		var l_idx: int = find_orb_idx_by_id(lifted_orb_id)
 		if l_idx != -1:
 			var l_orb: Dictionary = orbs[l_idx]
-			var l_pos: Vector2 = (l_orb["pos"] as Vector2) + shake_v
+			var l_pos: Vector2 = (l_orb["pos"] as Vector2) + draw_off
 			var l_rad: float = float(l_orb["radius"]) * float(l_orb["scale_pop"]) * 1.16
 			if lift_hover_target_id != -1:
 				var t_idx: int = find_orb_idx_by_id(lift_hover_target_id)
 				if t_idx != -1:
 					var t_orb: Dictionary = orbs[t_idx]
-					var t_pos: Vector2 = (t_orb["pos"] as Vector2) + shake_v
+					var t_pos: Vector2 = (t_orb["pos"] as Vector2) + draw_off
 					var t_rad: float = float(t_orb["radius"])
 					var pulse: float = 0.5 + 0.5 * sin(time_sec * 9.0)
 					ci.draw_arc(t_pos, t_rad + 12.0 + pulse * 4.0, 0.0, TAU, 32, Color(0.45, 0.96, 1.0, 0.95), 4.0)
@@ -1141,56 +1196,52 @@ func draw_board(ci: CanvasItem, broth_current_color: Color, time_sec: float, tut
 						preview_txt = "%s + %s -> %s" % [ChemistryRules.get_element_glyph(sk), ChemistryRules.get_element_glyph(dk), ChemistryRules.get_element_name(res_k)]
 					ci.draw_string(font, t_pos + Vector2(-115, -t_rad - 20.0), preview_txt, HORIZONTAL_ALIGNMENT_CENTER, 230, 17, Color(1.0, 0.95, 0.58))
 			ci.draw_circle(l_pos + Vector2(6.0, 16.0), l_rad * 0.92, Color(0.0, 0.0, 0.0, 0.42))
-			draw_alchemy_orb(ci, l_orb, shake_v, true, time_sec)
+			draw_alchemy_orb(ci, l_orb, draw_off, true, time_sec)
 
-	if tutorial != null:
-		tutorial.draw_orb_guide(
+	if _render_tutorial != null:
+		_render_tutorial.draw_orb_guide(
 			ci,
 			orbs,
 			lifted_orb_id,
 			_chem(),
 			get_orb_relation,
 			ORB_RADIUS,
-			shake_v,
+			draw_off,
 			time_sec,
 			font,
-			round_ending,
-			closing_active
+			_render_round_ending,
+			_render_closing_active
 		)
 
 	for sw: Dictionary in shockwaves:
 		var alpha: float = clampf(float(sw["life"]) / maxf(0.01, float(sw["max_life"])), 0.0, 1.0)
 		var scol: Color = sw["color"] as Color
-		ci.draw_arc((sw["pos"] as Vector2) + shake_v, float(sw["radius"]), 0.0, TAU, 36, Color(scol.r, scol.g, scol.b, alpha * 0.85), 4.5 * alpha)
+		ci.draw_arc((sw["pos"] as Vector2) + draw_off, float(sw["radius"]), 0.0, TAU, 36, Color(scol.r, scol.g, scol.b, alpha * 0.85), 4.5 * alpha)
 
 	for arc: Dictionary in lightning_arcs:
 		var alpha: float = clampf(float(arc["life"]) / maxf(0.01, float(arc["max_life"])), 0.0, 1.0)
 		var acol: Color = arc["color"] as Color
-		var p0: Vector2 = (arc["from"] as Vector2) + shake_v
-		var p1: Vector2 = (arc["to"] as Vector2) + shake_v
+		var p0: Vector2 = (arc["from"] as Vector2) + draw_off
+		var p1: Vector2 = (arc["to"] as Vector2) + draw_off
 		var mid: Vector2 = (p0 + p1) * 0.5 + Vector2(randf_range(-14, 14), randf_range(-14, 14))
 		ci.draw_polyline(PackedVector2Array([p0, mid, p1]), Color(acol.r, acol.g, acol.b, alpha), 3.8)
 
 	if fam_michi_lvl > 0:
-		var mp: Vector2 = get_michi_pos(time_sec) + shake_v
+		var mp: Vector2 = get_michi_pos(time_sec) + draw_off
 		ci.draw_circle(mp, 21.0, Color(1.0, 0.72, 0.92, 0.28))
 		ci.draw_circle(mp, 14.0, Color(1.0, 0.86, 0.95))
 		ci.draw_colored_polygon(PackedVector2Array([mp + Vector2(-10, -8), mp + Vector2(-14, -20), mp + Vector2(-3, -12)]), Color(0.95, 0.62, 0.85))
 		ci.draw_colored_polygon(PackedVector2Array([mp + Vector2(10, -8), mp + Vector2(14, -20), mp + Vector2(3, -12)]), Color(0.95, 0.62, 0.85))
 	if fam_imp_lvl > 0:
-		var ip: Vector2 = get_imp_pos(time_sec) + shake_v
+		var ip: Vector2 = get_imp_pos(time_sec) + draw_off
 		ci.draw_circle(ip, 21.0, Color(1.0, 0.36, 0.24, 0.30))
 		ci.draw_circle(ip, 14.0, Color(0.92, 0.24, 0.36))
 		ci.draw_colored_polygon(PackedVector2Array([ip + Vector2(-9, -9), ip + Vector2(-15, -22), ip + Vector2(-2, -12)]), Color(0.28, 0.08, 0.14))
 		ci.draw_colored_polygon(PackedVector2Array([ip + Vector2(9, -9), ip + Vector2(15, -22), ip + Vector2(2, -12)]), Color(0.28, 0.08, 0.14))
 	if fam_bat_lvl > 0:
-		var bp: Vector2 = get_bat_pos(time_sec) + shake_v
+		var bp: Vector2 = get_bat_pos(time_sec) + draw_off
 		ci.draw_circle(bp, 18.0, Color(0.70, 0.50, 1.0, 0.30))
 		ci.draw_circle(bp, 12.0, Color(0.42, 0.24, 0.66))
-
-	if combo > 0:
-		ci.draw_string(font, Vector2(1175, 224), "COMBO", HORIZONTAL_ALIGNMENT_CENTER, 170, 24, Color(1.0, 0.88, 0.36))
-		ci.draw_string(font, Vector2(1175, 268), "x%d!" % combo, HORIZONTAL_ALIGNMENT_CENTER, 170, 42, Color(1.0, 0.56, 0.28))
 
 
 func draw_alchemy_orb(ci: CanvasItem, o: Dictionary, shake_v: Vector2, is_lifted: bool, time_sec: float) -> void:
@@ -1235,30 +1286,6 @@ func draw_alchemy_orb(ci: CanvasItem, o: Dictionary, shake_v: Vector2, is_lifted
 			if hit_flash > 0.12:
 				ci.draw_texture_rect(crack_textures[stage_idx], crack_rect, false, Color(1.0, 1.0, 1.0, clampf(hit_flash * 0.35, 0.0, 0.40)))
 			ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	else:
-		ci.draw_circle(pos, r, col.darkened(0.22) if rel == &"disliked" else col)
-		if hit_flash > 0.02:
-			ci.draw_circle(pos, r, Color(1.0, 1.0, 1.0, clampf(hit_flash * 0.62, 0.0, 0.65)))
-		ci.draw_arc(pos, r, 0.0, TAU, 28, col.lightened(0.45), 2.5)
-		ci.draw_circle(pos + Vector2(-r * 0.32, -r * 0.32), r * 0.26, Color(1, 1, 1, 0.58))
-
-		if hp < max_hp:
-			var dmg_ratio: float = clampf(float(max_hp - hp) / float(maxi(1, max_hp)), 0.0, 1.0)
-			var crack_col: Color = Color(0.12, 0.06, 0.18, 0.85)
-			ci.draw_polyline(PackedVector2Array([
-				pos + Vector2(-r * 0.65, -r * 0.18),
-				pos + Vector2(-r * 0.18, -r * 0.05),
-				pos + Vector2(-r * 0.04, r * 0.38),
-			]), crack_col, 2.6)
-			if dmg_ratio >= 0.5 or (max_hp >= 3 and hp <= 1):
-				ci.draw_polyline(PackedVector2Array([
-					pos + Vector2(r * 0.55, -r * 0.35),
-					pos + Vector2(r * 0.12, 0.02 * r),
-					pos + Vector2(r * 0.34, r * 0.45),
-				]), crack_col, 2.6)
-
-		var glyph: String = ChemistryRules.get_element_glyph(kind)
-		ci.draw_string(ThemeDB.fallback_font, pos + Vector2(-14, 9), glyph, HORIZONTAL_ALIGNMENT_CENTER, 28, 22 if tier == 1 else 25, Color.WHITE)
 
 	var font: Font = ThemeDB.fallback_font
 	if tier >= 2:
@@ -1268,7 +1295,6 @@ func draw_alchemy_orb(ci: CanvasItem, o: Dictionary, shake_v: Vector2, is_lifted
 
 
 func draw_mini_orb_badge(ci: CanvasItem, center: Vector2, rad: float, kind: int, is_forbidden: bool = false) -> void:
-	var col: Color = ChemistryRules.get_element_color(kind)
 	var orb_tex: Texture2D = orb_textures.get(kind, null) as Texture2D
 	if orb_tex != null:
 		if is_forbidden:
@@ -1278,18 +1304,6 @@ func draw_mini_orb_badge(ci: CanvasItem, center: Vector2, rad: float, kind: int,
 		ci.draw_texture_rect(orb_tex, Rect2(center - Vector2(draw_r, draw_r), Vector2(draw_r * 2.0, draw_r * 2.0)), false, mod_c)
 		if is_forbidden:
 			ci.draw_arc(center, rad, 0.0, TAU, 24, Color(1.0, 0.30, 0.36), 2.5)
-	else:
-		if is_forbidden:
-			ci.draw_circle(center, rad + 3.0, Color(0.22, 0.04, 0.08, 0.92))
-			ci.draw_circle(center, rad, col.darkened(0.25))
-			ci.draw_arc(center, rad, 0.0, TAU, 24, Color(1.0, 0.30, 0.36), 2.5)
-		else:
-			ci.draw_circle(center, rad, col)
-			ci.draw_arc(center, rad, 0.0, TAU, 24, col.lightened(0.45), 2.2)
-			ci.draw_circle(center + Vector2(-rad * 0.32, -rad * 0.32), rad * 0.25, Color(1, 1, 1, 0.58))
-		var glyph: String = ChemistryRules.get_element_glyph(kind)
-		var fsize: int = maxi(12, int(roundf(rad * 0.85)))
-		ci.draw_string(ThemeDB.fallback_font, center + Vector2(-rad * 0.75, float(fsize) * 0.38), glyph, HORIZONTAL_ALIGNMENT_CENTER, int(rad * 1.5), fsize, Color.WHITE)
 	if is_forbidden:
 		ci.draw_circle(center + Vector2(rad * 0.68, -rad * 0.68), 8.5, Color(0.88, 0.12, 0.20))
 		ci.draw_string(ThemeDB.fallback_font, center + Vector2(rad * 0.68 - 5.0, -rad * 0.68 + 4.0), "✕", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)

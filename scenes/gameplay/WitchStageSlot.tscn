@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/WitchStageSlot.gd" id="1_witch_slot"]
+[ext_resource type="Texture2D" path="res://assets/characters/playable/trixie/halfbody/trixie_halfbody_normal.png" id="2_trixie_tex"]
+
+[node name="WitchStageSlot" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 819.0
+offset_bottom = 1005.0
+mouse_filter = 2
+script = ExtResource("1_witch_slot")
+
+[node name="SpriteRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_trixie_tex")
+expand_mode = 1
+stretch_mode = 5
