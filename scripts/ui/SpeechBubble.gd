@@ -7,8 +7,6 @@ extends Control
 signal ack_pressed()
 
 const BODY_HEIGHT: float = 180.0
-const SHADOW_LEFT_X: float = -12.0
-const SHADOW_RIGHT_X: float = -24.0
 const BODY_WIDTH_FULL: float = 388.0
 const BODY_WIDTH_WITH_ACK: float = 246.0
 
@@ -22,7 +20,6 @@ const BODY_WIDTH_WITH_ACK: float = 246.0
 @export var tutorial_title_color: Color = Color(0.62, 0.30, 0.04, 1.0)
 @export var tutorial_bg_tint: Color = Color(1.0, 0.97, 0.88, 1.0)
 
-@onready var _shadow_rect: TextureRect = $Shadow
 @onready var _bg_rect: TextureRect = $Background
 @onready var _title_lbl: Label = $TitleLabel
 @onready var _body_lbl: Label = $BodyLabel
@@ -38,6 +35,9 @@ var _tween: Tween = null
 
 func _ready() -> void:
 	_apply_flip()
+	_sync_shadow_size()
+	if not resized.is_connected(_sync_shadow_size):
+		resized.connect(_sync_shadow_size)
 	if Engine.is_editor_hint():
 		return
 	if not _base_position_set:
@@ -55,9 +55,11 @@ func _process(delta: float) -> void:
 func _apply_flip() -> void:
 	if _bg_rect != null:
 		_bg_rect.flip_h = flip_tail_right
-	if _shadow_rect != null:
-		_shadow_rect.flip_h = flip_tail_right
-		_shadow_rect.position.x = SHADOW_RIGHT_X if flip_tail_right else SHADOW_LEFT_X
+
+
+func _sync_shadow_size() -> void:
+	if _bg_rect != null and _bg_rect.material is ShaderMaterial:
+		(_bg_rect.material as ShaderMaterial).set_shader_parameter("render_size", _bg_rect.size)
 
 
 func set_base_position(pos: Vector2) -> void:
@@ -131,4 +133,4 @@ func is_ack_visible() -> bool:
 
 
 func has_textures() -> bool:
-	return _bg_rect != null and _bg_rect.texture != null and _shadow_rect != null and _shadow_rect.texture != null
+	return _bg_rect != null and _bg_rect.texture != null and _bg_rect.material is ShaderMaterial

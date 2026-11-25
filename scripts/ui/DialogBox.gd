@@ -1,6 +1,7 @@
+@tool
 class_name DialogBox
 extends Control
-## Reusable wide antique parchment dialogue box with drop shadow, typewriter reveal,
+## Reusable wide antique parchment dialogue box with shader drop shadow, typewriter reveal,
 ## pulsing continue prompt, and smooth entrance animation.
 
 signal typewriter_tick(char_index: int)
@@ -12,7 +13,6 @@ signal typewriter_tick(char_index: int)
 @export var entrance_fade_duration: float = 0.55
 @export var entrance_slide_duration: float = 0.72
 
-@onready var _shadow_rect: TextureRect = $Shadow
 @onready var _bg_rect: TextureRect = $Background
 @onready var _speaker_lbl: Label = $SpeakerLabel
 @onready var _body_lbl: Label = $BodyLabel
@@ -27,12 +27,22 @@ var _entrance_tween: Tween = null
 
 
 func _ready() -> void:
+	_sync_shadow_size()
+	if not resized.is_connected(_sync_shadow_size):
+		resized.connect(_sync_shadow_size)
+	if Engine.is_editor_hint():
+		return
 	if not _base_position_set:
 		base_position = position
 	if _continue_lbl != null:
 		_continue_lbl.text = continue_prompt
 	if _body_lbl != null:
 		_body_lbl.add_theme_font_size_override("font_size", body_font_size)
+
+
+func _sync_shadow_size() -> void:
+	if _bg_rect != null and _bg_rect.material is ShaderMaterial:
+		(_bg_rect.material as ShaderMaterial).set_shader_parameter("render_size", _bg_rect.size)
 
 
 func _process(delta: float) -> void:
@@ -125,4 +135,4 @@ func step_typewriter(delta: float) -> void:
 
 
 func has_textures() -> bool:
-	return _bg_rect != null and _bg_rect.texture != null and _shadow_rect != null and _shadow_rect.texture != null
+	return _bg_rect != null and _bg_rect.texture != null and _bg_rect.material is ShaderMaterial
