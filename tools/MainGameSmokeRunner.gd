@@ -21,6 +21,25 @@ static func run(m: MainGame) -> Dictionary:
 		and m.get("_tab_gallery_btn") == null
 		and m.get("_end_round_btn") == null
 	)
+	var customer_hud_ok: bool = (
+		m._hud != null
+		and m._hud.has_customer_hud_textures()
+		and m._hud.get_node_or_null("TopBar/Margin/HBox/TimerLabel") == null
+		and m._hud.get_node_or_null("CauldronHudRoot/ChemistryCard") == null
+		and not ResourceLoader.exists("res://scenes/ui/ChemistryStrip.tscn")
+	)
+	m._refresh_hud_labels()
+	var ptxt: String = m._hud.customer_hud.get_patience_prefix_text() if (m._hud != null and m._hud.customer_hud != null) else ""
+	var customer_hud_clean_copy_ok: bool = (
+		m._hud != null
+		and m._hud.customer_hud != null
+		and m._hud.customer_hud.get_displayed_name() == "Sylvi"
+		and m._hud.customer_hud.has_custom_name_font()
+		and ptxt != ""
+		and not ptxt.contains("Pausado")
+		and not ptxt.contains("s")
+		and m._hud.customer_hud.get_fill_ratio() > 0.95
+	)
 
 	var hb_paths: Dictionary = {}
 	var all_hb_ok: bool = true
@@ -83,6 +102,18 @@ static func run(m: MainGame) -> Dictionary:
 	var roxy_halfbodies_distinct_ok: bool = all_roxy_ok and roxy_paths.size() == 3
 
 	var st: Node = m._state()
+	var witch_name_initial_ok: bool = (
+		m._hud != null
+		and m._hud.has_styled_witch_name()
+		and m._hud.get_witch_name_text() == "Trixie"
+	)
+	st.active_witch_id = &"lyra"
+	m._refresh_hud_labels()
+	var witch_name_dynamic_ok: bool = (m._hud != null and m._hud.get_witch_name_text() == "Lyra")
+	st.active_witch_id = &"trixie"
+	m._refresh_hud_labels()
+	var witch_name_hud_ok: bool = witch_name_initial_ok and witch_name_dynamic_ok and (m._hud != null and m._hud.get_witch_name_text() == "Trixie")
+
 	var tut_step_1_ok: bool = (
 		m._tutorial.active
 		and m._tutorial.step == TutorialDirector.Step.BASIC_BREAK_LIKED
@@ -145,8 +176,15 @@ static func run(m: MainGame) -> Dictionary:
 	b.purge_orb_by_id(int(bad_p["id"]))
 	var purge_kept_combo: bool = (b.combo == 1 and w.potion_tube_pct > 15.0)
 	var pat_pre_tick: float = w.customer_patience_left
+	m.push_patience_pause(&"test_dialog")
+	var lock_active_ok: bool = m.is_patience_paused()
+	m._process_cauldron_gameplay(3.0)
+	var lock_froze_patience_ok: bool = (w.customer_patience_left == pat_pre_tick)
+	m.pop_patience_pause(&"test_dialog")
+	var lock_released_ok: bool = not m.is_patience_paused()
 	m._process_cauldron_gameplay(2.0)
 	var patience_ticks_after_tut_ok: bool = (not m._tutorial.active and st.cauldron_basics_tutorial_done and w.customer_patience_left < pat_pre_tick)
+	var patience_pause_lock_ok: bool = lock_active_ok and lock_froze_patience_ok and lock_released_ok and patience_ticks_after_tut_ok
 
 	# 5) Break Disliked orb -> lowers tube, resets combo to 0, triggers nerviosa & customer impaciente
 	b.orbs.clear()
@@ -297,6 +335,10 @@ static func run(m: MainGame) -> Dictionary:
 		"pueblo_bg_exists_ok": pueblo_bg_exists_ok,
 		"mix_pigment_blending_ok": mix_pigment_blending_ok,
 		"no_duplicate_meta_buttons_in_main": no_duplicate_meta_buttons_in_main,
+		"customer_hud_ok": customer_hud_ok,
+		"customer_hud_clean_copy_ok": customer_hud_clean_copy_ok,
+		"witch_name_hud_ok": witch_name_hud_ok,
+		"patience_pause_lock_ok": patience_pause_lock_ok,
 		"all_halfbodies_distinct_ok": all_halfbodies_distinct_ok,
 		"sylvi_halfbodies_distinct_ok": sylvi_halfbodies_distinct_ok,
 		"velvet_halfbodies_distinct_ok": velvet_halfbodies_distinct_ok,

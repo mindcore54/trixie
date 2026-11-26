@@ -170,7 +170,7 @@ func step_patience(delta: float, patience_paused: bool) -> Dictionary:
 		"warn_line": "",
 		"expired": false,
 	}
-	if patience_paused or active_customer == null:
+	if patience_paused or active_customer == null or round_ending or closing_active or delta <= 0.0:
 		return result
 	customer_patience_left = maxf(0.0, customer_patience_left - delta)
 	var p_ratio: float = customer_patience_left / maxf(1.0, customer_patience_max)

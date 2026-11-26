@@ -10,6 +10,12 @@ uniform float pour_glow : hint_range(0.0, 1.5) = 0.0;
 uniform float flash_amount : hint_range(0.0, 1.0) = 0.0;
 uniform float flash_negative : hint_range(0.0, 1.0) = 0.0;
 
+varying vec4 v_modulate;
+
+void vertex() {
+	v_modulate = COLOR;
+}
+
 void fragment() {
 	float mask_a = texture(TEXTURE, UV).a;
 	if (mask_a <= 0.01) {
@@ -57,6 +63,6 @@ void fragment() {
 		float liq_a = 0.92;
 		vec3 final_rgb = mix(empty_rgb, base_liq, in_liquid);
 		float final_a = mix(empty_a, liq_a, in_liquid) * mask_a;
-		COLOR = vec4(final_rgb, final_a) * COLOR;
+		COLOR = vec4(final_rgb, final_a) * v_modulate;
 	}
 }

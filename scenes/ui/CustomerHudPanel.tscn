@@ -1,0 +1,150 @@
+[gd_scene format=3 uid="uid://bcg3lk780oqbd"]
+
+[ext_resource type="Script" uid="uid://bng1vsmnbkjg" path="res://scripts/ui/CustomerHudPanel.gd" id="1_cust_hud_script"]
+[ext_resource type="Shader" uid="uid://b4r4nypas54n2" path="res://shaders/ui_drop_shadow.gdshader" id="2_shadow_shader"]
+[ext_resource type="Texture2D" uid="uid://bfjfru03dp0ot" path="res://assets/ui/hud/customer_name_bg.png" id="3_ribbon_tex"]
+[ext_resource type="FontFile" path="res://assets/fonts/Almendra-Bold.ttf" id="4_name_font"]
+[ext_resource type="Shader" path="res://shaders/vial_patience_liquid.gdshader" id="5_vial_shader"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/timer_vial_liquid_mask.png" id="6_vial_mask"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/timer_vial.png" id="7_vial_glass"]
+[ext_resource type="FontFile" path="res://assets/fonts/Spectral-Regular.ttf" id="8_affinity_font"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ribbon_shadow"]
+resource_local_to_scene = true
+shader = ExtResource("2_shadow_shader")
+shader_parameter/shadow_color = Color(0.04, 0.02, 0.07, 0.48)
+shader_parameter/shadow_offset = Vector2(4, 6)
+shader_parameter/blur_radius = 8.0
+shader_parameter/render_size = Vector2(486, 68)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vial_liquid"]
+resource_local_to_scene = true
+shader = ExtResource("5_vial_shader")
+shader_parameter/fill_ratio = 1.0
+shader_parameter/liquid_color = Color(0.56, 0.94, 0.18, 1)
+shader_parameter/mask_left = 0.0772
+shader_parameter/mask_right = 0.9623
+shader_parameter/mask_top = 0.05
+shader_parameter/mask_bottom = 0.9667
+shader_parameter/urgent_amount = 0.0
+shader_parameter/paused_amount = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vial_shadow"]
+resource_local_to_scene = true
+shader = ExtResource("2_shadow_shader")
+shader_parameter/shadow_color = Color(0.04, 0.02, 0.07, 0.42)
+shader_parameter/shadow_offset = Vector2(3, 5)
+shader_parameter/blur_radius = 6.0
+shader_parameter/render_size = Vector2(400, 43)
+
+[node name="CustomerHudPanel" type="Control" unique_id=647178097]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 486.0
+offset_bottom = 118.0
+mouse_filter = 2
+script = ExtResource("1_cust_hud_script")
+
+[node name="NameRibbon" type="Control" parent="." unique_id=1981922347]
+anchors_preset = 0
+offset_right = 486.0
+offset_bottom = 68.0
+mouse_filter = 2
+
+[node name="RibbonBg" type="TextureRect" parent="NameRibbon" unique_id=1681980696]
+material = SubResource("ShaderMaterial_ribbon_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_ribbon_tex")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="ContentRow" type="HBoxContainer" parent="NameRibbon" unique_id=744885117]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 68.0
+offset_top = 7.0
+offset_right = -52.0
+offset_bottom = -17.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="CustomerNameLabel" type="Label" parent="NameRibbon/ContentRow" unique_id=1440437932]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.2, 0.09, 0.05, 1)
+theme_override_colors/font_shadow_color = Color(0.98, 0.9, 0.74, 0.55)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("4_name_font")
+theme_override_font_sizes/font_size = 27
+text = "Sylvi"
+vertical_alignment = 1
+
+[node name="CustomerAffinityLabel" type="Label" parent="NameRibbon/ContentRow" unique_id=609018669]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.66, 0.13, 0.3, 1)
+theme_override_fonts/font = ExtResource("8_affinity_font")
+theme_override_font_sizes/font_size = 19
+text = "❤ Nv.0 · +24✦"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="PatienceAmpoule" type="Control" parent="." unique_id=1538943054]
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 72.0
+offset_right = 466.0
+offset_bottom = 118.0
+mouse_filter = 2
+
+[node name="HBox" type="HBoxContainer" parent="PatienceAmpoule" unique_id=749479464]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PatiencePrefixLabel" type="Label" parent="PatienceAmpoule/HBox" unique_id=401958070]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.91, 0.74, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.04, 0.04, 0.92)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 17
+text = "⏳"
+vertical_alignment = 1
+
+[node name="GlassTube" type="AspectRatioContainer" parent="PatienceAmpoule/HBox" unique_id=860752629]
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+ratio = 9.2833
+
+[node name="LiquidMask" type="TextureRect" parent="PatienceAmpoule/HBox/GlassTube" unique_id=1496542392]
+material = SubResource("ShaderMaterial_vial_liquid")
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("6_vial_mask")
+expand_mode = 1
+
+[node name="VialGlass" type="TextureRect" parent="PatienceAmpoule/HBox/GlassTube" unique_id=1024647305]
+material = SubResource("ShaderMaterial_vial_shadow")
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("7_vial_glass")
+expand_mode = 1

@@ -14,17 +14,13 @@ signal main_menu_requested()
 @onready var _top_essence_lbl: Label = $TopBar/Margin/HBox/EssenceLabel
 @onready var _top_stop_lbl: Label = $TopBar/Margin/HBox/StopLabel
 @onready var _top_wave_lbl: Label = $TopBar/Margin/HBox/WaveLabel
-@onready var _top_timer_lbl: Label = $TopBar/Margin/HBox/TimerLabel
 @onready var _pause_btn: Button = $TopBar/Margin/HBox/PauseButton
 
 @onready var _cauldron_hud_root: Control = $CauldronHudRoot
+@onready var _witch_name_lbl: Label = $CauldronHudRoot/WitchNameShadowGroup/WitchNameLabel
 @onready var _frenzy_bar: ProgressBar = $CauldronHudRoot/FrenzyDock/Margin/VBox/FrenzyBar
 @onready var _frenzy_btn: Button = $CauldronHudRoot/FrenzyDock/Margin/VBox/FrenzyButton
-@onready var _cust_name_lbl: Label = $CauldronHudRoot/CustomerHeaderCard/Margin/HBox/CustomerNameLabel
-@onready var _cust_aff_lbl: Label = $CauldronHudRoot/CustomerHeaderCard/Margin/HBox/CustomerAffinityLabel
-@onready var _cust_patience_lbl: Label = $CauldronHudRoot/PatienceCard/Margin/HBox/PatienceLabel
-@onready var _cust_patience_bar: ProgressBar = $CauldronHudRoot/PatienceCard/Margin/HBox/PatienceBar
-@onready var chemistry_strip: ChemistryStrip = $CauldronHudRoot/ChemistryCard/Margin/ChemistryStrip
+@onready var customer_hud: CustomerHudPanel = $CauldronHudRoot/CustomerHudPanel
 @onready var _toast_lbl: Label = $CauldronHudRoot/ToastLabel
 
 @onready var trixie_bubble: SpeechBubble = $TrixieBubble
@@ -39,17 +35,10 @@ signal main_menu_requested()
 @onready var _pause_restart_btn: Button = $PauseOverlay/Center/PausePanel/Margin/VBox/RestartButton
 @onready var _pause_menu_btn: Button = $PauseOverlay/Center/PausePanel/Margin/VBox/MenuButton
 
-var _cust_patience_fill: StyleBoxFlat = null
 var _toast_timer: float = 0.0
 
 
 func _ready() -> void:
-	if _cust_patience_bar != null:
-		var fill_sb: StyleBox = _cust_patience_bar.get_theme_stylebox("fill")
-		if fill_sb is StyleBoxFlat:
-			_cust_patience_fill = fill_sb.duplicate() as StyleBoxFlat
-			_cust_patience_bar.add_theme_stylebox_override("fill", _cust_patience_fill)
-
 	if trixie_bubble != null:
 		trixie_bubble.set_base_position(trixie_bubble.position)
 		trixie_bubble.hide_bubble(true)
@@ -98,16 +87,6 @@ func _process(delta: float) -> void:
 		_toast_timer = maxf(0.0, _toast_timer - delta)
 		if _toast_timer <= 0.0 and _toast_lbl != null:
 			_toast_lbl.visible = false
-
-
-func reset_chemistry_cache() -> void:
-	if chemistry_strip != null:
-		chemistry_strip.reset_cache()
-
-
-func update_chemistry(chem: Dictionary, orb_textures: Dictionary) -> void:
-	if chemistry_strip != null:
-		chemistry_strip.set_chemistry(chem, orb_textures)
 
 
 func set_cauldron_hud_visible(show_hud: bool) -> void:
@@ -201,6 +180,28 @@ func has_dialog_and_bubble_textures() -> bool:
 	)
 
 
+func has_customer_hud_textures() -> bool:
+	return customer_hud != null and customer_hud.has_textures()
+
+
+func set_witch_name(witch_name: String) -> void:
+	if _witch_name_lbl != null and witch_name != "" and _witch_name_lbl.text != witch_name:
+		_witch_name_lbl.text = witch_name
+
+
+func get_witch_name_text() -> String:
+	return _witch_name_lbl.text if _witch_name_lbl != null else ""
+
+
+func has_styled_witch_name() -> bool:
+	return (
+		_witch_name_lbl != null
+		and _witch_name_lbl.has_theme_font_override("font")
+		and _witch_name_lbl.get_theme_font("font") != null
+		and _witch_name_lbl.material is ShaderMaterial
+	)
+
+
 func refresh_status(
 	essence_gold: int,
 	stop_icon: String,
@@ -224,34 +225,15 @@ func refresh_status(
 	_top_stop_lbl.text = "%s %s" % [stop_icon, stop_name]
 	_top_wave_lbl.text = "👥 Clienta: %d/%d  (✅%d ❌%d)" % [shown_wave, wave_total, served_count, missed_count]
 
-	var p_ratio: float = clampf(patience_left / maxf(1.0, patience_max), 0.0, 1.0)
-	if patience_paused:
-		_top_timer_lbl.text = "⏸ Tutorial"
-		_top_timer_lbl.modulate = Color(1.0, 0.88, 0.42)
-	else:
-		var secs_int: int = ceili(patience_left)
-		_top_timer_lbl.text = "⏳ Paciencia: %ds" % secs_int
-		_top_timer_lbl.modulate = Color(1.0, 0.38, 0.42) if p_ratio <= impatient_ratio else Color(1.0, 0.94, 0.78)
-
-	if _cust_patience_bar != null:
-		_cust_patience_bar.value = p_ratio * 100.0
-	if _cust_patience_fill != null:
-		if patience_paused:
-			_cust_patience_fill.bg_color = Color(0.45, 0.82, 1.0)
-		elif p_ratio > 0.55:
-			_cust_patience_fill.bg_color = Color(0.32, 0.88, 0.56)
-		elif p_ratio > impatient_ratio:
-			_cust_patience_fill.bg_color = Color(0.98, 0.74, 0.24)
-		else:
-			_cust_patience_fill.bg_color = Color(1.0, 0.30, 0.38)
-	if _cust_patience_lbl != null:
-		if patience_paused:
-			_cust_patience_lbl.text = "⏸ Pausado"
-			_cust_patience_lbl.modulate = Color(0.65, 0.92, 1.0)
-		else:
-			var p_secs: int = ceili(patience_left)
-			_cust_patience_lbl.text = "⏳ Paciencia: %ds" % p_secs
-			_cust_patience_lbl.modulate = Color(1.0, 0.42, 0.46) if p_ratio <= impatient_ratio else Color(1.0, 0.92, 0.65)
+	if customer_hud != null:
+		customer_hud.update_status(
+			customer_title,
+			affinity_text,
+			patience_left,
+			patience_max,
+			patience_paused,
+			impatient_ratio
+		)
 
 	if _frenzy_bar != null:
 		_frenzy_bar.value = 100.0 if frenzy_timer > 0.0 else frenzy_charge
@@ -265,8 +247,3 @@ func refresh_status(
 		else:
 			_frenzy_btn.text = "FRENESÍ (%d%%)" % int(frenzy_charge)
 			_frenzy_btn.disabled = true
-
-	if customer_title != "" and _cust_name_lbl != null:
-		_cust_name_lbl.text = customer_title
-	if affinity_text != "" and _cust_aff_lbl != null:
-		_cust_aff_lbl.text = affinity_text

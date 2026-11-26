@@ -57,6 +57,7 @@ var _popup_layer: Node2D = null
 
 var _wave: WaveDirector = WaveDirector.new()
 var _tutorial: TutorialDirector = TutorialDirector.new()
+var _patience_pause_locks: Dictionary = {}
 
 @onready var camera: Camera2D = $Camera2D
 @onready var _bg_sprite: Sprite2D = $StageBackground
@@ -174,7 +175,7 @@ func _process(delta: float) -> void:
 		_trixie_react_anim = maxf(0.0, _trixie_react_anim - delta * 3.2)
 	if _trixie_emotion_timer > 0.0:
 		_trixie_emotion_timer = maxf(0.0, _trixie_emotion_timer - delta)
-	var patience_low: bool = (not _is_patience_paused_for_tutorial()) and (not _wave.round_ending) and (_wave.customer_patience_left <= 7.0)
+	var patience_low: bool = (not is_patience_paused()) and (_wave.customer_patience_left <= 7.0)
 	if _trixie_emotion_timer <= 0.0 and not _wave.closing_active:
 		var combo_val: int = _board.combo if _board != null else 0
 		var desired_idle: String = "sonrojada" if frenzy_active else ("nerviosa" if patience_low else ("confiada" if combo_val >= 4 else "normal"))
@@ -182,7 +183,7 @@ func _process(delta: float) -> void:
 			_trixie_emotion = desired_idle
 			_trixie_react_anim = 1.0
 
-	_wave.step_customer_visuals(delta, _is_patience_paused_for_tutorial(), frenzy_active)
+	_wave.step_customer_visuals(delta, is_patience_paused(), frenzy_active)
 
 	if not _wave.closing_active and not _is_modal_open():
 		_process_cauldron_gameplay(delta)
@@ -313,8 +314,37 @@ func _recalc_stats() -> void:
 	_board.fam_bat_lvl = st.fam_bat_lvl
 
 
-func _is_patience_paused_for_tutorial() -> bool:
-	return _tutorial.is_pausing_patience()
+func push_patience_pause(reason: StringName) -> void:
+	_patience_pause_locks[reason] = true
+
+
+func pop_patience_pause(reason: StringName) -> void:
+	_patience_pause_locks.erase(reason)
+
+
+func clear_patience_pauses() -> void:
+	_patience_pause_locks.clear()
+
+
+func _is_fader_busy() -> bool:
+	var f: Node = _fader()
+	return f != null and bool(f.call("is_busy"))
+
+
+func is_patience_paused() -> bool:
+	return (
+		_tutorial.is_pausing_patience()
+		or _wave.round_ending
+		or _wave.closing_active
+		or _is_modal_open()
+		or _is_fader_busy()
+		or (_hud != null and _hud.is_closing_visible())
+		or (not _patience_pause_locks.is_empty())
+	)
+
+
+func get_active_witch_name() -> String:
+	return String(_state().call("get_active_witch_name"))
 
 
 func _start_stop() -> void:
@@ -322,6 +352,7 @@ func _start_stop() -> void:
 	st.rounds_played += 1
 	_wave.start_stop(st.get_active_map_node(), st.rounds_played)
 	_fading_out = false
+	clear_patience_pauses()
 	_shown_liked_orb_hint = false
 	_shown_ingredient_tip = false
 	if _order_bubble != null:
@@ -334,9 +365,9 @@ func _start_stop() -> void:
 	_tutorial.reset()
 	if _hud != null:
 		_hud.set_cauldron_hud_visible(true)
+		_hud.set_witch_name(get_active_witch_name())
 		_hud.hide_trixie_bubble(true)
 		_hud.hide_customer_bubble(true)
-		_hud.reset_chemistry_cache()
 
 	_pick_customer_by_id(_wave.wave_customers[0], true)
 
@@ -434,7 +465,7 @@ func _process_cauldron_gameplay(delta: float) -> void:
 			_begin_closing_dialogue(_wave.wave_victory)
 		return
 
-	var p_ev: Dictionary = _wave.step_patience(delta, _is_patience_paused_for_tutorial())
+	var p_ev: Dictionary = _wave.step_patience(delta, is_patience_paused())
 	if bool(p_ev["impatient_warn"]):
 		_set_customer_reaction("impaciente", 3.5, String(p_ev["warn_line"]))
 		var cname: String = _wave.active_customer.display_name if _wave.active_customer != null else "Clienta"
@@ -606,8 +637,6 @@ func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
 		return
 	if _order_bubble != null:
 		_order_bubble.reset_order()
-	if _hud != null:
-		_hud.reset_chemistry_cache()
 	var info: Dictionary = _wave.pick_customer(next_c, first_order, _state(), order_bonus_mult, get_node_level(&"reloj_arena"))
 	if _flask_view != null:
 		_flask_view.reset_for_new_customer(first_order)
@@ -858,8 +887,6 @@ func _refresh_order_bubble() -> void:
 	var chem: Dictionary = get_customer_chemistry()
 	if _order_bubble != null:
 		_order_bubble.set_order(int(chem["liked"]), _board.orb_textures)
-	if _hud != null:
-		_hud.update_chemistry(chem, _board.orb_textures)
 
 
 func _on_popup_layer_draw() -> void:
@@ -889,10 +916,11 @@ func _refresh_hud_labels() -> void:
 	var aff_txt: String = ""
 	if _wave.active_customer != null:
 		var cid: StringName = _wave.active_customer.customer_id
-		cust_title = "%s (%s)" % [_wave.active_customer.display_name, _wave.active_customer.species_archetype]
+		cust_title = _wave.active_customer.display_name
 		aff_txt = "❤ Nv.%d · +%d✦" % [int(_state().get_affinity_level(cid)), _wave.customer_order_reward]
 	var f_charge: float = _board.frenzy_charge if _board != null else 0.0
 	var f_timer: float = _board.frenzy_timer if _board != null else 0.0
+	_hud.set_witch_name(get_active_witch_name())
 	_hud.refresh_status(
 		essence_gold,
 		stop_icon,
@@ -903,7 +931,7 @@ func _refresh_hud_labels() -> void:
 		_wave.wave_missed_count,
 		_wave.customer_patience_left,
 		_wave.customer_patience_max,
-		_is_patience_paused_for_tutorial(),
+		is_patience_paused(),
 		WaveDirector.CUSTOMER_IMPATIENT_RATIO,
 		f_charge,
 		f_timer,

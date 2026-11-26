@@ -10,7 +10,7 @@ varying vec4 v_modulate;
 void vertex() {
 	float pad = max(abs(shadow_offset.x), abs(shadow_offset.y)) + blur_radius + 6.0;
 	vec2 base_size = (render_size.x > 0.0 && render_size.y > 0.0) ? render_size : (1.0 / TEXTURE_PIXEL_SIZE);
-	vec2 corner = step(vec2(0.001), VERTEX) * 2.0 - 1.0;
+	vec2 corner = step(base_size * 0.5, VERTEX) * 2.0 - 1.0;
 	VERTEX += corner * pad;
 	UV += (UV * 2.0 - 1.0) * (vec2(pad) / base_size);
 	v_modulate = COLOR;

@@ -48,6 +48,7 @@ var crit_potion_lvl: int = 0
 var customer_patience_sec: float = BASE_CUSTOMER_PATIENCE
 
 # World map & campaign state
+var active_witch_id: StringName = &"trixie"
 var active_map_node_id: StringName = &"castillo"
 var last_visited_map_node_id: StringName = &"castillo"
 var completed_map_nodes: Dictionary = {}
@@ -86,7 +87,7 @@ func _load_catalogs() -> void:
 
 
 func ensure_loaded() -> void:
-	if tree_nodes.is_empty() or map_nodes.is_empty() or customers_catalog.is_empty():
+	if tree_nodes.is_empty() or map_nodes.is_empty() or customers_catalog.is_empty() or witches_catalog.is_empty():
 		_load_catalogs()
 	if not node_levels.has(&"root_cauldron"):
 		node_levels[&"root_cauldron"] = 1
@@ -115,6 +116,7 @@ func reset_run() -> void:
 		customer_affinity_pts[c.customer_id] = 0
 	customer_affinity_pts[&"trixie"] = 0
 
+	active_witch_id = &"trixie"
 	active_map_node_id = &"castillo"
 	last_visited_map_node_id = &"castillo"
 	completed_map_nodes.clear()
@@ -372,6 +374,21 @@ func get_recommended_next_map_node_id() -> StringName:
 		if is_map_node_unlocked(mid) and not is_map_node_completed(mid):
 			return mid
 	return last_visited_map_node_id
+
+
+func get_active_witch() -> WitchCharacterData:
+	ensure_loaded()
+	for w: WitchCharacterData in witches_catalog:
+		if w.witch_id == active_witch_id:
+			return w
+	return witches_catalog[0] if not witches_catalog.is_empty() else null
+
+
+func get_active_witch_name() -> String:
+	var w: WitchCharacterData = get_active_witch()
+	if w != null and w.display_name != "":
+		return w.display_name
+	return String(active_witch_id).capitalize()
 
 
 func _emit_gold_changed(new_total: int, delta_val: int) -> void:

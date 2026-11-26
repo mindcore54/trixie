@@ -11,7 +11,10 @@
 [ext_resource type="PackedScene" path="res://scenes/gameplay/WitchStageSlot.tscn" id="18_witch_slot"]
 [ext_resource type="PackedScene" path="res://scenes/gameplay/CustomerStageSlot.tscn" id="19_customer_slot"]
 [ext_resource type="PackedScene" path="res://scenes/gameplay/CauldronBoard.tscn" id="20_cauldron_board"]
-[ext_resource type="PackedScene" path="res://scenes/ui/ChemistryStrip.tscn" id="21_chemistry_strip"]
+[ext_resource type="PackedScene" uid="uid://bcg3lk780oqbd" path="res://scenes/ui/CustomerHudPanel.tscn" id="21_customer_hud"]
+[ext_resource type="FontFile" uid="uid://1khb5gwrq4y4" path="res://assets/fonts/Almendra-Bold.ttf" id="22_witch_name_font"]
+[ext_resource type="Shader" uid="uid://dqcbxrgsftrjo" path="res://shaders/text_vertical_gradient.gdshader" id="23_text_grad_shader"]
+[ext_resource type="Shader" uid="uid://bu6ii61cx2y5l" path="res://shaders/canvas_group_drop_shadow.gdshader" id="24_cg_shadow_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stage_bg"]
 shader = ExtResource("4_bg_shader")
@@ -19,6 +22,7 @@ shader_parameter/blur_radius = 2.0
 shader_parameter/darken = 0.16
 shader_parameter/vignette_strength = 0.28
 shader_parameter/frenzy_amount = 0.0
+shader_parameter/contrast_filter = 1.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top_bar"]
 bg_color = Color(0.08, 0.05, 0.13, 0.95)
@@ -72,6 +76,18 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_witch_name_shadow"]
+shader = ExtResource("24_cg_shadow_shader")
+shader_parameter/shadow_color = Color(0, 0, 0, 0.68)
+shader_parameter/shadow_offset = Vector2(5, 5)
+shader_parameter/blur_radius = 5.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_witch_name_grad"]
+shader = ExtResource("23_text_grad_shader")
+shader_parameter/bottom_tint = Color(0.77, 0.64076835, 0.3619, 1)
+shader_parameter/grad_start_y = 26.0
+shader_parameter/grad_end_y = 58.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frenzy_dock"]
 bg_color = Color(0.1, 0.06, 0.16, 0.88)
@@ -130,57 +146,6 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cust_hdr"]
-bg_color = Color(0.1, 0.06, 0.16, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.92, 0.68, 0.82, 0.85)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_card"]
-bg_color = Color(0.1, 0.06, 0.16, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.92, 0.72, 0.36, 0.85)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_bar_bg"]
-bg_color = Color(0.08, 0.04, 0.12, 0.94)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pat_bar_fill"]
-resource_local_to_scene = true
-bg_color = Color(0.32, 0.88, 0.56, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chem_card"]
-bg_color = Color(0.1, 0.06, 0.16, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.76, 0.6, 0.92, 0.85)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_panel"]
 bg_color = Color(0.12, 0.08, 0.19, 0.98)
@@ -415,20 +380,6 @@ text = "👥 Clienta: 1 / 2"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TimerLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1432925001]
-custom_minimum_size = Vector2(180, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 28
-text = "0:55"
-horizontal_alignment = 1
-
-[node name="SpacerRight" type="Control" parent="UILayer/TopBar/Margin/HBox" unique_id=145637357]
-layout_mode = 2
-size_flags_horizontal = 3
-
 [node name="PauseButton" type="Button" parent="UILayer/TopBar/Margin/HBox" unique_id=1449346960]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
@@ -446,6 +397,25 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="WitchNameShadowGroup" type="CanvasGroup" parent="UILayer/CauldronHudRoot" unique_id=126389778]
+material = SubResource("ShaderMaterial_witch_name_shadow")
+fit_margin = 36.0
+clear_margin = 36.0
+
+[node name="WitchNameLabel" type="Label" parent="UILayer/CauldronHudRoot/WitchNameShadowGroup" unique_id=2081163139]
+material = SubResource("ShaderMaterial_witch_name_grad")
+offset_left = 19.0
+offset_top = 887.0
+offset_right = 467.0
+offset_bottom = 953.0
+theme_override_colors/font_color = Color(1, 0.85490197, 0.68235296, 1)
+theme_override_colors/font_outline_color = Color(0.2627451, 0.08235294, 0.0627451, 1)
+theme_override_constants/outline_size = 9
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 50
+text = "Trixie"
+vertical_alignment = 2
 
 [node name="FrenzyDock" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=1776394591]
 layout_mode = 0
@@ -483,95 +453,12 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_frenzy_btn_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
 text = "🔥 FRENESÍ (0%) [ESPACIO]"
 
-[node name="CustomerHeaderCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=972291974]
+[node name="CustomerHudPanel" parent="UILayer/CauldronHudRoot" unique_id=972291974 instance=ExtResource("21_customer_hud")]
 layout_mode = 0
 offset_left = 1412.0
-offset_top = 886.0
+offset_top = 942.0
 offset_right = 1898.0
-offset_bottom = 928.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_cust_hdr")
-
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard" unique_id=411633719]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
-
-[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin" unique_id=1194392519]
-layout_mode = 2
-
-[node name="CustomerNameLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox" unique_id=1636760180]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 0.93, 0.84, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 19
-text = "Sylvi"
-
-[node name="CustomerAffinityLabel" type="Label" parent="UILayer/CauldronHudRoot/CustomerHeaderCard/Margin/HBox" unique_id=1701010627]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.64, 0.8, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 17
-text = "❤ Nv.0"
-
-[node name="PatienceCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=2096060010]
-layout_mode = 0
-offset_left = 1412.0
-offset_top = 932.0
-offset_right = 1898.0
-offset_bottom = 978.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_pat_card")
-
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/PatienceCard" unique_id=687174775]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
-
-[node name="HBox" type="HBoxContainer" parent="UILayer/CauldronHudRoot/PatienceCard/Margin" unique_id=735750085]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="PatienceLabel" type="Label" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox" unique_id=1681573322]
-custom_minimum_size = Vector2(138, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.92, 0.65, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 15
-text = "⏳ 30s"
-
-[node name="PatienceBar" type="ProgressBar" parent="UILayer/CauldronHudRoot/PatienceCard/Margin/HBox" unique_id=1208493922]
-custom_minimum_size = Vector2(280, 18)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/background = SubResource("StyleBoxFlat_pat_bar_bg")
-theme_override_styles/fill = SubResource("StyleBoxFlat_pat_bar_fill")
-value = 100.0
-show_percentage = false
-
-[node name="ChemistryCard" type="PanelContainer" parent="UILayer/CauldronHudRoot" unique_id=135847071]
-layout_mode = 0
-offset_left = 1412.0
-offset_top = 984.0
-offset_right = 1898.0
-offset_bottom = 1052.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_chem_card")
-
-[node name="Margin" type="MarginContainer" parent="UILayer/CauldronHudRoot/ChemistryCard" unique_id=1892308226]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
-
-[node name="ChemistryStrip" parent="UILayer/CauldronHudRoot/ChemistryCard/Margin" unique_id=1914661380 instance=ExtResource("21_chemistry_strip")]
-layout_mode = 2
+offset_bottom = 1060.0
 
 [node name="ToastLabel" type="Label" parent="UILayer/CauldronHudRoot" unique_id=1695737888]
 visible = false

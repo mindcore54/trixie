@@ -4,6 +4,13 @@ uniform float blur_radius : hint_range(0.0, 6.0) = 2.0;
 uniform float darken : hint_range(0.0, 0.7) = 0.16;
 uniform float vignette_strength : hint_range(0.0, 0.7) = 0.28;
 uniform float frenzy_amount : hint_range(0.0, 1.0) = 0.0;
+uniform float contrast_filter : hint_range(0.0, 1.0) = 1.0;
+
+varying vec4 v_modulate;
+
+void vertex() {
+	v_modulate = COLOR;
+}
 
 void fragment() {
 	vec2 px = TEXTURE_PIXEL_SIZE * blur_radius;
@@ -25,6 +32,8 @@ void fragment() {
 	vec3 rgb = col.rgb * (1.0 - darken - vig);
 	vec3 frenzy_tint = mix(rgb, rgb * vec3(1.18, 0.76, 1.04) + vec3(0.08, 0.01, 0.05), 0.55);
 	rgb = mix(rgb, frenzy_tint, clamp(frenzy_amount, 0.0, 1.0));
+	vec3 base_rgb = texture(TEXTURE, UV).rgb;
+	rgb = mix(rgb, rgb * base_rgb, contrast_filter);
 
-	COLOR = vec4(rgb, col.a) * COLOR;
+	COLOR = vec4(rgb, col.a) * v_modulate;
 }

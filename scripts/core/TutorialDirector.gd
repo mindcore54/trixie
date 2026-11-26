@@ -80,7 +80,7 @@ func get_banner_payload(chem: Dictionary) -> Dictionary:
 		Step.BASIC_PURGE_DISLIKED:
 			var disliked_k: int = int(chem["disliked"])
 			tut_title = "✨ Tutorial 2/2 · Pausado"
-			tut_body = "Haz CLIC DER en el orbe %s ❌ para purgarlo sin perder combo." % ChemistryRules.get_element_name(disliked_k)
+			tut_body = "Los orbes oscuros con ❌ arruinan el elixir: haz CLIC DER en %s ❌ para purgarlo sin perder combo." % ChemistryRules.get_element_name(disliked_k)
 		Step.MIX_DRAG_COMBINE:
 			var liked_m: int = int(chem["liked"])
 			var comps: Array[int] = ChemistryRules.get_recipe_components(liked_m)
