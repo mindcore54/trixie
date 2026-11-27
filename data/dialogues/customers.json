@@ -1,0 +1,121 @@
+{
+	"customers": {
+		"sylvi": {
+			"greeting": [
+				"¡Necesito un {pocion}elixir bien fuerte{/pocion} para esta noche!",
+				"¿Qué tienes hoy para encender la {naturaleza}fiesta del bosque{/naturaleza}, brujita?"
+			],
+			"satisfied": [
+				"¡Mmm! ¡Esto pega directo al corazón!",
+				"¡Así me gusta, {clave}rápida y ardiente{/clave}!"
+			],
+			"spicy": [
+				"¿Siempre sudas así detrás del mostrador, o es por verme?",
+				"Si funciona la mitad de bien que tu sonrisa, mañana vuelvo por el {secreto}doble{/secreto}..."
+			],
+			"impatient": [
+				"¡Vamos linda, se me enfría la noche!"
+			],
+			"leave": [
+				"¡Qué pena, linda! La fiesta no espera, me voy a otro puesto."
+			]
+		},
+		"velvet": {
+			"greeting": [
+				"Tengo una cita importante pronto. Sorpréndeme con tu mejor {pocion}elixir{/pocion}.",
+				"No me hagas esperar y te cubriré de {oro}Esencia{/oro}, preciosa."
+			],
+			"satisfied": [
+				"Servicio impecable. Quédate la {oro}propina{/oro}.",
+				"Exactamente el sabor intenso que adoro."
+			],
+			"spicy": [
+				"Me encanta verte correr alrededor de ese caldero solo para complacerme.",
+				"La próxima {pocion}poción{/pocion} quiero probarla directo de tu cucharón..."
+			],
+			"impatient": [
+				"Tic-tac, brujita. Mi paciencia vale caro."
+			],
+			"leave": [
+				"Demasiada demora para mi gusto. Me retiro por hoy, querida."
+			]
+		},
+		"seraphina": {
+			"greeting": [
+				"Hola, cariño... ¿Tienes algo {naturaleza}suavecito{/naturaleza} para flotar toda la tarde?",
+				"Sin prisa, cielo... me encanta el aroma de tu {pocion}caldero{/pocion}."
+			],
+			"satisfied": [
+				"¡Mmm, qué calidez tan dulce! Me dejaste en las nubes...",
+				"Qué manos tan suaves tienes, cariño. Esto sabe a {naturaleza}verano{/naturaleza}."
+			],
+			"spicy": [
+				"Oye... ¿por qué esta {pocion}bruma{/pocion} me da tanto calorcito cada vez que te miro?",
+				"Si cierras temprano esta noche, pásate por mi jardín... quiero probar más de tus {secreto}mezclas{/secreto}."
+			],
+			"impatient": [
+				"Ay, cielo... se me está yendo el buen humor esperando."
+			],
+			"leave": [
+				"Creo que mejor doy un paseo y vuelvo cuando el ambiente esté más tranquilo..."
+			]
+		},
+		"mona": {
+			"greeting": [
+				"Solo vine porque mi boticario real cerró temprano. ¡Prepárame un {pocion}filtro decente{/pocion}!",
+				"¡No creas que hago fila en un puesto callejero porque me gusten tus {pocion}mezclas{/pocion}!"
+			],
+			"satisfied": [
+				"¡Hmph! Pasable para ser alquimia ambulante... quédate el {oro}cambio{/oro}.",
+				"N-no está nada mal... ¡pero no te confíes!"
+			],
+			"spicy": [
+				"¡Hmph! ¡Deja de sonreír tan coqueta solo porque me gustó tu {pocion}elixir{/pocion}, tonta!",
+				"Oye... si pasas cerca de mi mansión esta noche, trae un {secreto}frasco privado{/secreto}... ¡s-solo por cortesía noble!"
+			],
+			"impatient": [
+				"¡Inaceptable! ¡Una dama noble no espera tanto!"
+			],
+			"leave": [
+				"¡Hmph! Qué pérdida de tiempo. Volveré cuando aprendas modales."
+			]
+		},
+		"roxy": {
+			"greeting": [
+				"¡Dame un {pocion}elixir{/pocion} que me haga rugir antes de que salga la luna!",
+				"¡Huele delicioso aquí dentro, {clave}brujita{/clave}!"
+			],
+			"satisfied": [
+				"¡Auuu! ¡Esto sí tiene {pocion}chispa{/pocion}!",
+				"¡Rápida como una flecha! ¡Me encanta!"
+			],
+			"spicy": [
+				"¡Guau! ¡Agitas ese caldero con una energía que me vuelve loca!",
+				"Tienes mejor aroma que cualquier presa del bosque... ¿me guardas un {secreto}frasco especial{/secreto}?"
+			],
+			"impatient": [
+				"¡Grrr! ¡Me muero de sed esperando!"
+			],
+			"leave": [
+				"¡Grrr! ¡Me voy a cazar otra cosa antes de secarme aquí!"
+			]
+		}
+	},
+	"fallbacks": {
+		"greeting": [
+			"¡Prepara mi {pocion}elixir favorito{/pocion}, brujita!"
+		],
+		"satisfied": [
+			"¡Mmm, qué {pocion}elixir{/pocion} tan delicioso, brujita!"
+		],
+		"spicy": [
+			"¡Esto estuvo increíble, brujita! Volveré pronto..."
+		],
+		"impatient": [
+			"¡Apúrate, brujita!"
+		],
+		"leave": [
+			"¡Me cansé de esperar, brujita!"
+		]
+	}
+}

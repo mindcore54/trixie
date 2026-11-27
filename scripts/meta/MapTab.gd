@@ -118,12 +118,12 @@ func refresh_tutorial_banner(is_map_view: bool, tutorial_blocking: bool) -> void
 		return
 	if is_map_view and tutorial_blocking:
 		_tut_banner.visible = true
-		_tut_title_lbl.text = "✨ Trixie · ¡Tu Mapa de Gira y Árbol de Habilidades!"
-		_tut_body_lbl.text = "Aquí eliges tu próxima parada y ves la 💋 Galería. Pero antes de seguir: pulsa 🌿 ÁRBOL DE HABILIDADES (arriba a la derecha) para mejorar tu magia."
+		_tut_title_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("map_intro_title"))
+		_tut_body_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("map_intro_body"))
 	elif is_map_view and bool(_state.map_tutorial_done) and int(_state.count_completed_map_nodes()) <= 1 and not bool(_state.is_map_node_completed(&"pueblo")):
 		_tut_banner.visible = true
-		_tut_title_lbl.text = "✨ ¡Lista para la Parada 2!"
-		_tut_body_lbl.text = "Ya puedes mantener presionado Clic Izquierdo en el caldero. Selecciona 🏘 El Pueblo y pulsa 🔥 VIAJAR A ESTA PARADA."
+		_tut_title_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("map_stop2_title"))
+		_tut_body_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("map_stop2_body"))
 	else:
 		_tut_banner.visible = false
 

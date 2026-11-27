@@ -377,7 +377,7 @@ func _start_stop() -> void:
 		if _board != null:
 			_board.setup_tutorial_initial_orbs()
 		_update_tutorial_banner()
-		_set_trixie_reaction("confiada", 3.0, "¡Primera clienta! El tiempo está pausado mientras aprendemos lo básico.")
+		_set_trixie_reaction("confiada", 3.0, DialogueBank.get_trixie_tutorial("basic_start"))
 	else:
 		if not _tutorial.active:
 			_update_tutorial_banner()
@@ -387,12 +387,12 @@ func _start_stop() -> void:
 		if not _tutorial.active:
 			var stop_name: String = String(_wave.active_stop.get("name", "Parada"))
 			var dmg_base: int = _board.click_damage if _board != null else 1
-			_set_trixie_reaction("confiada", 2.5, "¡Llegamos a %s! Rompe %s (%d golpes) para %s." % [
-				stop_name,
-				ChemistryRules.get_element_name(liked_k),
-				maxi(1, ceili(float(CauldronBoard.BASE_ORB_HP) / float(dmg_base))),
-				_wave.active_customer.display_name if _wave.active_customer != null else "la clienta",
-			])
+			_set_trixie_reaction("confiada", 2.5, DialogueBank.get_trixie_reaction("stop_arrival", {
+				"stop": stop_name,
+				"element": ChemistryRules.get_element_name(liked_k),
+				"hits": maxi(1, ceili(float(CauldronBoard.BASE_ORB_HP) / float(dmg_base))),
+				"customer": _wave.active_customer.display_name if _wave.active_customer != null else "la clienta",
+			}))
 
 	if _hud != null:
 		_hud.set_map_button_disabled(_tutorial.active)
@@ -414,7 +414,7 @@ func _finish_basic_tutorial() -> void:
 	_tutorial.finish_basics(_state())
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
-	_set_trixie_reaction("confiada", 2.5, "¡Bien! ¡Ahora llena su frasco al 100%!")
+	_set_trixie_reaction("confiada", 2.5, DialogueBank.get_trixie_tutorial("basic_done"))
 	if _hud != null:
 		_hud.set_map_button_disabled(false)
 
@@ -428,7 +428,7 @@ func _start_mix_tutorial() -> void:
 		_board.ensure_mix_ingredients(liked_k)
 	_play_pentatonic(5, -2.0)
 	_update_tutorial_banner()
-	_set_trixie_reaction("sorprendida", 3.2, "¡Pide un color mezclado! Pausé el tiempo para enseñarte a combinarlo.")
+	_set_trixie_reaction("sorprendida", 3.2, DialogueBank.get_trixie_tutorial("mix_start"))
 	if _hud != null:
 		_hud.set_map_button_disabled(true)
 
@@ -437,7 +437,7 @@ func _finish_mix_tutorial() -> void:
 	_tutorial.finish_mix(_state())
 	_play_pentatonic(6, -1.0)
 	_update_tutorial_banner()
-	_set_trixie_reaction("confiada", 2.4, "¡Perfecto! Ya dominas las mezclas. ¡A atender antes de que pierda la paciencia!")
+	_set_trixie_reaction("confiada", 2.4, DialogueBank.get_trixie_tutorial("mix_done"))
 	if _hud != null:
 		_hud.set_map_button_disabled(false)
 
@@ -469,7 +469,7 @@ func _process_cauldron_gameplay(delta: float) -> void:
 	if bool(p_ev["impatient_warn"]):
 		_set_customer_reaction("impaciente", 3.5, String(p_ev["warn_line"]))
 		var cname: String = _wave.active_customer.display_name if _wave.active_customer != null else "Clienta"
-		_set_trixie_reaction("nerviosa", 2.0, "¡%s está perdiendo la paciencia!" % cname)
+		_set_trixie_reaction("nerviosa", 2.0, DialogueBank.get_trixie_reaction("patience_low", {"customer": cname}))
 	if bool(p_ev["expired"]):
 		_on_customer_patience_expired()
 		return
@@ -490,17 +490,17 @@ func _on_board_orb_combined(res_kind: int, new_tier: int, is_star_boost: bool, i
 	if is_star_boost:
 		_grant_essence(star_ess)
 		_spawn_popup(final_pos + Vector2(0, -18), "⭐ ¡POTENCIADO x%d! +%d✦" % [new_tier, star_ess], Color(1.0, 0.90, 0.32))
-		_set_trixie_reaction("sorprendida", 1.7, "¡Estrella fusionada! ¡Ese orbe brilla x%d!" % new_tier)
+		_set_trixie_reaction("sorprendida", 1.7, DialogueBank.get_trixie_reaction("star_boost", {"tier": new_tier}))
 	elif is_same_merge:
 		_spawn_popup(final_pos + Vector2(0, -18), "%s ¡CONCENTRADO x%d!" % [ChemistryRules.get_element_name(res_kind), new_tier], ChemistryRules.get_element_color(res_kind).lightened(0.35))
 		if new_tier >= 3:
-			_set_trixie_reaction("sorprendida", 1.8, "¡Concentrado x3! ¡Ese orbe va a reventar el tubo!")
+			_set_trixie_reaction("sorprendida", 1.8, DialogueBank.get_trixie_reaction("concentrated_max"))
 		elif res_kind == liked_k:
-			_set_trixie_reaction("confiada", 1.5, "¡Orbe concentrado x%d! ¡Rómpelo a golpes!" % new_tier)
+			_set_trixie_reaction("confiada", 1.5, DialogueBank.get_trixie_reaction("concentrated", {"tier": new_tier}))
 	else:
 		_spawn_popup(final_pos + Vector2(0, -18), "✨ %s!" % ChemistryRules.get_element_name(res_kind), ChemistryRules.get_element_color(res_kind).lightened(0.35))
 		if res_kind == liked_k:
-			_set_trixie_reaction("confiada", 1.7, "¡Mezcla perfecta! ¡Ahora rómpela a golpes!")
+			_set_trixie_reaction("confiada", 1.7, DialogueBank.get_trixie_reaction("mix_perfect"))
 
 	if _tutorial.active and _tutorial.step == TutorialDirector.Step.MIX_DRAG_COMBINE and res_kind == liked_k:
 		_advance_cauldron_tutorial(TutorialDirector.Step.MIX_BREAK_RESULT)
@@ -519,11 +519,11 @@ func _on_board_orb_shattered_disliked(pos: Vector2, _kind: int, _tier: int, pena
 	_play_pentatonic(0, 0.0)
 	_spawn_popup(pos, "¡❌ -%d%% Poción! Combo 0" % int(penalty), Color(1.0, 0.32, 0.34))
 	if severe_backfire:
-		_set_trixie_reaction("hollin", 2.4, "¡Puf...! ¡Me explotó en la cara! Purga los ❌ con Clic Der.")
+		_set_trixie_reaction("hollin", 2.4, DialogueBank.get_trixie_reaction("backfire_severe"))
 	else:
-		_set_trixie_reaction("nerviosa", 1.8, "¡Cuidado! Ese elemento choca con el pedido.")
+		_set_trixie_reaction("nerviosa", 1.8, DialogueBank.get_trixie_reaction("backfire_mild"))
 	var c: CustomerArchetypeData = _wave.active_customer
-	var imp_line: String = c.impatient_lines[0] if (c != null and not c.impatient_lines.is_empty()) else ""
+	var imp_line: String = DialogueBank.pick_customer_line(c.customer_id, "impatient") if c != null else ""
 	_set_customer_reaction("impaciente", 2.2, imp_line)
 
 
@@ -533,29 +533,33 @@ func _on_board_orb_shattered_good(pos: Vector2, kind: int, tier: int, rel: Strin
 		_grant_essence(ess_gain)
 
 	if frenzy_just_ready:
-		_set_trixie_reaction("sorprendida", 2.0, "¡Caldero al 100%! ¡Pulsa [ESPACIO] para el Frenesí!")
+		_set_trixie_reaction("sorprendida", 2.0, DialogueBank.get_trixie_reaction("frenzy_ready"))
 	elif kind == BubbleKind.GOLD:
-		_set_trixie_reaction("sorprendida", 1.8, "¡Un Orbe Estrella! ¡Brilla muchísimo!")
+		_set_trixie_reaction("sorprendida", 1.8, DialogueBank.get_trixie_reaction("star_orb"))
 	elif rel == &"liked" and (tier >= 2 or ChemistryRules.is_mixed_kind(kind)):
-		_set_trixie_reaction("confiada", 1.7, "¡%s pulverizado! ¡Cómo sube el elixir!" % ChemistryRules.get_element_name(kind))
+		_set_trixie_reaction("confiada", 1.7, DialogueBank.get_trixie_reaction("liked_power", {
+			"element": ChemistryRules.get_element_name(kind),
+		}))
 	elif rel == &"liked":
 		var liked_line: String = ""
 		if not _shown_liked_orb_hint and not _tutorial.active and not _wave.closing_active:
 			_shown_liked_orb_hint = true
-			liked_line = "¡Bien triturado! Sigue buscando los afines."
+			liked_line = DialogueBank.get_trixie_reaction("liked_basic")
 		_set_trixie_reaction("confiada", 1.5, liked_line)
 	elif rel == &"ingredient":
 		var ing_line: String = ""
 		if not _shown_ingredient_tip and not _tutorial.active and not _wave.closing_active:
 			_shown_ingredient_tip = true
-			ing_line = "Tip: ¡arrastra %s sobre el otro color para mezclar!" % ChemistryRules.get_element_name(kind)
+			ing_line = DialogueBank.get_trixie_reaction("ingredient_tip", {
+				"element": ChemistryRules.get_element_name(kind),
+			})
 		_set_trixie_reaction("normal", 1.5, ing_line)
 
 	var c: CustomerArchetypeData = _wave.active_customer
 	if (rel == &"liked" and (tier >= 2 or ChemistryRules.is_mixed_kind(kind) or combo_val >= 2)) or kind == BubbleKind.GOLD:
 		var sat_line: String = ""
-		if (tier >= 2 or ChemistryRules.is_mixed_kind(kind) or kind == BubbleKind.GOLD) and c != null and not c.satisfied_lines.is_empty():
-			sat_line = c.satisfied_lines[randi() % c.satisfied_lines.size()]
+		if (tier >= 2 or ChemistryRules.is_mixed_kind(kind) or kind == BubbleKind.GOLD) and c != null:
+			sat_line = DialogueBank.pick_customer_line(c.customer_id, "satisfied")
 		_set_customer_reaction("sonrojada", 1.8, sat_line)
 
 	var pop_txt: String = "+%d%%  +%d✦" % [int(roundf(tube_gain)), ess_gain]
@@ -589,7 +593,7 @@ func _on_board_orb_purged(pos: Vector2, rel: StringName, recycled_ess: int) -> v
 func _on_board_bomb_detonated(bpos: Vector2, _hit_count: int) -> void:
 	_spawn_popup(bpos + Vector2(0, -28), "¡BOOM ALQUÍMICO!", Color(0.92, 0.56, 1.0))
 	if _trixie_emotion != "sonrojada":
-		_set_trixie_reaction("sorprendida", 1.9, "¡WHOA! ¡Bomba alquímica en reacción en cadena!")
+		_set_trixie_reaction("sorprendida", 1.9, DialogueBank.get_trixie_reaction("bomb_chain"))
 
 
 func _on_board_frenzy_activated(transmuted_count: int, duration_sec: float) -> void:
@@ -599,7 +603,9 @@ func _on_board_frenzy_activated(transmuted_count: int, duration_sec: float) -> v
 	var b: Node = _bus()
 	if b != null:
 		b.emit_signal("witch_ability_triggered", &"trixie", null)
-	_set_trixie_reaction("sonrojada", duration_sec, "¡FRENESÍ ESCARLATA! %d ❌ transmutados, 1 golpe y 2x TODO!" % transmuted_count)
+	_set_trixie_reaction("sonrojada", duration_sec, DialogueBank.get_trixie_reaction("frenzy_activated", {
+		"count": transmuted_count,
+	}))
 	_set_customer_reaction("sonrojada", duration_sec)
 	var center: Vector2 = _board.get_center() if _board != null else CAULDRON_CENTER
 	_spawn_popup(center, "¡FRENESÍ ESCARLATA x2!", Color(1.0, 0.42, 0.74))
@@ -669,7 +675,7 @@ func _on_customer_patience_expired() -> void:
 	_spawn_popup(Vector2(1620, 440), "💢 ¡%s se fue!" % c.display_name, Color(1.0, 0.32, 0.36))
 	if _hud != null:
 		_hud.show_toast("💢 ¡%s perdió la paciencia y se marchó!" % c.display_name, 3.0)
-	_set_trixie_reaction("nerviosa", 2.2, "¡Ay, %s se cansó de esperar!" % c.display_name)
+	_set_trixie_reaction("nerviosa", 2.2, DialogueBank.get_trixie_reaction("customer_left", {"customer": c.display_name}))
 	_advance_wave_or_finish()
 
 
@@ -692,16 +698,19 @@ func _complete_customer_order() -> void:
 
 	if leveled_up and _hud != null:
 		_hud.show_toast("💋 ¡Afinidad Nv.%d con %s! Escena desbloqueada en Galería." % [new_aff_lvl, c.display_name], 4.0)
-		_set_trixie_reaction("sonrojada", 2.6, "¡A %s le encantó! Mira cómo se sonroja..." % c.display_name)
+		_set_trixie_reaction("sonrojada", 2.6, DialogueBank.get_trixie_reaction("affinity_up", {"customer": c.display_name}))
 	elif crit and _hud != null:
 		_hud.show_toast("💎 ¡POCIÓN CRÍTICA! +%d✦  +%d❤ Afinidad" % [bonus_gold, aff_gain], 2.5)
-		_set_trixie_reaction("sorprendida", 2.2, "¡¿POCIÓN CRÍTICA?! ¡Hasta brilló el frasco entero!")
+		_set_trixie_reaction("sorprendida", 2.2, DialogueBank.get_trixie_reaction("crit_potion"))
 	elif _trixie_emotion != "sorprendida":
 		var frenzy_on: bool = _board != null and _board.frenzy_timer > 0.0
 		if frenzy_on or new_aff_lvl >= 2:
-			_set_trixie_reaction("sonrojada", 1.8, "¡Mmm, %s quedó fascinada con ese elixir!" % c.display_name)
+			_set_trixie_reaction("sonrojada", 1.8, DialogueBank.get_trixie_reaction("served_fascinated", {"customer": c.display_name}))
 		else:
-			_set_trixie_reaction("confiada", 1.6, "¡Elixir listo para %s! +%d✦" % [c.display_name, bonus_gold])
+			_set_trixie_reaction("confiada", 1.6, DialogueBank.get_trixie_reaction("served_normal", {
+				"customer": c.display_name,
+				"gold": bonus_gold,
+			}))
 
 	_spawn_popup(Vector2(1620, 440), "¡ELIXIR LISTO! +%d✦  +%d❤" % [bonus_gold, aff_gain], Color(1.0, 0.78, 0.92))
 	_set_customer_reaction("sonrojada", 3.0, String(res["done_line"]))

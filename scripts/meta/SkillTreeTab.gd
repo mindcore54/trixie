@@ -110,8 +110,8 @@ func refresh_tutorial_banner(is_tree_view: bool, tutorial_blocking: bool) -> voi
 		return
 	if is_tree_view and tutorial_blocking:
 		_tut_banner.visible = true
-		_tut_title_lbl.text = "👆 Tutorial Obligatorio: Toque Continuo"
-		_tut_body_lbl.text = "Haz clic en el nodo rojo 👆 Toque Continuo (a la derecha) o pulsa MEJORAR abajo. Así podrás MANTENER PRESIONADO Clic Izquierdo sobre un orbe sin cansarte."
+		_tut_title_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("tree_mandatory_title"))
+		_tut_body_lbl.text = DialogueBank.strip_tags(DialogueBank.get_trixie_tutorial("tree_mandatory_body"))
 	else:
 		_tut_banner.visible = false
 

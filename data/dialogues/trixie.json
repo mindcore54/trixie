@@ -1,0 +1,164 @@
+{
+	"tutorials": {
+		"basic_start": "¡Primera clienta! El tiempo está {clave}pausado{/clave} mientras aprendemos lo básico.",
+		"basic_break_title": "✨ Tutorial 1/2 · Pausado",
+		"basic_break_body": "Haz {clave}3 CLICS IZQ{/clave} en un orbe {naturaleza}{element}{/naturaleza} para llenar el matraz.",
+		"basic_purge_reaction": "¡Bien! Ahora purga el orbe con {alerta}❌{/alerta} usando {clave}Clic Derecho{/clave} sin romper el combo.",
+		"basic_purge_title": "✨ Tutorial 2/2 · Pausado",
+		"basic_purge_body": "Los orbes oscuros con {alerta}❌{/alerta} arruinan el elixir: haz {clave}CLIC DER{/clave} en {alerta}{element} ❌{/alerta} para purgarlo sin perder combo.",
+		"basic_done": "¡Bien! ¡Ahora llena su {pocion}frasco al 100%{/pocion}!",
+		"mix_start": "¡Pide un {pocion}color mezclado{/pocion}! Pausé el tiempo para enseñarte a combinarlo.",
+		"mix_drag_title": "✨ Mezcla · Pausado",
+		"mix_drag_body": "{clave}ARRASTRA{/clave} {naturaleza}{comp_a}{/naturaleza} sobre {naturaleza}{comp_b}{/naturaleza} para crear {pocion}{result}{/pocion}.",
+		"mix_break_reaction": "¡{pocion}Mezcla lograda{/pocion}! Ahora rompe ese orbe combinado para llenar el tubo mucho más rápido.",
+		"mix_break_title": "✨ ¡Mezcla lista!",
+		"mix_break_body": "¡Genial! Ahora rompe ese orbe {pocion}{result}{/pocion} a clics.",
+		"mix_done": "¡Perfecto! Ya dominas las {pocion}mezclas{/pocion}. ¡A atender antes de que pierda la paciencia!",
+		"map_intro_title": "✨ Trixie · ¡Tu Mapa de Gira y Árbol de Habilidades!",
+		"map_intro_body": "Aquí eliges tu próxima parada y ves la 💋 Galería. Pero antes de seguir: pulsa 🌿 ÁRBOL DE HABILIDADES (arriba a la derecha) para mejorar tu magia.",
+		"map_stop2_title": "✨ ¡Lista para la Parada 2!",
+		"map_stop2_body": "Ya puedes mantener presionado Clic Izquierdo en el caldero. Selecciona 🏘 El Pueblo y pulsa 🔥 VIAJAR A ESTA PARADA.",
+		"tree_mandatory_title": "👆 Tutorial Obligatorio: Toque Continuo",
+		"tree_mandatory_body": "Haz clic en el nodo rojo 👆 Toque Continuo (a la derecha) o pulsa MEJORAR abajo. Así podrás MANTENER PRESIONADO Clic Izquierdo sobre un orbe sin cansarte."
+	},
+	"reactions": {
+		"stop_arrival": "¡Llegamos a {clave}{stop}{/clave}! Rompe {naturaleza}{element}{/naturaleza} ({hits} golpes) para {clave}{customer}{/clave}.",
+		"patience_low": "¡{clave}{customer}{/clave} está perdiendo la {alerta}paciencia{/alerta}!",
+		"star_boost": "¡Estrella fusionada! ¡Ese orbe brilla {oro}x{tier}{/oro}!",
+		"concentrated_max": "¡{oro}Concentrado x3{/oro}! ¡Ese orbe va a reventar el tubo!",
+		"concentrated": "¡Orbe {oro}concentrado x{tier}{/oro}! ¡Rómpelo a golpes!",
+		"mix_perfect": "¡{pocion}Mezcla perfecta{/pocion}! ¡Ahora rómpela a golpes!",
+		"backfire_severe": "¡Puf...! ¡Me explotó en la cara! Purga los {alerta}❌{/alerta} con {clave}Clic Der{/clave}.",
+		"backfire_mild": "¡Cuidado! Ese elemento {alerta}choca{/alerta} con el pedido.",
+		"frenzy_ready": "¡Caldero al 100%! ¡Pulsa {clave}ESPACIO{/clave} para el {pocion}Frenesí{/pocion}!",
+		"star_orb": "¡Un {oro}Orbe Estrella{/oro}! ¡Brilla muchísimo!",
+		"liked_power": "¡{pocion}{element}{/pocion} pulverizado! ¡Cómo sube el elixir!",
+		"liked_basic": "¡Bien triturado! Sigue buscando los {naturaleza}afines{/naturaleza}.",
+		"ingredient_tip": "Tip: ¡arrastra {naturaleza}{element}{/naturaleza} sobre el otro color para {pocion}mezclar{/pocion}!",
+		"bomb_chain": "¡WHOA! ¡{alerta}Bomba alquímica{/alerta} en reacción en cadena!",
+		"frenzy_activated": "¡{pocion}FRENESÍ ESCARLATA{/pocion}! {count} ❌ transmutados, 1 golpe y {oro}2x TODO{/oro}!",
+		"customer_left": "¡Ay, {clave}{customer}{/clave} se cansó de esperar!",
+		"affinity_up": "¡A {clave}{customer}{/clave} le encantó! Mira cómo se {pocion}sonroja{/pocion}...",
+		"crit_potion": "¡¿{oro}POCIÓN CRÍTICA{/oro}?! ¡Hasta brilló el frasco entero!",
+		"served_fascinated": "¡Mmm, {clave}{customer}{/clave} quedó {pocion}fascinada{/pocion} con ese elixir!",
+		"served_normal": "¡Elixir listo para {clave}{customer}{/clave}! {oro}+{gold}✦{/oro}"
+	},
+	"gallery_quotes": [
+		"¡El caldero apenas comienza a calentarse!",
+		"¡Mantén presionado el clic o mezcla colores y mira cómo llueve la Esencia!"
+	],
+	"stop_closings": {
+		"castillo": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Uf, pude terminar! Primer puesto superado sin volar por los aires... ¡ahora a descansar y mejorar el caldero en el {clave}Mapa{/clave}!"
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Puf...! Se cansaron de esperar y toca intentarlo de nuevo. Por suerte conservo toda la {oro}Esencia{/oro} para mejorar en el {clave}Mapa{/clave}."
+				}
+			]
+		},
+		"pueblo": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Uf, plaza superada! Qué clientas más intensas... ¡toca descansar un poco y seguir la ruta en el {clave}Mapa{/clave}!"
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Uff, cuántas clientas impacientes! Toca mejorar el caldero en el {clave}Mapa{/clave} y volver a intentarlo."
+				}
+			]
+		},
+		"bosque_goblins": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "sorprendida",
+					"text": "¡Lo logré! Hasta la {clave}Jefa Goblin{/clave} quedó encantada... ¡ahora a descansar y elegir desvío en el {clave}Mapa{/clave}!"
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Casi termino en su olla gigante! Salí con la {oro}Esencia{/oro} intacta: toca mejorar en el {clave}Mapa{/clave} y reintentar."
+				}
+			]
+		},
+		"bosque_profundo": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "sonrojada",
+					"text": "¡Con {naturaleza}Lyra{/naturaleza} uniéndose a nosotras la botica es imparable! Descansemos y sigamos el camino en el {clave}Mapa{/clave}."
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Estas esporas me marearon y perdimos el ritmo! Volvamos al {clave}Mapa{/clave} a mejorar el caldero y reintentar."
+				}
+			]
+		},
+		"arroyo_balsa": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Woooosh! Empapada tras la cascada, pero con el bolso lleno de {oro}Esencia{/oro}... ¡ahora a secarme y ver el {clave}Mapa{/clave}!"
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡La balsa dio demasiadas vueltas y se fueron molestas! Volvamos al {clave}Mapa{/clave} a mejorar antes de reintentar el río."
+				}
+			]
+		},
+		"nuevo_pueblo": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "sonrojada",
+					"text": "¡Uf, pude terminar la {clave}gran feria nocturna{/clave}! Cinco clientas encantadas... ¡ahora sí a descansar y revisar el {clave}Mapa{/clave}!"
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "nerviosa",
+					"text": "¡Cinco clientas juntas son pura adrenalina! Toca mejorar un poco más en el {clave}Mapa{/clave} y volver a arrasar la feria."
+				}
+			]
+		},
+		"default": {
+			"victory": [
+				{
+					"speaker": "trixie",
+					"emotion": "confiada",
+					"text": "¡Uf, pude terminar! Ahora a descansar y mejorar el caldero en el {clave}Mapa{/clave}."
+				}
+			],
+			"timeout": [
+				{
+					"speaker": "trixie",
+					"emotion": "hollin",
+					"text": "¡Puf...! Toca descansar, mejorar el caldero en el {clave}Mapa{/clave} e intentarlo otra vez."
+				}
+			]
+		}
+	}
+}

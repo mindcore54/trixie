@@ -58,13 +58,13 @@ func get_step_reaction(s: Step) -> Dictionary:
 			return {
 				"emotion": "nerviosa",
 				"dur": 3.0,
-				"line": "¡Bien! Ahora purga el orbe con ❌ usando Clic Derecho sin romper el combo.",
+				"line": DialogueBank.get_trixie_tutorial("basic_purge_reaction"),
 			}
 		Step.MIX_BREAK_RESULT:
 			return {
 				"emotion": "confiada",
 				"dur": 2.8,
-				"line": "¡Mezcla lograda! Ahora rompe ese orbe combinado para llenar el tubo mucho más rápido.",
+				"line": DialogueBank.get_trixie_tutorial("mix_break_reaction"),
 			}
 	return {}
 
@@ -75,25 +75,31 @@ func get_banner_payload(chem: Dictionary) -> Dictionary:
 	match step:
 		Step.BASIC_BREAK_LIKED:
 			var liked_k: int = int(chem["liked"])
-			tut_title = "✨ Tutorial 1/2 · Pausado"
-			tut_body = "Haz 3 CLICS IZQ en un orbe %s para llenar el matraz." % ChemistryRules.get_element_name(liked_k)
+			tut_title = DialogueBank.get_trixie_tutorial("basic_break_title")
+			tut_body = DialogueBank.get_trixie_tutorial("basic_break_body", {
+				"element": ChemistryRules.get_element_name(liked_k),
+			})
 		Step.BASIC_PURGE_DISLIKED:
 			var disliked_k: int = int(chem["disliked"])
-			tut_title = "✨ Tutorial 2/2 · Pausado"
-			tut_body = "Los orbes oscuros con ❌ arruinan el elixir: haz CLIC DER en %s ❌ para purgarlo sin perder combo." % ChemistryRules.get_element_name(disliked_k)
+			tut_title = DialogueBank.get_trixie_tutorial("basic_purge_title")
+			tut_body = DialogueBank.get_trixie_tutorial("basic_purge_body", {
+				"element": ChemistryRules.get_element_name(disliked_k),
+			})
 		Step.MIX_DRAG_COMBINE:
 			var liked_m: int = int(chem["liked"])
 			var comps: Array[int] = ChemistryRules.get_recipe_components(liked_m)
-			tut_title = "✨ Mezcla · Pausado"
-			tut_body = "ARRASTRA %s sobre %s para crear %s." % [
-				ChemistryRules.get_element_name(comps[0]),
-				ChemistryRules.get_element_name(comps[1]),
-				ChemistryRules.get_element_name(liked_m),
-			]
+			tut_title = DialogueBank.get_trixie_tutorial("mix_drag_title")
+			tut_body = DialogueBank.get_trixie_tutorial("mix_drag_body", {
+				"comp_a": ChemistryRules.get_element_name(comps[0]),
+				"comp_b": ChemistryRules.get_element_name(comps[1]),
+				"result": ChemistryRules.get_element_name(liked_m),
+			})
 		Step.MIX_BREAK_RESULT:
 			var liked_m2: int = int(chem["liked"])
-			tut_title = "✨ ¡Mezcla lista!"
-			tut_body = "¡Genial! Ahora rompe ese orbe %s a clics." % ChemistryRules.get_element_name(liked_m2)
+			tut_title = DialogueBank.get_trixie_tutorial("mix_break_title")
+			tut_body = DialogueBank.get_trixie_tutorial("mix_break_body", {
+				"result": ChemistryRules.get_element_name(liked_m2),
+			})
 	return {
 		"title": tut_title,
 		"body": tut_body,

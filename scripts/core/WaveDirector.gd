@@ -120,10 +120,7 @@ func pick_customer(next_c: CustomerArchetypeData, first_order: bool, state: Node
 	customer_react_anim = 1.0
 	customer_order_reward = int(roundf(float(24 + int(state.orders_completed) * 12) * next_c.tip_generosity_mult * order_bonus_mult * stop_essence_mult))
 
-	if not next_c.greeting_lines.is_empty():
-		customer_line = next_c.greeting_lines[randi() % next_c.greeting_lines.size()]
-	else:
-		customer_line = "¡Prepara mi elixir favorito, brujita!"
+	customer_line = DialogueBank.pick_customer_line(next_c.customer_id, "greeting")
 
 	var liked_k: int = int(get_customer_chemistry()["liked"])
 	var start_mix_tut: bool = ChemistryRules.is_mixed_kind(liked_k) and bool(state.call("should_run_mix_tutorial"))
@@ -176,7 +173,7 @@ func step_patience(delta: float, patience_paused: bool) -> Dictionary:
 	var p_ratio: float = customer_patience_left / maxf(1.0, customer_patience_max)
 	if p_ratio <= CUSTOMER_IMPATIENT_RATIO and not customer_impatient_warned:
 		customer_impatient_warned = true
-		var imp_line: String = active_customer.impatient_lines[0] if not active_customer.impatient_lines.is_empty() else "¡Apúrate, brujita!"
+		var imp_line: String = DialogueBank.pick_customer_line(active_customer.customer_id, "impatient")
 		result["impatient_warn"] = true
 		result["warn_line"] = imp_line
 	if customer_patience_left <= 0.0:
@@ -190,7 +187,10 @@ func expire_patience() -> Dictionary:
 	wave_missed_count += 1
 	potion_tube_pct = 0.0
 	wave_index += 1
-	var leave_line: String = c.impatient_lines[0] if (c != null and not c.impatient_lines.is_empty()) else "¡Me cansé de esperar, brujita!"
+	var cid: StringName = c.customer_id if c != null else &""
+	var leave_line: String = DialogueBank.pick_customer_line(cid, "leave")
+	if leave_line == "":
+		leave_line = DialogueBank.pick_customer_line(cid, "impatient")
 	return {
 		"customer": c,
 		"leave_line": leave_line,
@@ -213,13 +213,7 @@ func complete_order(state: Node, combo: int, crit_potion_lvl: int, encanto_lvl: 
 	customer_spicy_mode = new_aff_lvl >= 1
 	customer_flash_timer = 1.2
 
-	var done_line: String = ""
-	if customer_spicy_mode and not c.spicy_affinity_lines.is_empty():
-		done_line = c.spicy_affinity_lines[randi() % c.spicy_affinity_lines.size()]
-	elif not c.satisfied_lines.is_empty():
-		done_line = c.satisfied_lines[randi() % c.satisfied_lines.size()]
-	else:
-		done_line = "¡Mmm, qué elixir tan delicioso, brujita!"
+	var done_line: String = DialogueBank.pick_customer_line(c.customer_id, "spicy" if customer_spicy_mode else "satisfied")
 
 	wave_index += 1
 	return {
@@ -262,25 +256,20 @@ func begin_closing(victory: bool) -> bool:
 	if closing_active:
 		return false
 	closing_active = true
-	var raw_lines: Array = []
-	if victory:
-		raw_lines = active_stop.get("closing_victory_lines", []) as Array
-	else:
-		raw_lines = active_stop.get("closing_timeout_lines", []) as Array
+	var stop_id: StringName = active_stop.get("id", &"") as StringName
+	var raw_lines: Array[Dictionary] = DialogueBank.get_stop_closing_lines(stop_id, victory)
 
 	closing_lines.clear()
-	for lv: Variant in raw_lines:
-		if lv is Dictionary:
-			var ld: Dictionary = lv as Dictionary
-			if String(ld.get("speaker", "trixie")) == "trixie":
-				closing_lines.append(ld.duplicate())
-				break
+	for ld: Dictionary in raw_lines:
+		if String(ld.get("speaker", "trixie")) == "trixie":
+			closing_lines.append(ld.duplicate())
+			break
 
 	if closing_lines.is_empty():
 		closing_lines.append({
 			"speaker": "trixie",
 			"emotion": "confiada" if victory else "hollin",
-			"text": "¡Uf, pude terminar! Ahora a descansar y mejorar el caldero en el Mapa." if victory else "¡Puf...! Toca descansar, mejorar el caldero en el Mapa e intentarlo otra vez.",
+			"text": "¡Uf, pude terminar! Ahora a descansar y mejorar el caldero en el {clave}Mapa{/clave}." if victory else "¡Puf...! Toca descansar, mejorar el caldero en el {clave}Mapa{/clave} e intentarlo otra vez.",
 		})
 
 	closing_idx = -1

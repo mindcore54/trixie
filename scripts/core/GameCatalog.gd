@@ -278,28 +278,28 @@ static func _build_default_customers() -> Array[CustomerArchetypeData]:
 	var seraphina: CustomerArchetypeData = CustomerArchetypeData.new()
 	seraphina.customer_id = &"seraphina"
 	seraphina.display_name = "Seraphina"
-	seraphina.species_archetype = "Paladín Reprimida"
+	seraphina.species_archetype = "Dama Serena"
 	seraphina.is_vip_boss = true
 	seraphina.base_patience_sec = 56.0
 	seraphina.tip_generosity_mult = 1.45
 	seraphina.preferred_recipes = [&"savia_pura", &"bruma_lunar"]
 	seraphina.greeting_lines = PackedStringArray([
-		"E-es para un ritual de purificación... ¡no pienses cosas raras!",
-		"¡Vengo a inspeccionar tu licencia... y a llevarme un frasco!"
+		"Hola, cariño... ¿Tienes algo suavecito para flotar toda la tarde?",
+		"Sin prisa, cielo... me encanta el aroma de tu caldero."
 	])
 	seraphina.satisfied_lines = PackedStringArray([
-		"¡Q-qué pureza tan cálida! Casi indecente...",
-		"Aprobado por la Orden. (Gracias...)"
+		"¡Mmm, qué calidez tan dulce! Me dejaste en las nubes...",
+		"Qué manos tan suaves tienes, cariño. Esto sabe a verano."
 	])
 	seraphina.spicy_affinity_lines = PackedStringArray([
-		"¿Por qué esta poción huele a fresas y calor?! ¡Cielos, qué bochorno!",
-		"N-no le digas a la Orden que vengo aquí... ni cuánto me gusta mirarte."
+		"Oye... ¿por qué esta bruma me da tanto calorcito cada vez que te miro?",
+		"Si cierras temprano esta noche, pásate por mi jardín... quiero probar más de tus mezclas."
 	])
 	seraphina.impatient_lines = PackedStringArray([
-		"¡La Orden no tolera demoras injustificadas!"
+		"Ay, cielo... se me está yendo el buen humor esperando."
 	])
 	seraphina.display_tempted_lines = PackedStringArray([
-		"¡E-esa botella expuesta se ve muy tentadora! ¡Dámela para inspeccionarla!"
+		"Oh, qué frasco tan bonito... ¿me lo preparas, cariño?"
 	])
 
 	var mona: CustomerArchetypeData = CustomerArchetypeData.new()
@@ -791,20 +791,6 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"first_clear_bonus": 18,
 			"recruits_witch": &"",
 			"description": "Primer puesto ambulante frente a las murallas del castillo. Ideal para calentar el caldero, probar mezclas de colores y atender a Sylvi y Velvet.",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "confiada",
-					"text": "¡Uf, pude terminar! Primer puesto superado sin volar por los aires... ¡ahora a descansar y mejorar el caldero en el Mapa!",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "hollin",
-					"text": "¡Puf...! Se cansaron de esperar y toca intentarlo de nuevo. Por suerte conservo toda la Esencia para mejorar en el Mapa.",
-				},
-			],
 		},
 		{
 			"id": &"pueblo",
@@ -824,21 +810,7 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"spawn_rate_mult": 1.08,
 			"first_clear_bonus": 28,
 			"recruits_witch": &"",
-			"description": "Plaza bulliciosa con 3 clientas seguidas. Llegan pedidos de Sylvi, Velvet y la exigente paladín Seraphina (+25% Esencia).",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "confiada",
-					"text": "¡Uf, plaza superada! Qué clientas más intensas... ¡toca descansar un poco y seguir la ruta en el Mapa!",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "nerviosa",
-					"text": "¡Uff, cuántas clientas impacientes! Toca mejorar el caldero en el Mapa y volver a intentarlo.",
-				},
-			],
+			"description": "Plaza bulliciosa con 3 clientas seguidas. Llegan pedidos de Sylvi, Velvet y la serena Seraphina (+25% Esencia).",
 		},
 		{
 			"id": &"bosque_goblins",
@@ -858,20 +830,6 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"first_clear_bonus": 42,
 			"recruits_witch": &"",
 			"description": "Árboles sin hojas y cielo cerrado. ¡Trixie tomó un desvío equivocado y debe encantar con pociones a 4 clientas bajo la mirada de la Jefa Goblin!",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "sorprendida",
-					"text": "¡Lo logré! Hasta la Jefa Goblin quedó encantada... ¡ahora a descansar y elegir desvío en el Mapa!",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "hollin",
-					"text": "¡Casi termino en su olla gigante! Salí con la Esencia intacta: toca mejorar en el Mapa y reintentar.",
-				},
-			],
 		},
 		{
 			"id": &"bosque_profundo",
@@ -891,20 +849,6 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"first_clear_bonus": 55,
 			"recruits_witch": &"lyra",
 			"description": "Esporas luminosas en lo hondo del bosque. Atiende esta ola de 4 clientas para conocer y reclutar a Lyra, la druida traviesa (+2 Afinidad extra).",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "sonrojada",
-					"text": "¡Con Lyra uniéndose a nosotras la botica es imparable! Descansemos y sigamos el camino en el Mapa.",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "nerviosa",
-					"text": "¡Estas esporas me marearon y perdimos el ritmo! Volvamos al Mapa a mejorar el caldero y reintentar.",
-				},
-			],
 		},
 		{
 			"id": &"arroyo_balsa",
@@ -924,20 +868,6 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"first_clear_bonus": 65,
 			"recruits_witch": &"",
 			"description": "Trixie conjura una balsa mágica y hierve pociones corriente abajo frente a 4 clientas. Ritmo veloz con enorme recompensa de Esencia (+70%).",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "hollin",
-					"text": "¡Woooosh! Empapada tras la cascada, pero con el bolso lleno de Esencia... ¡ahora a secarme y ver el Mapa!",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "hollin",
-					"text": "¡La balsa dio demasiadas vueltas y se fueron molestas! Volvamos al Mapa a mejorar antes de reintentar el río.",
-				},
-			],
 		},
 		{
 			"id": &"nuevo_pueblo",
@@ -957,19 +887,5 @@ static func get_map_nodes() -> Array[Dictionary]:
 			"first_clear_bonus": 110,
 			"recruits_witch": &"",
 			"description": "Tras dejar atrás el bosque y la cascada, Trixie despliega su caldero en la gran feria nocturna frente a las cinco clientas VIP.",
-			"closing_victory_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "sonrojada",
-					"text": "¡Uf, pude terminar la gran feria nocturna! Cinco clientas encantadas... ¡ahora sí a descansar y revisar el Mapa!",
-				},
-			],
-			"closing_timeout_lines": [
-				{
-					"speaker": "trixie",
-					"emotion": "nerviosa",
-					"text": "¡Cinco clientas juntas son pura adrenalina! Toca mejorar un poco más en el Mapa y volver a arrasar la feria.",
-				},
-			],
 		},
 	]

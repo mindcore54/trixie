@@ -18,8 +18,8 @@ const BODY_WIDTH_FULL: float = 388.0
 @export var tutorial_bg_tint: Color = Color(1.0, 0.97, 0.88, 1.0)
 
 @onready var _bg_rect: TextureRect = $Background
-@onready var _title_lbl: Label = $TitleLabel
-@onready var _body_lbl: Label = $BodyLabel
+@onready var _title_lbl: Label = $TextShadowGroup/TitleLabel
+@onready var _body_lbl: RichTextLabel = $TextShadowGroup/BodyLabel
 
 var base_position: Vector2 = Vector2.ZERO
 var _base_position_set: bool = false
@@ -73,8 +73,8 @@ func show_message(title: String, body: String, duration: float = 3.2, tutorial_m
 		_title_lbl.text = title
 		_title_lbl.add_theme_color_override("font_color", tutorial_title_color if tutorial_mode else default_title_color)
 	if _body_lbl != null:
-		_body_lbl.text = body
-		_body_lbl.size = Vector2(BODY_WIDTH_FULL, 118.0)
+		_body_lbl.text = DialogueBank.format_rich_text(body)
+		_body_lbl.size = Vector2(BODY_WIDTH_FULL, 120.0)
 	if _bg_rect != null:
 		_bg_rect.modulate = tutorial_bg_tint if tutorial_mode else Color.WHITE
 	if _tween != null and _tween.is_valid():

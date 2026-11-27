@@ -11,7 +11,7 @@ const GALLERY_TITLES: Dictionary = {
 	&"trixie": ["Chispas de Apertura", "Sobrecalentamiento Picante", "Maestra del Aquelarre"],
 	&"sylvi": ["Brindis del Bosque", "Calor bajo las Hojas", "Fiesta Privada con Trixie"],
 	&"velvet": ["Mirada Ejecutiva", "Prueba Directa del Cucharón", "Contrato Carmesí"],
-	&"seraphina": ["Inspección de Pureza", "Armadura Entreabierta", "Confesión Secreta de la Orden"],
+	&"seraphina": ["Brisa de Verano", "Calidez Serena", "Tarde en el Jardín"],
 	&"mona": ["Orgullo Élfico", "Sonrojo Tsundere", "Cita Privada en la Mansión"],
 	&"roxy": ["Aullido de Luna Llena", "Cazadora Cautivada", "Frasco Reservado"],
 }
@@ -109,24 +109,21 @@ func refresh_gallery() -> void:
 
 	var char_name: String = "Trixie"
 	var role_txt: String = "Bruja del Caldero"
-	var quotes: PackedStringArray = PackedStringArray([
-		"¡El caldero apenas comienza a calentarse!",
-		"¡Mantén presionado el clic o mezcla colores y mira cómo llueve la Esencia!",
-	])
+	var quotes: PackedStringArray = DialogueBank.get_trixie_gallery_quotes()
 	if _selected_char_id != &"trixie":
 		for c: CustomerArchetypeData in _state.customers_catalog:
 			if c.customer_id == _selected_char_id:
 				char_name = c.display_name
 				role_txt = c.species_archetype
 				var all_q: Array[String] = []
-				for s: String in c.greeting_lines:
-					all_q.append("• " + s)
+				for s: String in DialogueBank.get_customer_lines(c.customer_id, "greeting"):
+					all_q.append("• " + DialogueBank.strip_tags(s))
 				if lvl >= 1:
-					for s: String in c.satisfied_lines:
-						all_q.append("★ " + s)
+					for s: String in DialogueBank.get_customer_lines(c.customer_id, "satisfied"):
+						all_q.append("★ " + DialogueBank.strip_tags(s))
 				if lvl >= 2:
-					for s: String in c.spicy_affinity_lines:
-						all_q.append("💋 " + s)
+					for s: String in DialogueBank.get_customer_lines(c.customer_id, "spicy"):
+						all_q.append("💋 " + DialogueBank.strip_tags(s))
 				else:
 					all_q.append("🔒 Frases picantes bloqueadas (Requiere Afinidad Nv.2)")
 				quotes = PackedStringArray(all_q)
