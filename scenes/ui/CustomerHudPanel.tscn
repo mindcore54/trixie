@@ -8,6 +8,9 @@
 [ext_resource type="Texture2D" path="res://assets/ui/hud/timer_vial_liquid_mask.png" id="6_vial_mask"]
 [ext_resource type="Texture2D" path="res://assets/ui/hud/timer_vial.png" id="7_vial_glass"]
 [ext_resource type="FontFile" path="res://assets/fonts/Spectral-Regular.ttf" id="8_affinity_font"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/hourglass_icon.png" id="9_hourglass_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/heart_icon.png" id="10_heart_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/essence_icon.png" id="11_essence_tex"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ribbon_shadow"]
 resource_local_to_scene = true
@@ -44,6 +47,9 @@ offset_right = 486.0
 offset_bottom = 118.0
 mouse_filter = 2
 script = ExtResource("1_cust_hud_script")
+hourglass_icon_tex = ExtResource("9_hourglass_tex")
+heart_icon_tex = ExtResource("10_heart_tex")
+essence_icon_tex = ExtResource("11_essence_tex")
 
 [node name="NameRibbon" type="Control" parent="." unique_id=1981922347]
 anchors_preset = 0
@@ -90,12 +96,45 @@ theme_override_font_sizes/font_size = 27
 text = "Sylvi"
 vertical_alignment = 1
 
-[node name="CustomerAffinityLabel" type="Label" parent="NameRibbon/ContentRow" unique_id=609018669]
+[node name="AffinityBox" type="HBoxContainer" parent="NameRibbon/ContentRow" unique_id=712485119]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+alignment = 2
+
+[node name="HeartIcon" type="TextureRect" parent="NameRibbon/ContentRow/AffinityBox" unique_id=712485120]
+custom_minimum_size = Vector2(24, 22)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("10_heart_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CustomerAffinityLabel" type="Label" parent="NameRibbon/ContentRow/AffinityBox" unique_id=609018669]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.66, 0.13, 0.3, 1)
 theme_override_fonts/font = ExtResource("8_affinity_font")
 theme_override_font_sizes/font_size = 19
-text = "❤ Nv.0 · +24✦"
+text = "Nv.0 ·"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="EssenceMiniIcon" type="TextureRect" parent="NameRibbon/ContentRow/AffinityBox" unique_id=712485121]
+custom_minimum_size = Vector2(18, 26)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("11_essence_tex")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CustomerRewardLabel" type="Label" parent="NameRibbon/ContentRow/AffinityBox" unique_id=712485122]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.56, 0.34, 0.06, 1)
+theme_override_fonts/font = ExtResource("8_affinity_font")
+theme_override_font_sizes/font_size = 19
+text = "+24"
 horizontal_alignment = 2
 vertical_alignment = 1
 
@@ -118,14 +157,15 @@ mouse_filter = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="PatiencePrefixLabel" type="Label" parent="PatienceAmpoule/HBox" unique_id=401958070]
+[node name="HourglassIcon" type="TextureRect" parent="PatienceAmpoule/HBox" unique_id=401958071]
+custom_minimum_size = Vector2(28, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.98, 0.91, 0.74, 1)
-theme_override_colors/font_outline_color = Color(0.08, 0.04, 0.04, 0.92)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 17
-text = "⏳"
-vertical_alignment = 1
+size_flags_vertical = 4
+pivot_offset = Vector2(14, 22)
+mouse_filter = 2
+texture = ExtResource("9_hourglass_tex")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="GlassTube" type="AspectRatioContainer" parent="PatienceAmpoule/HBox" unique_id=860752629]
 custom_minimum_size = Vector2(360, 44)

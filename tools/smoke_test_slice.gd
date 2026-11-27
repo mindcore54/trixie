@@ -94,6 +94,7 @@ func _run() -> void:
 		and bool(res.get("pueblo_bg_exists_ok", false))
 		and bool(res.get("mix_pigment_blending_ok", false))
 		and bool(res.get("no_duplicate_meta_buttons_in_main", false))
+		and bool(res.get("top_hud_floating_ok", false))
 		and bool(res.get("customer_hud_ok", false))
 		and bool(res.get("customer_hud_clean_copy_ok", false))
 		and bool(res.get("witch_name_hud_ok", false))

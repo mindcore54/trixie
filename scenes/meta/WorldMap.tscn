@@ -4,6 +4,9 @@
 [ext_resource type="PackedScene" path="res://scenes/meta/MapTab.tscn" id="2_map_tab"]
 [ext_resource type="PackedScene" path="res://scenes/meta/SkillTreeTab.tscn" id="3_tree_tab"]
 [ext_resource type="PackedScene" path="res://scenes/meta/GalleryTab.tscn" id="4_gallery_tab"]
+[ext_resource type="FontFile" path="res://assets/fonts/Almendra-Bold.ttf" id="5_almendra_font"]
+[ext_resource type="Shader" path="res://shaders/ui_drop_shadow.gdshader" id="6_shadow_shader"]
+[ext_resource type="Texture2D" path="res://assets/ui/menus/pause_scroll_bg.png" id="7_pause_scroll_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar"]
 bg_color = Color(0.08, 0.05, 0.14, 0.96)
@@ -129,109 +132,40 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_panel"]
-bg_color = Color(0.12, 0.08, 0.19, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.88, 0.68, 0.36, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pause_scroll_shadow"]
+shader = ExtResource("6_shadow_shader")
+shader_parameter/shadow_color = Color(0.02, 0.01, 0.05, 0.55)
+shader_parameter/shadow_offset = Vector2(0, 10)
+shader_parameter/blur_radius = 12.0
+shader_parameter/render_size = Vector2(560, 614)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_normal"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_scroll_btn_normal"]
 content_margin_left = 14.0
 content_margin_top = 6.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
-bg_color = Color(0.18, 0.46, 0.28, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_btn_hover"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.76, 0.56, 0.24, 0.16)
 border_width_bottom = 2
-border_color = Color(0.56, 1, 0.6, 1)
+border_color = Color(0.68, 0.14, 0.2, 0.55)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_hover"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_btn_pressed"]
 content_margin_left = 14.0
 content_margin_top = 6.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
-bg_color = Color(0.3112, 0.5464, 0.3952, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+bg_color = Color(0.62, 0.36, 0.16, 0.24)
 border_width_bottom = 2
-border_color = Color(0.648, 1, 0.68, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.46, 0.24, 0.16, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.72, 0.4, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.5464, 0.3616, 0.2944, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.776, 0.52, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.28, 0.16, 0.38, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.88, 0.66, 0.98, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.3952, 0.2944, 0.4792, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.904, 0.728, 0.984, 1)
+border_color = Color(0.52, 0.08, 0.14, 0.7)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -402,7 +336,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.04, 0.02, 0.08, 0.84)
+color = Color(0, 0, 0, 0.84)
 
 [node name="Center" type="CenterContainer" parent="PauseOverlay"]
 layout_mode = 1
@@ -412,60 +346,109 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="PanelContainer" parent="PauseOverlay/Center"]
-custom_minimum_size = Vector2(460, 340)
+[node name="Panel" type="Control" parent="PauseOverlay/Center"]
+custom_minimum_size = Vector2(560, 614)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_pause_panel")
+pivot_offset = Vector2(280, 307)
+
+[node name="ScrollBg" type="TextureRect" parent="PauseOverlay/Center/Panel"]
+material = SubResource("ShaderMaterial_pause_scroll_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("7_pause_scroll_bg")
+expand_mode = 1
+stretch_mode = 4
 
 [node name="Pad" type="MarginContainer" parent="PauseOverlay/Center/Panel"]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 78
+theme_override_constants/margin_top = 92
+theme_override_constants/margin_right = 78
+theme_override_constants/margin_bottom = 96
 
 [node name="VBox" type="VBoxContainer" parent="PauseOverlay/Center/Panel/Pad"]
 layout_mode = 2
 theme_override_constants/separation = 18
+alignment = 1
 
 [node name="HeaderLabel" type="Label" parent="PauseOverlay/Center/Panel/Pad/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 34
-text = "MENÚ"
+theme_override_colors/font_color = Color(0.32, 0.08, 0.08, 1)
+theme_override_colors/font_shadow_color = Color(0.98, 0.9, 0.74, 0.65)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("5_almendra_font")
+theme_override_font_sizes/font_size = 48
+text = "Menú"
 horizontal_alignment = 1
+
+[node name="HeaderDivider" type="ColorRect" parent="PauseOverlay/Center/Panel/Pad/VBox"]
+custom_minimum_size = Vector2(220, 2)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+color = Color(0.45, 0.28, 0.14, 0.45)
 
 [node name="ResumeButton" type="Button" parent="PauseOverlay/Center/Panel/Pad/VBox"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_resume_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_resume_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-text = "REANUDAR"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("5_almendra_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Reanudar"
 
 [node name="RestartButton" type="Button" parent="PauseOverlay/Center/Panel/Pad/VBox"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_restart_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_restart_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-text = "REINICIAR PARTIDA"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("5_almendra_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Reiniciar Partida"
 
 [node name="MainMenuButton" type="Button" parent="PauseOverlay/Center/Panel/Pad/VBox"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_menu_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_menu_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-text = "MENÚ PRINCIPAL"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("5_almendra_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Menú Principal"
 
 [node name="VictoryOverlay" type="ColorRect" parent="."]
 visible = false

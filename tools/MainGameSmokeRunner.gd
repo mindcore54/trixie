@@ -29,6 +29,29 @@ static func run(m: MainGame) -> Dictionary:
 		and not ResourceLoader.exists("res://scenes/ui/ChemistryStrip.tscn")
 	)
 	m._refresh_hud_labels()
+	var wave_dock: WaveProgressDock = m._hud.get_wave_dock() if m._hud != null else null
+	var top_hud_base_ok: bool = (
+		m._hud != null
+		and m._hud.has_floating_top_hud()
+		and m._hud.has_top_hud_textures()
+		and m._hud.is_stop_intro_visible()
+		and m._hud.has_stop_intro_backdrop()
+		and m._hud.get_stop_intro_text() == "Afueras del Castillo"
+		and (not m._hud.trixie_bubble.visible)
+		and (not m._hud.customer_bubble.visible)
+		and m.is_patience_paused()
+		and wave_dock != null
+		and wave_dock.get_visible_slot_count() == 2
+		and wave_dock.get_slot_states() == [WaveDirector.SlotState.ACTIVE, WaveDirector.SlotState.PENDING]
+	)
+	if m._hud != null:
+		m._hud.finish_stop_intro_now()
+	var stop_intro_release_ok: bool = (
+		m._hud != null
+		and (not m._hud.is_stop_intro_visible())
+		and m._hud.trixie_bubble.visible
+		and m._hud.customer_bubble.visible
+	)
 	var ptxt: String = m._hud.customer_hud.get_patience_prefix_text() if (m._hud != null and m._hud.customer_hud != null) else ""
 	var customer_hud_clean_copy_ok: bool = (
 		m._hud != null
@@ -220,6 +243,12 @@ static func run(m: MainGame) -> Dictionary:
 	finisher["hp"] = 1
 	b.orbs.append(finisher)
 	b.hit_orb_by_id(int(finisher["id"]), 1, true)
+	m._refresh_hud_labels()
+	var wave_mid_slots_ok: bool = (
+		wave_dock != null
+		and wave_dock.get_visible_slot_count() == 2
+		and wave_dock.get_slot_states() == [WaveDirector.SlotState.SERVED, WaveDirector.SlotState.ACTIVE]
+	)
 	var mixed_order_velvet_ok: bool = (m.orders_completed >= 1 and w.active_customer != null and w.active_customer.customer_id == &"velvet" and ChemistryRules.is_mixed_kind(int(m.get_customer_chemistry()["liked"])))
 	var mix_tut_started_ok: bool = (m._tutorial.active and m._tutorial.step == TutorialDirector.Step.MIX_DRAG_COMBINE)
 	var v_pat_before: float = w.customer_patience_left
@@ -266,11 +295,17 @@ static func run(m: MainGame) -> Dictionary:
 	w.customer_patience_left = 0.05
 	m._process_cauldron_gameplay(0.2)
 	var customer_timeout_advances_ok: bool = (seraphina_arrived_ok and w.wave_missed_count == 1 and b.combo == 0)
+	m._refresh_hud_labels()
+	var wave_end_slots_ok: bool = (
+		wave_dock != null
+		and wave_dock.get_visible_slot_count() == 3
+		and wave_dock.get_slot_states() == [WaveDirector.SlotState.SERVED, WaveDirector.SlotState.SERVED, WaveDirector.SlotState.FAILED]
+	)
 
 	var end_triggered_gracefully: bool = w.round_ending and w.wave_victory and not w.closing_active
 	w.round_end_timer = 0.0
 	m._process_cauldron_gameplay(0.05)
-	var closing_opened_ok: bool = w.closing_active and m._hud != null and m._hud.is_closing_visible() and w.closing_lines.size() == 1 and String(w.closing_lines[0].get("speaker", "")) == "trixie"
+	var closing_opened_ok: bool = w.closing_active and m._hud != null and m._hud.is_closing_visible() and (not m._hud.is_stop_intro_visible()) and (wave_dock != null and not wave_dock.visible) and w.closing_lines.size() == 1 and String(w.closing_lines[0].get("speaker", "")) == "trixie"
 
 	for _step: int in range(10):
 		if not w.closing_active or m._fading_out:
@@ -335,6 +370,7 @@ static func run(m: MainGame) -> Dictionary:
 		"pueblo_bg_exists_ok": pueblo_bg_exists_ok,
 		"mix_pigment_blending_ok": mix_pigment_blending_ok,
 		"no_duplicate_meta_buttons_in_main": no_duplicate_meta_buttons_in_main,
+		"top_hud_floating_ok": top_hud_base_ok and stop_intro_release_ok and wave_mid_slots_ok and wave_end_slots_ok,
 		"customer_hud_ok": customer_hud_ok,
 		"customer_hud_clean_copy_ok": customer_hud_clean_copy_ok,
 		"witch_name_hud_ok": witch_name_hud_ok,

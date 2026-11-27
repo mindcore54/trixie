@@ -58,6 +58,10 @@ var _popup_layer: Node2D = null
 var _wave: WaveDirector = WaveDirector.new()
 var _tutorial: TutorialDirector = TutorialDirector.new()
 var _patience_pause_locks: Dictionary = {}
+var _intro_banner_active: bool = false
+var _pending_opening_customer: Dictionary = {}
+var _pending_opening_trixie_line: String = ""
+var _pending_opening_trixie_is_tutorial: bool = false
 
 @onready var camera: Camera2D = $Camera2D
 @onready var _bg_sprite: Sprite2D = $StageBackground
@@ -140,6 +144,7 @@ func _connect_hud() -> void:
 			_hud.set_pause_visible(true)
 	)
 	_hud.frenzy_requested.connect(try_activate_frenzy)
+	_hud.stop_intro_finished.connect(_on_stop_intro_finished)
 	_hud.closing_advance_requested.connect(_handle_closing_advance_input)
 	_hud.closing_typewriter_tick.connect(func() -> void: _play_pentatonic(3, -12.0))
 	_hud.return_to_map_requested.connect(_on_pause_return_to_map)
@@ -254,7 +259,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 		return
 
-	if _is_modal_open() or _wave.round_ending or _board == null:
+	if _is_modal_open() or _intro_banner_active or _wave.round_ending or _board == null:
 		return
 
 	if event is InputEventMouseButton:
@@ -369,33 +374,76 @@ func _start_stop() -> void:
 		_hud.hide_trixie_bubble(true)
 		_hud.hide_customer_bubble(true)
 
-	_pick_customer_by_id(_wave.wave_customers[0], true)
+	_pending_opening_customer.clear()
+	_pending_opening_trixie_line = ""
+	_pending_opening_trixie_is_tutorial = false
+	_intro_banner_active = (_hud != null)
+	if _intro_banner_active:
+		push_patience_pause(&"stop_intro")
+
+	_pick_customer_by_id(_wave.wave_customers[0], true, _intro_banner_active)
 
 	var liked_k: int = int(get_customer_chemistry()["liked"])
 	if st.should_run_cauldron_basics_tutorial() and not ChemistryRules.is_mixed_kind(liked_k):
 		_tutorial.start_basics()
 		if _board != null:
 			_board.setup_tutorial_initial_orbs()
-		_update_tutorial_banner()
-		_set_trixie_reaction("confiada", 3.0, DialogueBank.get_trixie_tutorial("basic_start"))
-	else:
-		if not _tutorial.active:
+		_pending_opening_trixie_is_tutorial = true
+		_pending_opening_trixie_line = DialogueBank.get_trixie_tutorial("basic_start")
+		if not _intro_banner_active:
 			_update_tutorial_banner()
+			_set_trixie_reaction("confiada", 3.0, _pending_opening_trixie_line)
+	else:
 		if _board != null:
 			for _i: int in range(_board.spawn_cap):
 				_board.spawn_orb(false)
 		if not _tutorial.active:
 			var stop_name: String = String(_wave.active_stop.get("name", "Parada"))
 			var dmg_base: int = _board.click_damage if _board != null else 1
-			_set_trixie_reaction("confiada", 2.5, DialogueBank.get_trixie_reaction("stop_arrival", {
+			_pending_opening_trixie_line = DialogueBank.get_trixie_reaction("stop_arrival", {
 				"stop": stop_name,
 				"element": ChemistryRules.get_element_name(liked_k),
 				"hits": maxi(1, ceili(float(CauldronBoard.BASE_ORB_HP) / float(dmg_base))),
 				"customer": _wave.active_customer.display_name if _wave.active_customer != null else "la clienta",
-			}))
+			})
+			if not _intro_banner_active:
+				_update_tutorial_banner()
+				_set_trixie_reaction("confiada", 2.5, _pending_opening_trixie_line)
 
 	if _hud != null:
 		_hud.set_map_button_disabled(_tutorial.active)
+		_hud.show_stop_intro(String(_wave.active_stop.get("name", "Parada")))
+
+
+func _on_stop_intro_finished() -> void:
+	if not _intro_banner_active:
+		return
+	_intro_banner_active = false
+	pop_patience_pause(&"stop_intro")
+	if _wave.closing_active or _wave.round_ending:
+		_pending_opening_customer.clear()
+		_pending_opening_trixie_line = ""
+		_pending_opening_trixie_is_tutorial = false
+		return
+
+	if not _pending_opening_customer.is_empty():
+		var cust_speaker: String = String(_pending_opening_customer.get("speaker", ""))
+		var cust_line: String = String(_pending_opening_customer.get("line", ""))
+		var want_mix_tut: bool = bool(_pending_opening_customer.get("start_mix_tutorial", false))
+		_pending_opening_customer.clear()
+		if cust_line != "":
+			_show_customer_bubble(cust_speaker, cust_line, 3.2)
+		if want_mix_tut:
+			_start_mix_tutorial()
+
+	if _pending_opening_trixie_is_tutorial or (_tutorial.active and _tutorial.step != TutorialDirector.Step.MIX_DRAG_COMBINE and _tutorial.step != TutorialDirector.Step.MIX_BREAK_RESULT):
+		_update_tutorial_banner()
+		_set_trixie_reaction("confiada", 3.0, _pending_opening_trixie_line)
+	elif _pending_opening_trixie_line != "":
+		_set_trixie_reaction("confiada", 2.5, _pending_opening_trixie_line)
+
+	_pending_opening_trixie_line = ""
+	_pending_opening_trixie_is_tutorial = false
 
 
 func _advance_cauldron_tutorial(next_step: TutorialDirector.Step) -> void:
@@ -637,7 +685,7 @@ func _add_tube_progress(pct: float) -> void:
 		_complete_customer_order()
 
 
-func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
+func _pick_customer_by_id(cid: StringName, first_order: bool = false, defer_bubbles: bool = false) -> void:
 	var next_c: CustomerArchetypeData = _wave.find_customer_by_id(customers_catalog, cid)
 	if next_c == null:
 		return
@@ -647,6 +695,13 @@ func _pick_customer_by_id(cid: StringName, first_order: bool = false) -> void:
 	if _flask_view != null:
 		_flask_view.reset_for_new_customer(first_order)
 	_refresh_order_bubble()
+	if defer_bubbles:
+		_pending_opening_customer = {
+			"speaker": next_c.display_name,
+			"line": String(info["greeting_line"]),
+			"start_mix_tutorial": bool(info["start_mix_tutorial"]),
+		}
+		return
 	_show_customer_bubble(next_c.display_name, String(info["greeting_line"]), 3.2)
 	if bool(info["start_mix_tutorial"]):
 		_start_mix_tutorial()
@@ -741,6 +796,9 @@ func _begin_closing_dialogue(victory: bool) -> void:
 	if _board != null:
 		_board.reset_pointer_state()
 	if _hud != null:
+		_intro_banner_active = false
+		pop_patience_pause(&"stop_intro")
+		_hud.hide_stop_intro(true)
 		_hud.hide_trixie_bubble(true)
 		_hud.hide_customer_bubble(true)
 		_hud.set_cauldron_hud_visible(false)
@@ -918,26 +976,20 @@ static func draw_expressive_waifu_bust(ci: CanvasItem, rect: Rect2, cid: StringN
 func _refresh_hud_labels() -> void:
 	if _hud == null:
 		return
-	var stop_icon: String = String(_wave.active_stop.get("icon", "📍"))
-	var stop_name: String = String(_wave.active_stop.get("name", "Parada"))
-	var shown_wave: int = mini(_wave.wave_index + 1, _wave.wave_customers.size())
 	var cust_title: String = ""
-	var aff_txt: String = ""
+	var aff_lvl: int = -1
+	var reward_gold: int = 0
 	if _wave.active_customer != null:
 		var cid: StringName = _wave.active_customer.customer_id
 		cust_title = _wave.active_customer.display_name
-		aff_txt = "❤ Nv.%d · +%d✦" % [int(_state().get_affinity_level(cid)), _wave.customer_order_reward]
+		aff_lvl = int(_state().get_affinity_level(cid))
+		reward_gold = _wave.customer_order_reward
 	var f_charge: float = _board.frenzy_charge if _board != null else 0.0
 	var f_timer: float = _board.frenzy_timer if _board != null else 0.0
 	_hud.set_witch_name(get_active_witch_name())
 	_hud.refresh_status(
 		essence_gold,
-		stop_icon,
-		stop_name,
-		shown_wave,
-		_wave.wave_customers.size(),
-		_wave.wave_served_count,
-		_wave.wave_missed_count,
+		_wave.get_wave_slot_states(),
 		_wave.customer_patience_left,
 		_wave.customer_patience_max,
 		is_patience_paused(),
@@ -945,7 +997,8 @@ func _refresh_hud_labels() -> void:
 		f_charge,
 		f_timer,
 		cust_title,
-		aff_txt
+		aff_lvl,
+		reward_gold
 	)
 
 

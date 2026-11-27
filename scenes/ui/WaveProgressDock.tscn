@@ -1,0 +1,120 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/WaveProgressDock.gd" id="1_wave_dock"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/empty_bottle_icon.png" id="2_empty_flask"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/completed_bottle_icon.png" id="3_done_flask"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud/failure_bottle_icon.png" id="4_failed_flask"]
+
+[node name="WaveProgressDock" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 390.0
+offset_bottom = 72.0
+mouse_filter = 2
+script = ExtResource("1_wave_dock")
+flask_empty_tex = ExtResource("2_empty_flask")
+flask_done_tex = ExtResource("3_done_flask")
+flask_failed_tex = ExtResource("4_failed_flask")
+
+[node name="SlotsRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Slot0" type="Control" parent="SlotsRow"]
+custom_minimum_size = Vector2(56, 64)
+layout_mode = 2
+pivot_offset = Vector2(28, 32)
+mouse_filter = 2
+
+[node name="IconTex" type="TextureRect" parent="SlotsRow/Slot0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("3_done_flask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Slot1" type="Control" parent="SlotsRow"]
+custom_minimum_size = Vector2(56, 64)
+layout_mode = 2
+pivot_offset = Vector2(28, 32)
+mouse_filter = 2
+
+[node name="IconTex" type="TextureRect" parent="SlotsRow/Slot1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_empty_flask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Slot2" type="Control" parent="SlotsRow"]
+custom_minimum_size = Vector2(56, 64)
+layout_mode = 2
+pivot_offset = Vector2(28, 32)
+mouse_filter = 2
+
+[node name="IconTex" type="TextureRect" parent="SlotsRow/Slot2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_empty_flask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Slot3" type="Control" parent="SlotsRow"]
+visible = false
+custom_minimum_size = Vector2(56, 64)
+layout_mode = 2
+pivot_offset = Vector2(28, 32)
+mouse_filter = 2
+
+[node name="IconTex" type="TextureRect" parent="SlotsRow/Slot3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_empty_flask")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Slot4" type="Control" parent="SlotsRow"]
+visible = false
+custom_minimum_size = Vector2(56, 64)
+layout_mode = 2
+pivot_offset = Vector2(28, 32)
+mouse_filter = 2
+
+[node name="IconTex" type="TextureRect" parent="SlotsRow/Slot4"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_empty_flask")
+expand_mode = 1
+stretch_mode = 5

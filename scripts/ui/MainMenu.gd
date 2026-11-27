@@ -84,6 +84,31 @@ func _connect_ui() -> void:
 				_options_overlay.visible = false
 		)
 
+	for btn: Button in [_start_btn, _options_btn, _quit_btn, _close_options_btn]:
+		_wire_button_hover(btn)
+
+
+func _wire_button_hover(btn: Button) -> void:
+	if btn == null:
+		return
+	var sync_btn: Callable = func() -> void:
+		btn.pivot_offset = btn.size * 0.5
+		var shadow_rect: TextureRect = btn.get_node_or_null("SignShadow") as TextureRect
+		if shadow_rect != null and shadow_rect.material is ShaderMaterial:
+			(shadow_rect.material as ShaderMaterial).set_shader_parameter("render_size", btn.size)
+	btn.resized.connect(sync_btn)
+	sync_btn.call()
+	btn.mouse_entered.connect(func() -> void:
+		btn.pivot_offset = btn.size * 0.5
+		var tw: Tween = create_tween()
+		tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	)
+	btn.mouse_exited.connect(func() -> void:
+		btn.pivot_offset = btn.size * 0.5
+		var tw: Tween = create_tween()
+		tw.tween_property(btn, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	)
+
 
 func _process(delta: float) -> void:
 	_time += delta

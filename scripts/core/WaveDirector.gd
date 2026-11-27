@@ -3,6 +3,8 @@ extends RefCounted
 ## Manages stop progression, customer wave queue, individual patience countdown,
 ## order completion/rewards, and closing dialogue state.
 
+enum SlotState { PENDING, ACTIVE, SERVED, FAILED }
+
 const BASE_CUSTOMER_PATIENCE: float = 30.0
 const USE_PER_CUSTOMER_PATIENCE: bool = false
 const CUSTOMER_IMPATIENT_RATIO: float = 0.30
@@ -14,6 +16,7 @@ var stop_spawn_rate_mult: float = 1.0
 var stop_bg_tint: Color = Color(0.08, 0.05, 0.13)
 
 var wave_customers: Array[StringName] = []
+var wave_results: Array[int] = []
 var wave_index: int = 0
 var wave_served_count: int = 0
 var wave_missed_count: int = 0
@@ -72,7 +75,23 @@ func start_stop(stop_dict: Dictionary, round_num: int) -> void:
 		wave_customers.append(cv as StringName)
 	if wave_customers.is_empty():
 		wave_customers.append(&"sylvi")
+	wave_results.clear()
+	for _i: int in range(wave_customers.size()):
+		wave_results.append(SlotState.PENDING)
 	wave_index = 0
+
+
+func _ensure_wave_results_synced() -> void:
+	while wave_results.size() < wave_customers.size():
+		wave_results.append(SlotState.PENDING)
+
+
+func get_wave_slot_states() -> Array[int]:
+	_ensure_wave_results_synced()
+	var states: Array[int] = wave_results.duplicate()
+	if not round_ending and not closing_active and wave_index >= 0 and wave_index < states.size() and states[wave_index] == SlotState.PENDING:
+		states[wave_index] = SlotState.ACTIVE
+	return states
 
 
 func find_customer_by_id(catalog: Array[CustomerArchetypeData], cid: StringName) -> CustomerArchetypeData:
@@ -184,6 +203,9 @@ func step_patience(delta: float, patience_paused: bool) -> Dictionary:
 func expire_patience() -> Dictionary:
 	var c: CustomerArchetypeData = active_customer
 	last_served_customer = c
+	_ensure_wave_results_synced()
+	if wave_index >= 0 and wave_index < wave_results.size():
+		wave_results[wave_index] = SlotState.FAILED
 	wave_missed_count += 1
 	potion_tube_pct = 0.0
 	wave_index += 1
@@ -215,6 +237,9 @@ func complete_order(state: Node, combo: int, crit_potion_lvl: int, encanto_lvl: 
 
 	var done_line: String = DialogueBank.pick_customer_line(c.customer_id, "spicy" if customer_spicy_mode else "satisfied")
 
+	_ensure_wave_results_synced()
+	if wave_index >= 0 and wave_index < wave_results.size():
+		wave_results[wave_index] = SlotState.SERVED
 	wave_index += 1
 	return {
 		"customer": c,

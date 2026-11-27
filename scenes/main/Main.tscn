@@ -15,6 +15,12 @@
 [ext_resource type="FontFile" uid="uid://1khb5gwrq4y4" path="res://assets/fonts/Almendra-Bold.ttf" id="22_witch_name_font"]
 [ext_resource type="Shader" uid="uid://dqcbxrgsftrjo" path="res://shaders/text_vertical_gradient.gdshader" id="23_text_grad_shader"]
 [ext_resource type="Shader" uid="uid://bu6ii61cx2y5l" path="res://shaders/canvas_group_drop_shadow.gdshader" id="24_cg_shadow_shader"]
+[ext_resource type="PackedScene" path="res://scenes/ui/WaveProgressDock.tscn" id="25_wave_dock"]
+[ext_resource type="Texture2D" uid="uid://cy28bqsqg7mgh" path="res://assets/ui/hud/essence_bg.png" id="27_essence_bg"]
+[ext_resource type="Texture2D" uid="uid://cn12vo031nc61" path="res://assets/ui/hud/essence_icon.png" id="28_essence_icon"]
+[ext_resource type="Texture2D" uid="uid://bjbixidh5nv0b" path="res://assets/ui/buttons/pause_button.png" id="29_pause_btn_tex"]
+[ext_resource type="Shader" uid="uid://b4r4nypas54n2" path="res://shaders/ui_drop_shadow.gdshader" id="30_ui_shadow_shader"]
+[ext_resource type="Texture2D" uid="uid://dye6ajlhu552p" path="res://assets/ui/menus/pause_scroll_bg.png" id="31_pause_scroll_bg"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stage_bg"]
 shader = ExtResource("4_bg_shader")
@@ -24,42 +30,23 @@ shader_parameter/vignette_strength = 0.28
 shader_parameter/frenzy_amount = 0.0
 shader_parameter/contrast_filter = 1.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_top_bar"]
-bg_color = Color(0.08, 0.05, 0.13, 0.95)
-border_width_bottom = 3
-border_color = Color(0.76, 0.58, 0.28, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_essence_shadow"]
+shader = ExtResource("30_ui_shadow_shader")
+shader_parameter/shadow_color = Color(0.04, 0.02, 0.07, 0.45)
+shader_parameter/shadow_offset = Vector2(3, 5)
+shader_parameter/blur_radius = 6.0
+shader_parameter/render_size = Vector2(212, 82)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_btn_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.24, 0.16, 0.34, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.84, 0.66, 0.38, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_normal"]
+texture = ExtResource("29_pause_btn_tex")
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_btn_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.3616, 0.2944, 0.4456, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.872, 0.728, 0.504, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_pressed"]
+texture = ExtResource("29_pause_btn_tex")
+modulate_color = Color(0.88, 0.84, 0.8, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pause_hover"]
+texture = ExtResource("29_pause_btn_tex")
+modulate_color = Color(1.12, 1.08, 1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pill_disabled"]
 content_margin_left = 14.0
@@ -147,141 +134,40 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pause_panel"]
-bg_color = Color(0.12, 0.08, 0.19, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.88, 0.68, 0.36, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pause_scroll_shadow"]
+shader = ExtResource("30_ui_shadow_shader")
+shader_parameter/shadow_color = Color(0.02, 0.01, 0.05, 0.55)
+shader_parameter/shadow_offset = Vector2(0, 10)
+shader_parameter/blur_radius = 12.0
+shader_parameter/render_size = Vector2(560, 614)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_normal"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_scroll_btn_normal"]
 content_margin_left = 14.0
 content_margin_top = 6.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
-bg_color = Color(0.18, 0.46, 0.28, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_btn_pressed"]
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+bg_color = Color(0.62, 0.36, 0.16, 0.24)
 border_width_bottom = 2
-border_color = Color(0.56, 1, 0.6, 1)
+border_color = Color(0.52, 0.08, 0.14, 0.7)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resume_hover"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll_btn_hover"]
 content_margin_left = 14.0
 content_margin_top = 6.0
 content_margin_right = 14.0
 content_margin_bottom = 6.0
-bg_color = Color(0.3112, 0.5464, 0.3952, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
+bg_color = Color(0.76, 0.56, 0.24, 0.16)
 border_width_bottom = 2
-border_color = Color(0.648, 1, 0.68, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.2, 0.32, 0.48, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.55, 0.88, 1, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.328, 0.4288, 0.5632, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.64, 0.904, 1, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.46, 0.24, 0.16, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.72, 0.4, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_restart_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.5464, 0.3616, 0.2944, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.776, 0.52, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_normal"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.28, 0.16, 0.38, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.88, 0.66, 0.98, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_hover"]
-content_margin_left = 14.0
-content_margin_top = 6.0
-content_margin_right = 14.0
-content_margin_bottom = 6.0
-bg_color = Color(0.3952, 0.2944, 0.4792, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.904, 0.728, 0.984, 1)
+border_color = Color(0.68, 0.14, 0.2, 0.55)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -333,61 +219,98 @@ offset_bottom = 1064.0
 layer = 10
 script = ExtResource("2_stage_hud")
 
-[node name="TopBar" type="PanelContainer" parent="UILayer" unique_id=632952540]
-offset_right = 1920.0
-offset_bottom = 76.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_top_bar")
+[node name="TopHudRoot" type="Control" parent="UILayer" unique_id=632952540]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UILayer/TopBar" unique_id=405172338]
-layout_mode = 2
-theme_override_constants/margin_left = 24
+[node name="EssenceCounter" type="Control" parent="UILayer/TopHudRoot" unique_id=405172338]
+anchors_preset = 0
+offset_left = 22.0
+offset_top = 12.0
+offset_right = 234.0
+offset_bottom = 94.0
+mouse_filter = 2
+
+[node name="PlaqueBg" type="TextureRect" parent="UILayer/TopHudRoot/EssenceCounter" unique_id=151414440]
+material = SubResource("ShaderMaterial_essence_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("27_essence_bg")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="Margin" type="MarginContainer" parent="UILayer/TopHudRoot/EssenceCounter" unique_id=1653606838]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 24
+theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 10
 
-[node name="HBox" type="HBoxContainer" parent="UILayer/TopBar/Margin" unique_id=1310575053]
+[node name="Row" type="HBoxContainer" parent="UILayer/TopHudRoot/EssenceCounter/Margin" unique_id=2098232296]
 layout_mode = 2
-theme_override_constants/separation = 18
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
 
-[node name="EssenceLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1507518248]
-custom_minimum_size = Vector2(210, 0)
+[node name="EssenceIcon" type="TextureRect" parent="UILayer/TopHudRoot/EssenceCounter/Margin/Row" unique_id=2098232297]
+custom_minimum_size = Vector2(28, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.36, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 26
-text = "✦ 0"
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("28_essence_icon")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="StopLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=151414440]
-custom_minimum_size = Vector2(360, 0)
+[node name="EssenceLabel" type="Label" parent="UILayer/TopHudRoot/EssenceCounter/Margin/Row" unique_id=1507518248]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.88, 0.98, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 20
-text = "📍 Afueras del Castillo"
+theme_override_colors/font_color = Color(0.22, 0.11, 0.05, 1)
+theme_override_colors/font_shadow_color = Color(0.98, 0.9, 0.74, 0.55)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 30
+text = "0"
+vertical_alignment = 1
 
-[node name="WaveLabel" type="Label" parent="UILayer/TopBar/Margin/HBox" unique_id=1653606838]
-custom_minimum_size = Vector2(230, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.94, 1, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 20
-text = "👥 Clienta: 1 / 2"
+[node name="WaveProgressDock" parent="UILayer/TopHudRoot" unique_id=1653606839 instance=ExtResource("25_wave_dock")]
+layout_mode = 0
+offset_left = 1351.0
+offset_top = 12.0
+offset_right = 1741.0
+offset_bottom = 84.0
 
-[node name="SpacerLeft" type="Control" parent="UILayer/TopBar/Margin/HBox" unique_id=2098232296]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="PauseAnchor" type="VBoxContainer" parent="UILayer/TopHudRoot" unique_id=1653606840]
+layout_mode = 0
+offset_left = 1828.0
+offset_top = 14.0
+offset_right = 1896.0
+offset_bottom = 108.0
+mouse_filter = 2
+theme_override_constants/separation = 2
 
-[node name="PauseButton" type="Button" parent="UILayer/TopBar/Margin/HBox" unique_id=1449346960]
+[node name="PauseButton" type="Button" parent="UILayer/TopHudRoot/PauseAnchor" unique_id=1449346960]
+custom_minimum_size = Vector2(68, 72)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_pause_btn_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_pause_btn_hover")
+theme_override_styles/normal = SubResource("StyleBoxTexture_pause_normal")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pause_pressed")
+theme_override_styles/hover = SubResource("StyleBoxTexture_pause_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
-text = "⏸ PAUSA [ESC]"
 
 [node name="CauldronHudRoot" type="Control" parent="UILayer" unique_id=1678248723]
 layout_mode = 3
@@ -490,6 +413,62 @@ offset_bottom = 301.0
 flip_tail_right = true
 default_title_color = Color(0.56, 0.12, 0.28, 1)
 
+[node name="StopIntroBanner" type="Control" parent="UILayer" unique_id=1653606841]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DimBackdrop" type="ColorRect" parent="UILayer/StopIntroBanner" unique_id=1653606845]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.58)
+
+[node name="TitleContainer" type="Control" parent="UILayer/StopIntroBanner" unique_id=1653606846]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 460.0
+offset_top = 455.0
+offset_right = 1460.0
+offset_bottom = 585.0
+mouse_filter = 2
+
+[node name="TitleShadowGroup" type="CanvasGroup" parent="UILayer/StopIntroBanner/TitleContainer" unique_id=1653606842]
+material = SubResource("ShaderMaterial_witch_name_shadow")
+fit_margin = 36.0
+clear_margin = 36.0
+
+[node name="StopTitleLabel" type="Label" parent="UILayer/StopIntroBanner/TitleContainer/TitleShadowGroup" unique_id=1653606843]
+material = SubResource("ShaderMaterial_witch_name_grad")
+offset_right = 1000.0
+offset_bottom = 88.0
+theme_override_colors/font_color = Color(1, 0.85490197, 0.68235296, 1)
+theme_override_colors/font_outline_color = Color(0.2627451, 0.08235294, 0.0627451, 1)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 64
+text = "Afueras del Castillo"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FlourishLine" type="ColorRect" parent="UILayer/StopIntroBanner/TitleContainer" unique_id=1653606844]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 94.0
+offset_right = 660.0
+offset_bottom = 97.0
+mouse_filter = 2
+color = Color(0.95, 0.8, 0.44, 0.9)
+
 [node name="ClosingOverlay" type="Control" parent="UILayer" unique_id=519922082]
 visible = false
 layout_mode = 3
@@ -513,7 +492,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.04, 0.02, 0.08, 0.84)
+color = Color(0, 0, 0, 0.84)
 
 [node name="Center" type="CenterContainer" parent="UILayer/PauseOverlay" unique_id=43400744]
 layout_mode = 1
@@ -523,67 +502,122 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PausePanel" type="PanelContainer" parent="UILayer/PauseOverlay/Center" unique_id=637207115]
-custom_minimum_size = Vector2(460, 430)
+[node name="PausePanel" type="Control" parent="UILayer/PauseOverlay/Center" unique_id=637207115]
+custom_minimum_size = Vector2(560, 614)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_pause_panel")
+
+[node name="ScrollBg" type="TextureRect" parent="UILayer/PauseOverlay/Center/PausePanel" unique_id=637207116]
+material = SubResource("ShaderMaterial_pause_scroll_shadow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("31_pause_scroll_bg")
+expand_mode = 1
+stretch_mode = 4
 
 [node name="Margin" type="MarginContainer" parent="UILayer/PauseOverlay/Center/PausePanel" unique_id=403962442]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 78
+theme_override_constants/margin_top = 92
+theme_override_constants/margin_right = 78
+theme_override_constants/margin_bottom = 96
 
 [node name="VBox" type="VBoxContainer" parent="UILayer/PauseOverlay/Center/PausePanel/Margin" unique_id=746114497]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
+alignment = 1
 
 [node name="PauseHeader" type="Label" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=808371737]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.44, 1)
-theme_override_colors/font_outline_color = Color(0.05, 0.02, 0.09, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 34
-text = "PAUSA"
+theme_override_colors/font_color = Color(0.32, 0.08, 0.08, 1)
+theme_override_colors/font_shadow_color = Color(0.98, 0.9, 0.74, 0.65)
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 48
+text = "Pausa"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=1360508650]
-custom_minimum_size = Vector2(0, 54)
+[node name="HeaderDivider" type="ColorRect" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=808371738]
+custom_minimum_size = Vector2(220, 2)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_resume_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_resume_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
-text = "REANUDAR"
+size_flags_horizontal = 4
+mouse_filter = 2
+color = Color(0.45, 0.28, 0.14, 0.45)
+
+[node name="ResumeButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=1360508650]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Reanudar"
 
 [node name="MapButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=269841221]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_map_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_map_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
-text = "🗺 VOLVER AL MAPA"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Volver al Mapa"
 
 [node name="RestartButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=292859733]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_restart_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_restart_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
-text = "REINICIAR PARTIDA"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Reiniciar Partida"
 
 [node name="MenuButton" type="Button" parent="UILayer/PauseOverlay/Center/PausePanel/Margin/VBox" unique_id=1849879750]
-custom_minimum_size = Vector2(0, 54)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("StyleBoxFlat_menu_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_menu_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
-text = "MENÚ PRINCIPAL"
+theme_override_colors/font_color = Color(0.24, 0.12, 0.06, 1)
+theme_override_colors/font_focus_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_pressed_color = Color(0.5, 0.08, 0.12, 1)
+theme_override_colors/font_hover_color = Color(0.68, 0.12, 0.18, 1)
+theme_override_colors/font_disabled_color = Color(0.45, 0.36, 0.28, 0.42)
+theme_override_fonts/font = ExtResource("22_witch_name_font")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_scroll_btn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_scroll_btn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxEmpty_scroll_btn_normal")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_scroll_btn_normal")
+text = "Menú Principal"
