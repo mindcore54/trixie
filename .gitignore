@@ -4,6 +4,7 @@
 godot_mcp_test_write.tmp
 export/
 builds/
+.env
 
 # Reference stash, backup chats & local agent skills
 stash/

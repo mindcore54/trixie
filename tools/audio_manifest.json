@@ -1,0 +1,196 @@
+{
+	"meta": {
+		"plan": "starter",
+		"monthly_credit_pool": 40000,
+		"api_output_format": "mp3_44100_128",
+		"max_concurrency": 1
+	},
+	"voices": {
+		"trixie": {
+			"voice_id": "TzUMK6AZCcUynEtO5419",
+			"voice_name": "Trixie Japanese",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Brujita seiyuu 19a, aguda, pícara, chispeante y cómica"
+		},
+		"lyra": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Druida dulce y traviesa"
+		},
+		"nyxara": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Chamán misteriosa, serena y elegante"
+		},
+		"morrigan": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Alquimista oscura, intensa y confiada"
+		},
+		"sylvi": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Fauno bohemia fiestera, cálida y pícara"
+		},
+		"velvet": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Súcubo sofisticada, registro grave onee-san seductor"
+		},
+		"seraphina": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Dama relajada, suave, melodiosa y veraniega"
+		},
+		"mona": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Elfa noble ojou-sama tsundere, altiva pero nerviosa al sonrojarse"
+		},
+		"roxy": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Cazadora lupina genki/feroz, directa y enérgica"
+		},
+		"goblin_boss": {
+			"voice_id": "PENDING_USER_VOICE_ID",
+			"source": "voice_design",
+			"lang": "ja",
+			"notes": "Jefa goblin mandona, carismática y cómica"
+		}
+	},
+	"items": [
+		{
+			"id": "vo_trixie_normal_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "normal",
+			"model_id": "eleven_v4",
+			"text": "えへっ♪",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_normal_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "Risita corta y alegre (1 sola expresión)",
+			"estimated_credits": 4,
+			"status": "approved",
+			"duration_result_sec": 0.878,
+			"history": [
+				"v01",
+				"v02"
+			],
+			"active_version": "v02"
+		},
+		{
+			"id": "vo_trixie_confiada_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "confiada",
+			"model_id": "eleven_v4",
+			"text": "ふふんっ！",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_confiada_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "Expresión presumida corta (1 sola expresión)",
+			"estimated_credits": 5,
+			"status": "approved",
+			"duration_result_sec": 0.663,
+			"history": [
+				"v01",
+				"v02"
+			],
+			"active_version": "v02"
+		},
+		{
+			"id": "vo_trixie_nerviosa_sudando_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "nerviosa_sudando",
+			"model_id": "eleven_v4",
+			"text": "[nervously] あ、あっ…",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_nerviosa_sudando_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "Tartamudeo nervioso corto sin onomatopeya rara",
+			"estimated_credits": 17,
+			"status": "approved",
+			"duration_result_sec": 1.158,
+			"history": [
+				"v01",
+				"v02",
+				"v03"
+			],
+			"active_version": "v03"
+		},
+		{
+			"id": "vo_trixie_sonrojada_picante_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "sonrojada_picante",
+			"model_id": "eleven_v4",
+			"text": "[playfully] んふふ〜♪",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_sonrojada_picante_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "v07: Risita melosa y coqueta",
+			"estimated_credits": 21,
+			"status": "approved",
+			"duration_result_sec": 1.166,
+			"history": [
+				"v01",
+				"v02",
+				"v03",
+				"v04",
+				"v05",
+				"v06",
+				"v07"
+			],
+			"active_version": "v05"
+		},
+		{
+			"id": "vo_trixie_hollin_derrota_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "hollin_derrota",
+			"model_id": "eleven_v4",
+			"text": "[coughs] うぅ…",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_hollin_derrota_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "Tos real de humo [coughs] seguida de un solo quejido corto derrotado",
+			"estimated_credits": 12,
+			"status": "approved",
+			"duration_result_sec": 1.699,
+			"history": [
+				"v01",
+				"v02",
+				"v03",
+				"v04"
+			],
+			"active_version": "v04"
+		},
+		{
+			"id": "vo_trixie_sorprendida_01",
+			"type": "tts",
+			"character": "trixie",
+			"emotion": "sorprendida",
+			"model_id": "eleven_v4",
+			"text": "[surprised] えぇーっ！？",
+			"target_path": "res://assets/audio/voices/playable/trixie/vo_trixie_sorprendida_01.wav",
+			"post_process": "wav_bark_trim",
+			"notes": "Sobresalto agudo limpio 'eeeh?!' con vocal alargada",
+			"estimated_credits": 18,
+			"status": "approved",
+			"duration_result_sec": 0.864,
+			"history": [
+				"v01",
+				"v02",
+				"v03"
+			],
+			"active_version": "v03"
+		}
+	]
+}

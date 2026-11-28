@@ -23,6 +23,7 @@ Tienes **agencia completa** para:
 2. Escribir toda la arquitectura en Godot 4.7, escenas `.tscn`, shaders, audio procedural/dinámico, balanceo de curvas roguelite y refactorizaciones.
 3. Procesar automáticamente cualquier imagen que el desarrollador deje en `raw_assets/` (quitar fondo blanco sin perforar blancos internos usando `tools/process_white_bg.py`), renombrarla según convención y copiarla a `res://assets/` e integrarla en los recursos `.tres` del juego.
 4. Generar prompts consistentes para nuevos personajes, emociones, sprites semi-chibi 2.5D y props mediante `tools/generate_prompts.py`.
+5. Generar, post-procesar (`ffmpeg` -> `.wav` latencia cero) e integrar SFX y *voice barks* no verbales con ElevenLabs siguiendo [sfx_voice.md](docs/sfx_voice.md), [generate_audio.py](tools/generate_audio.py) y [audio_manifest.json](tools/audio_manifest.json) (al recibir *"ya creé la voz de X, genera los barks"*, detectar su `voice_id` con `--list-voices`, generar/reimportar, incrustar el reproductor QA inline en el chat y reportar siempre el gasto real y saldo restante de créditos).
 
 ### 2.3 Filosofía de Iteración ("First Make It Happen")
 * **Prototipo tangible primero, perfección después:** El desarrollador trabaja mejor viendo, jugando y corrigiendo elementos reales en pantalla que leyendo especificaciones estáticas.

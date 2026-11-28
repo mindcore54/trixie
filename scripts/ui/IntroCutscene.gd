@@ -28,6 +28,8 @@ var _beats: Array = []
 var _idx: int = -1
 var _transitioning: bool = false
 var _speaker_tone: int = 1
+var _last_voiced_speaker: StringName = &""
+var _last_voiced_emotion: String = ""
 
 
 func _ready() -> void:
@@ -39,7 +41,8 @@ func _ready() -> void:
 	_dialog_box.set_continue_prompt("Clic / Espacio para continuar ▾")
 	_dialog_box.hide_box()
 	_dialog_box.typewriter_tick.connect(func(_ci: int) -> void:
-		AudioJuiceManager.play_pentatonic(_speaker_tone, -12.0)
+		var tick_vol: float = -18.0 if AudioJuiceManager.is_voice_playing() else -12.0
+		AudioJuiceManager.play_pentatonic(_speaker_tone, tick_vol)
 	)
 	_load_script()
 	_advance()
@@ -110,7 +113,16 @@ func _show_dialogue(beat: Dictionary) -> void:
 	var speaker: StringName = StringName(String(beat.get("speaker", "")))
 	var entry: Dictionary = _cast.get(String(speaker), {}) as Dictionary
 	_speaker_tone = int(entry.get("tone", 1))
-	_stage.set_speaker(speaker, String(beat.get("emotion", "")))
+	var speaker_emo: String = String(beat.get("emotion", ""))
+	_stage.set_speaker(speaker, speaker_emo)
+	var raw_text: String = String(beat.get("text", "")).strip_edges()
+	if raw_text != "" and raw_text != "...":
+		var norm_emo: String = AudioJuiceManager.normalize_emotion_key(speaker_emo if speaker_emo != "" else "normal")
+		var same_as_prev: bool = (speaker == _last_voiced_speaker and norm_emo == _last_voiced_emotion)
+		if not same_as_prev:
+			if AudioJuiceManager.play_voice_bark(speaker, String(entry.get("kind", "witch")), norm_emo, 0.0):
+				_last_voiced_speaker = speaker
+				_last_voiced_emotion = norm_emo
 	var was_hidden: bool = not _dialog_box.visible
 	_dialog_box.show_line(
 		String(entry.get("name", "")),
@@ -125,6 +137,8 @@ func _show_dialogue(beat: Dictionary) -> void:
 
 func _change_scene(bg_id: String, transition: String = "fade") -> void:
 	_transitioning = true
+	_last_voiced_speaker = &""
+	_last_voiced_emotion = ""
 	var is_first_scene: bool = _idx == 0
 	if transition == "flash":
 		_dialog_box.hide_box()
@@ -199,4 +213,5 @@ func _finish_cutscene() -> void:
 	if _transitioning or SceneFader.is_busy():
 		return
 	_transitioning = true
+	AudioJuiceManager.stop_voices()
 	SceneFader.fade_to_scene("res://scenes/main/Main.tscn", 0.55, 0.55)

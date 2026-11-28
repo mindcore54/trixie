@@ -146,7 +146,11 @@ func _connect_hud() -> void:
 	_hud.frenzy_requested.connect(try_activate_frenzy)
 	_hud.stop_intro_finished.connect(_on_stop_intro_finished)
 	_hud.closing_advance_requested.connect(_handle_closing_advance_input)
-	_hud.closing_typewriter_tick.connect(func() -> void: _play_pentatonic(3, -12.0))
+	_hud.closing_typewriter_tick.connect(func() -> void:
+		var a: Node = _audio()
+		var vol: float = -18.0 if (a != null and bool(a.call("is_voice_playing"))) else -12.0
+		_play_pentatonic(3, vol)
+	)
 	_hud.return_to_map_requested.connect(_on_pause_return_to_map)
 	_hud.restart_requested.connect(_on_pause_restart)
 	_hud.main_menu_requested.connect(_on_pause_main_menu)
@@ -823,8 +827,12 @@ func _advance_closing_dialogue(animate_entrance: bool = false) -> void:
 			_wave.active_customer = _wave.last_served_customer
 		speaker_col = Color(0.56, 0.12, 0.28)
 		_set_customer_reaction(emo, 8.0, "")
+		if animate_entrance and cust_ref != null:
+			_play_customer_bark(cust_ref.customer_id, emo, 0.0)
 	else:
 		_set_trixie_reaction(emo, 8.0, "")
+		if animate_entrance:
+			_play_witch_bark(emo, 0.0)
 	if _hud != null:
 		_hud.show_closing_line(speaker_name, speaker_col, body_txt, animate_entrance)
 
@@ -861,7 +869,9 @@ func _finish_stop_and_fade_to_map() -> void:
 
 
 func _set_trixie_reaction(emotion: String, dur: float, line: String) -> void:
-	if emotion != _trixie_emotion or emotion in ["hollin", "sorprendida", "sonrojada"]:
+	var prev_emotion: String = _trixie_emotion
+	var is_dramatic: bool = emotion in ["hollin", "hollin_derrota", "sorprendida", "sonrojada", "sonrojada_picante"]
+	if emotion != prev_emotion or is_dramatic:
 		_trixie_react_anim = 1.0
 	_trixie_emotion = emotion
 	_trixie_emotion_timer = dur
@@ -1037,6 +1047,21 @@ func _play_pentatonic(step_index: int, vol_db: float = 0.0) -> void:
 	var a: Node = _audio()
 	if a != null:
 		a.call("play_pentatonic", step_index, vol_db)
+
+
+func _play_witch_bark(emotion: String, min_interval_sec: float = 0.25) -> void:
+	var a: Node = _audio()
+	if a == null:
+		return
+	var st: Node = _state()
+	var wid: StringName = st.active_witch_id if st != null else &"trixie"
+	a.call("play_voice_bark", wid, "witch", emotion, min_interval_sec, 0.0)
+
+
+func _play_customer_bark(cid: StringName, emotion: String, min_interval_sec: float = 0.35) -> void:
+	var a: Node = _audio()
+	if a != null and cid != &"":
+		a.call("play_voice_bark", cid, "customer", emotion, min_interval_sec, 0.0)
 
 
 func run_incremental_smoke_step() -> Dictionary:

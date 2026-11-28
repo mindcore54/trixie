@@ -4,8 +4,14 @@ extends Node
 
 const SAMPLE_RATE: int = 22050
 const PENTATONIC_FREQS: Array[float] = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.66, 1318.51]
+const VOICE_PLAYABLE_DIR: String = "res://assets/audio/voices/playable"
+const VOICE_CUSTOMERS_DIR: String = "res://assets/audio/voices/customers"
 
 var _sfx_players: Array[AudioStreamPlayer] = []
+var _witch_voice_player: AudioStreamPlayer
+var _customer_voice_player: AudioStreamPlayer
+var _voice_bark_cache: Dictionary = {}
+var _last_bark_msec: Dictionary = {}
 var _pentatonic_streams: Array[AudioStreamWAV] = []
 var _coin_stream: AudioStreamWAV
 var _cauldron_ready_stream: AudioStreamWAV
@@ -22,6 +28,14 @@ func _ready() -> void:
 		player.volume_db = -8.0
 		add_child(player)
 		_sfx_players.append(player)
+
+	_witch_voice_player = AudioStreamPlayer.new()
+	_witch_voice_player.volume_db = -1.5
+	add_child(_witch_voice_player)
+
+	_customer_voice_player = AudioStreamPlayer.new()
+	_customer_voice_player.volume_db = -1.5
+	add_child(_customer_voice_player)
 
 	for freq: float in PENTATONIC_FREQS:
 		_pentatonic_streams.append(_synth_tone(freq, 0.11, "sine", 0.45))
@@ -61,6 +75,88 @@ func play_stir() -> void:
 
 func play_explosion(volume_offset_db: float = 2.0, pitch: float = 0.88) -> void:
 	_play_stream(_explosion_stream, pitch, volume_offset_db)
+
+
+static func normalize_emotion_key(emotion: String) -> String:
+	match emotion:
+		"nerviosa", "nerviosa_sudando":
+			return "nerviosa_sudando"
+		"sonrojada", "sonrojada_picante":
+			return "sonrojada_picante"
+		"hollin", "hollin_derrota":
+			return "hollin_derrota"
+		"confiada":
+			return "confiada"
+		"sorprendida":
+			return "sorprendida"
+		"impaciente":
+			return "impaciente"
+		_:
+			return "normal"
+
+
+func play_voice_bark(
+	char_id: StringName,
+	kind: String = "witch",
+	emotion: String = "normal",
+	min_interval_sec: float = 0.0,
+	volume_offset_db: float = 0.0
+) -> bool:
+	if char_id == &"":
+		return false
+	var emo_key: String = normalize_emotion_key(emotion)
+	var char_key: String = "%s:%s" % [kind, String(char_id)]
+	var now_ms: int = Time.get_ticks_msec()
+	if min_interval_sec > 0.0 and _last_bark_msec.has(char_key):
+		var elapsed_sec: float = float(now_ms - int(_last_bark_msec[char_key])) / 1000.0
+		if elapsed_sec < min_interval_sec:
+			return false
+
+	var variations: Array[AudioStream] = _get_voice_variations(char_id, kind, emo_key)
+	if variations.is_empty():
+		return false
+
+	var chosen: AudioStream = variations[randi() % variations.size()]
+	var player: AudioStreamPlayer = _customer_voice_player if kind == "customer" else _witch_voice_player
+	if player == null:
+		return false
+	player.stream = chosen
+	player.pitch_scale = randf_range(0.98, 1.02)
+	player.volume_db = -1.5 + volume_offset_db
+	player.play()
+	_last_bark_msec[char_key] = now_ms
+	return true
+
+
+func is_voice_playing() -> bool:
+	var w_on: bool = _witch_voice_player != null and _witch_voice_player.playing
+	var c_on: bool = _customer_voice_player != null and _customer_voice_player.playing
+	return w_on or c_on
+
+
+func stop_voices() -> void:
+	if _witch_voice_player != null and _witch_voice_player.playing:
+		_witch_voice_player.stop()
+	if _customer_voice_player != null and _customer_voice_player.playing:
+		_customer_voice_player.stop()
+
+
+func _get_voice_variations(char_id: StringName, kind: String, emo_key: String) -> Array[AudioStream]:
+	var cache_key: String = "%s:%s:%s" % [kind, String(char_id), emo_key]
+	if _voice_bark_cache.has(cache_key):
+		return _voice_bark_cache[cache_key] as Array[AudioStream]
+
+	var base_dir: String = VOICE_CUSTOMERS_DIR if kind == "customer" else VOICE_PLAYABLE_DIR
+	var cid: String = String(char_id)
+	var list: Array[AudioStream] = []
+	for idx: int in range(1, 10):
+		var path: String = "%s/%s/vo_%s_%s_%02d.wav" % [base_dir, cid, cid, emo_key, idx]
+		if ResourceLoader.exists(path):
+			var stream: AudioStream = load(path) as AudioStream
+			if stream != null:
+				list.append(stream)
+	_voice_bark_cache[cache_key] = list
+	return list
 
 
 func trigger_screen_shake(intensity: float = 10.0, duration: float = 0.25) -> void:
